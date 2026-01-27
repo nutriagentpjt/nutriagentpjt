@@ -1,0 +1,42 @@
+# See https://pre-commit.com for more information
+# See https://pre-commit.com/hooks.html for more hooks
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: check-added-large-files
+        args: ['--maxkb=1000']  # 1MB 이상 파일 차단
+      - id: check-toml
+      - id: check-yaml
+        args:
+          - --unsafe
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+
+  - repo: local
+    hooks:
+      # Frontend linting (ESLint)
+      - id: local-eslint
+        name: eslint
+        entry: npm run lint
+        language: system
+        files: ^frontend/.*\.(js|jsx|ts|tsx)$
+        pass_filenames: false
+
+      # Python linting (backend-fastapi)
+      - id: local-ruff-check
+        name: ruff check
+        entry: uv run --directory backend-fastapi ruff check --force-exclude --fix --exit-non-zero-on-fix
+        require_serial: true
+        language: system
+        types: [python]
+        files: ^backend-fastapi/
+
+      # Python formatting (backend-fastapi)
+      - id: local-ruff-format
+        name: ruff format
+        entry: uv run --directory backend-fastapi ruff format --force-exclude --exit-non-zero-on-format
+        require_serial: true
+        language: system
+        types: [python]
+        files: ^backend-fastapi/
