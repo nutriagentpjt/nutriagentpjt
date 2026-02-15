@@ -8,14 +8,14 @@ interface MacroCardProps {
 
 export function MacroCard({ name, current, goal, unit, color }: MacroCardProps) {
   const percentage = Math.round((current / goal) * 100);
-  
+
   // 색상별 그라데이션 정의
   const gradientMap: { [key: string]: string } = {
     "#10b981": "from-emerald-500 to-green-600",
     "#3b82f6": "from-blue-500 to-blue-600",
     "#f59e0b": "from-amber-500 to-orange-600",
   };
-  
+
   const gradientClass = gradientMap[color] || "from-gray-500 to-gray-600";
 
   return (
