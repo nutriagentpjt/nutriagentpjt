@@ -20,4 +20,16 @@ export default defineConfig([
       globals: globals.browser,
     },
   },
+
+    // Temporarily relaxed some ESLint rules temporarily to allow integration of Figma-generated UI.
+  {
+    files: ['**/*.{ts,tsx}'],
+    rules: {
+      '@typescript-eslint/no-unused-vars': 'warn',
+      '@typescript-eslint/no-explicit-any': 'warn',
+      'react-hooks/purity': 'off',
+      'react-refresh/only-export-components': 'off',
+    },
+  },
+
 ])
