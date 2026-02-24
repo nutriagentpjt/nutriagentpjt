@@ -74,5 +74,13 @@ Thumbs.db
 logs/
 *.log
 
+# Gradle / Spring Boot
+.gradle/
+backend-spring/.gradle/
+*.gradle.kts.compiled
+gradle-app.setting
+!gradle-wrapper.jar
+.gradletasknamecache
+
 # Env
 .env
