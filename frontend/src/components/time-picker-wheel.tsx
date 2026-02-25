@@ -18,7 +18,7 @@ export function TimePickerWheel({ value, max, onChange, label }: TimePickerWheel
 
   // 항목 높이
   const itemHeight = 40;
-
+  
   // 숫자 배열 생성 (0 ~ max)
   const numbers = Array.from({ length: max + 1 }, (_, i) => i);
 
@@ -92,7 +92,7 @@ export function TimePickerWheel({ value, max, onChange, label }: TimePickerWheel
 
   const handleInputBlur = () => {
     const numValue = parseInt(inputValue, 10);
-
+    
     // 유효성 검사: 범위를 벗어나거나 숫자가 아니면 00으로 설정
     if (isNaN(numValue) || numValue < 0 || numValue > max) {
       onChange(0);
@@ -101,7 +101,7 @@ export function TimePickerWheel({ value, max, onChange, label }: TimePickerWheel
       onChange(numValue);
       setInputValue(String(numValue).padStart(2, '0'));
     }
-
+    
     setIsInputMode(false);
   };
 
@@ -173,7 +173,7 @@ export function TimePickerWheel({ value, max, onChange, label }: TimePickerWheel
         >
           {/* 상단 패딩 */}
           <div style={{ height: `${itemHeight}px` }} />
-
+          
           {/* 숫자 항목들 */}
           {numbers.map((num) => (
             <div
@@ -189,12 +189,12 @@ export function TimePickerWheel({ value, max, onChange, label }: TimePickerWheel
               {String(num).padStart(2, '0')}
             </div>
           ))}
-
+          
           {/* 하단 패딩 */}
           <div style={{ height: `${itemHeight}px` }} />
         </div>
       </div>
-
+      
       {/* 레이블 */}
       <p className="text-xs text-gray-500 mt-1">{label}</p>
     </div>

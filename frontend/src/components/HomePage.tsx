@@ -55,7 +55,7 @@ export default function HomePage() {
   const generateDummyMeals = () => {
     const dummyData: { [key: string]: any[] } = {};
     const today = new Date();
-
+    
     const foodOptions = [
       { name: "닭가슴살 샐러드", calories: 350, protein: 35, carbs: 30, fat: 10 },
       { name: "연어 덮밥", calories: 520, protein: 28, carbs: 55, fat: 18 },
@@ -74,31 +74,31 @@ export default function HomePage() {
       { name: "아보카도 토스트", calories: 280, protein: 10, carbs: 35, fat: 12 },
       { name: "참치 샌드위치", calories: 380, protein: 28, carbs: 42, fat: 10 },
     ];
-
+    
     for (let i = 0; i <= 10; i++) {
       const pastDate = new Date(today);
       pastDate.setDate(pastDate.getDate() - i);
       const dateKey = pastDate.toISOString().split('T')[0];
-
+      
       // 랜덤 식단 생성 (하루 3-5끼)
       const mealCount = 3 + Math.floor(Math.random() * 3);
       const meals: any[] = [];
-
+      
       const usedIndices = new Set<number>();
-
+      
       for (let j = 0; j < mealCount; j++) {
         let foodIndex;
         do {
           foodIndex = Math.floor(Math.random() * foodOptions.length);
         } while (usedIndices.has(foodIndex));
         usedIndices.add(foodIndex);
-
+        
         const food = foodOptions[foodIndex];
         const variance = 0.8 + Math.random() * 0.4; // 80-120% 변동
-
+        
         const hour = 8 + j * 3;
         const minute = Math.floor(Math.random() * 6) * 10;
-
+        
         meals.push({
           id: Date.now() + j + i * 1000 + Math.random() * 1000,
           name: food.name,
@@ -109,13 +109,13 @@ export default function HomePage() {
           fat: Math.round(food.fat * variance),
         });
       }
-
+      
       // 시간순 정렬
       meals.sort((a, b) => a.time.localeCompare(b.time));
-
+      
       dummyData[dateKey] = meals;
     }
-
+    
     return dummyData;
   };
 
@@ -127,7 +127,7 @@ export default function HomePage() {
     try {
       const saved = localStorage.getItem('nutriagent_meals_v2');
       const dummyData = generateDummyMeals();
-
+      
       if (saved) {
         const savedData = JSON.parse(saved);
         // 더미 데이터와 저장된 데이터를 병합 (저장된 데이터가 우선)
@@ -215,7 +215,7 @@ export default function HomePage() {
     const newDate = new Date(selectedDate);
     newDate.setDate(newDate.getDate() + 1);
     const today = new Date();
-
+    
     // 현재 날짜를 넘지 않도록 제한
     if (newDate <= today) {
       setSelectedDate(newDate);
@@ -249,7 +249,7 @@ export default function HomePage() {
   const handleSelectCalendarDate = (date: Date) => {
     const today = new Date();
     today.setHours(23, 59, 59, 999); // 오늘의 끝으로 설정
-
+    
     if (date <= today) {
       setSelectedDate(date);
       setShowCalendar(false);
@@ -263,19 +263,19 @@ export default function HomePage() {
     const lastDay = new Date(year, month + 1, 0);
     const daysInMonth = lastDay.getDate();
     const startingDayOfWeek = firstDay.getDay();
-
+    
     const days: (Date | null)[] = [];
-
+    
     // 이전 달의 빈 칸
     for (let i = 0; i < startingDayOfWeek; i++) {
       days.push(null);
     }
-
+    
     // 현재 달의 날짜들
     for (let i = 1; i <= daysInMonth; i++) {
       days.push(new Date(year, month, i));
     }
-
+    
     return days;
   };
 
@@ -346,8 +346,8 @@ export default function HomePage() {
 
   // 자동완성 데이터베이스 (추후 실제 DB로 대체 가능)
   const autocompleteDatabase = [
-    "닭가슴살", "김치찌개", "된장찌개", "삼겹살", "쌀밥", "현미밥",
-    "고구마", "달걀", "바나나", "사과", "오렌지", "샐러드",
+    "닭가슴살", "김치찌개", "된장찌개", "삼겹살", "쌀밥", "현미밥", 
+    "고구마", "달걀", "바나나", "사과", "오렌지", "샐러드", 
     "아보카도", "연어", "참치", "두부", "요거트", "그릭요거트",
     "프로틴바", "프로틴쉐이크", "오트밀", "퀴노아", "닭다리", "닭안심",
     "소고기", "돼지고기", "새우", "오징어", "고등어", "브로콜리",
@@ -357,7 +357,7 @@ export default function HomePage() {
   // 자동완성 검색 함수 (추후 DB API로 대체 가능)
   const searchAutocomplete = (query: string): string[] => {
     if (query.length < 2) return [];
-
+    
     const lowerQuery = query.toLowerCase();
     return autocompleteDatabase
       .filter(item => item.toLowerCase().includes(lowerQuery))
@@ -474,7 +474,7 @@ export default function HomePage() {
 
   const handleSaveEdit = () => {
     const amount = parseFloat(editAmount);
-
+    
     // 섭취량 유효성 검사
     if (isNaN(amount) || amount < 1 || amount > 10000) {
       setShowAmountWarning(true);
@@ -483,7 +483,7 @@ export default function HomePage() {
 
     // 영양소 비율 계산 (100g 기준으로 환산)
     const ratio = editUnit === "gram" ? amount / 100 : amount;
-
+    
     setMealsByDate((prev) => ({
       ...prev,
       [currentDateKey]: (prev[currentDateKey] || []).map((meal) => {
@@ -550,7 +550,7 @@ export default function HomePage() {
     if (selectedGalleryImage !== null) {
       setGalleryMode(false);
       setIsAnalyzing(true);
-
+      
       // 2초 후 김치찌개로 인식 성공
       setTimeout(() => {
         setIsAnalyzing(false);
@@ -761,7 +761,7 @@ export default function HomePage() {
                 alt="카메라 프리뷰"
                 className="w-full h-full object-cover object-center"
               />
-
+              
               {/* Overlay Guide */}
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                 <div className="w-96 h-64 border-2 border-white/50 rounded-2xl"></div>
@@ -1013,14 +1013,14 @@ export default function HomePage() {
             <button className="w-9 h-9 flex items-center justify-center text-gray-600 active:bg-gray-100 rounded-lg transition-colors" onClick={handlePreviousDay}>
               <ChevronLeft className="w-5 h-5" />
             </button>
-            <button
+            <button 
               className="flex items-center gap-2 px-3.5 py-2 bg-white rounded-xl shadow-sm active:bg-gray-50 transition-colors"
               onClick={handleOpenCalendar}
             >
               <Calendar className="w-4 h-4 text-green-500" />
               <span className="text-xs font-medium text-gray-900">{today}</span>
             </button>
-            <button
+            <button 
               className={`w-9 h-9 flex items-center justify-center text-gray-600 rounded-lg transition-colors ${
                 isToday() ? 'opacity-50 cursor-not-allowed' : 'active:bg-gray-100'
               }`}
@@ -1124,7 +1124,7 @@ export default function HomePage() {
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center px-5">
           <div className="bg-white rounded-2xl p-6 w-full max-w-[340px] shadow-xl">
             <h3 className="text-lg font-bold text-gray-900 mb-5">건강 데이터 수정</h3>
-
+            
             {/* Weight Input */}
             <div className="mb-5">
               <label className="block text-sm font-semibold text-gray-700 mb-2">
@@ -1231,11 +1231,11 @@ export default function HomePage() {
 
       {/* Image Source Modal */}
       {showImageSourceModal && (
-        <div
+        <div 
           className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center px-5"
           onClick={() => setShowImageSourceModal(false)}
         >
-          <div
+          <div 
             className="bg-white rounded-2xl p-6 w-full max-w-[340px] shadow-xl"
             onClick={(e) => e.stopPropagation()}
           >
@@ -1265,11 +1265,11 @@ export default function HomePage() {
 
       {/* Empty Search Warning Modal */}
       {showEmptySearchWarning && (
-        <div
+        <div 
           className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center px-5"
           onClick={() => setShowEmptySearchWarning(false)}
         >
-          <div
+          <div 
             className="bg-white rounded-2xl p-6 w-full max-w-[340px] shadow-xl"
             onClick={(e) => e.stopPropagation()}
           >
@@ -1295,11 +1295,11 @@ export default function HomePage() {
 
       {/* No Results Warning Modal */}
       {showNoResultsWarning && (
-        <div
+        <div 
           className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center px-5"
           onClick={() => setShowNoResultsWarning(false)}
         >
-          <div
+          <div 
             className="bg-white rounded-2xl p-6 w-full max-w-[340px] shadow-xl"
             onClick={(e) => e.stopPropagation()}
           >
@@ -1336,11 +1336,11 @@ export default function HomePage() {
 
       {/* Server Error Modal */}
       {showServerErrorModal && (
-        <div
+        <div 
           className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center px-5"
           onClick={() => setShowServerErrorModal(false)}
         >
-          <div
+          <div 
             className="bg-white rounded-2xl p-6 w-full max-w-[340px] shadow-xl"
             onClick={(e) => e.stopPropagation()}
           >
@@ -1368,11 +1368,11 @@ export default function HomePage() {
 
       {/* Timeout Error Modal */}
       {showTimeoutErrorModal && (
-        <div
+        <div 
           className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center px-5"
           onClick={() => setShowTimeoutErrorModal(false)}
         >
-          <div
+          <div 
             className="bg-white rounded-2xl p-6 w-full max-w-[340px] shadow-xl"
             onClick={(e) => e.stopPropagation()}
           >
@@ -1400,17 +1400,17 @@ export default function HomePage() {
 
       {/* Edit Meal Modal */}
       {editingMeal && (
-        <div
+        <div 
           className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center px-5"
           onClick={() => setEditingMeal(null)}
         >
-          <div
+          <div 
             className="bg-white rounded-2xl p-6 w-full max-w-[340px] shadow-xl"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex flex-col">
               <h3 className="text-lg font-bold text-gray-900 mb-4">음식 정보 수정</h3>
-
+              
               {/* 음식 이름 */}
               <div className="mb-4">
                 <p className="text-sm font-medium text-gray-700 mb-2">{editingMeal.name}</p>
@@ -1483,11 +1483,11 @@ export default function HomePage() {
 
       {/* Amount Warning Modal */}
       {showAmountWarning && (
-        <div
+        <div 
           className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center px-5"
           onClick={() => setShowAmountWarning(false)}
         >
-          <div
+          <div 
             className="bg-white rounded-2xl p-6 w-full max-w-[340px] shadow-xl"
             onClick={(e) => e.stopPropagation()}
           >
@@ -1512,11 +1512,11 @@ export default function HomePage() {
 
       {/* Calendar Modal */}
       {showCalendar && (
-        <div
+        <div 
           className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center px-5"
           onClick={() => setShowCalendar(false)}
         >
-          <div
+          <div 
             className="bg-white rounded-2xl p-5 w-full max-w-[340px] shadow-xl"
             onClick={(e) => e.stopPropagation()}
           >
@@ -1557,7 +1557,7 @@ export default function HomePage() {
                 const isSelected = date && isSameDay(date, selectedDate);
                 const isToday = date && isTodayDate(date);
                 const isPast = date && isBeforeToday(date);
-
+                
                 return (
                   <button
                     key={index}
@@ -1593,17 +1593,17 @@ export default function HomePage() {
 
       {/* Add Custom Food Modal */}
       {showAddCustomModal && (
-        <div
+        <div 
           className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center px-5"
           onClick={() => setShowAddCustomModal(false)}
         >
-          <div
+          <div 
             className="bg-white rounded-2xl p-6 w-full max-w-[340px] shadow-xl"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex flex-col">
               <h3 className="text-lg font-bold text-gray-900 mb-4">커스텀 음식 추가</h3>
-
+              
               {/* 음식 이름 */}
               <div className="mb-4">
                 <label className="text-sm font-medium text-gray-700 mb-2 block">음식 이름</label>
@@ -1727,11 +1727,11 @@ export default function HomePage() {
 
       {/* Custom Food Warning Modal */}
       {showCustomFoodWarning && (
-        <div
+        <div 
           className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center px-5"
           onClick={() => setShowCustomFoodWarning(false)}
         >
-          <div
+          <div 
             className="bg-white rounded-2xl p-6 w-full max-w-[340px] shadow-xl"
             onClick={(e) => e.stopPropagation()}
           >

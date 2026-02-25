@@ -52,19 +52,19 @@ export default function StatsPage() {
   const generateDummyDataForPastDays = () => {
     const dummyData: { [key: string]: Meal[] } = {};
     const today = new Date();
-
+    
     for (let i = 1; i <= 10; i++) {
       const pastDate = new Date(today);
       pastDate.setDate(pastDate.getDate() - i);
       const dateKey = pastDate.toISOString().split('T')[0];
-
+      
       // 이미 데이터가 있으면 스킵
       if (mealsByDate[dateKey]) continue;
-
+      
       // 랜덤 식단 생성 (하루 3-5끼)
       const mealCount = 3 + Math.floor(Math.random() * 3);
       const meals: Meal[] = [];
-
+      
       const foodOptions = [
         { name: "닭가슴살 샐러드", calories: 350, protein: 35, carbs: 30, fat: 10 },
         { name: "연어 덮밥", calories: 520, protein: 28, carbs: 55, fat: 18 },
@@ -77,11 +77,11 @@ export default function StatsPage() {
         { name: "프로틴 쉐이크", calories: 160, protein: 30, carbs: 8, fat: 2 },
         { name: "닭가슴살", calories: 165, protein: 31, carbs: 0, fat: 4 },
       ];
-
+      
       for (let j = 0; j < mealCount; j++) {
         const food = foodOptions[Math.floor(Math.random() * foodOptions.length)];
         const variance = 0.8 + Math.random() * 0.4; // 80-120% 변동
-
+        
         meals.push({
           id: Date.now() + j + i * 1000,
           name: food.name,
@@ -92,10 +92,10 @@ export default function StatsPage() {
           fat: Math.round(food.fat * variance),
         });
       }
-
+      
       dummyData[dateKey] = meals;
     }
-
+    
     return dummyData;
   };
 
@@ -124,16 +124,16 @@ export default function StatsPage() {
   const aggregateDataByDate = (dateKey: string): DayData => {
     const allMeals = getAllMeals();
     const meals = allMeals[dateKey] || [];
-
+    
     const totalCalories = meals.reduce((sum, meal) => sum + meal.calories, 0);
     const totalProtein = meals.reduce((sum, meal) => sum + meal.protein, 0);
     const totalCarbs = meals.reduce((sum, meal) => sum + meal.carbs, 0);
     const totalFat = meals.reduce((sum, meal) => sum + meal.fat, 0);
-
+    
     // 실제 건강 데이터 사용 또는 시뮬레이션
     let weight: number;
     let water: number;
-
+    
     if (healthData[dateKey]?.weight !== undefined) {
       // 사용자가 입력한 실제 몸무게
       weight = healthData[dateKey].weight!;
@@ -143,7 +143,7 @@ export default function StatsPage() {
       const weightVariation = (totalCalories - 1800) / 1000; // 칼로리에 따른 변동
       weight = prevWeight + weightVariation + (Math.random() * 0.4 - 0.2);
     }
-
+    
     if (healthData[dateKey]?.water !== undefined) {
       // 사용자가 입력한 실제 물 섭취량
       water = healthData[dateKey].water!;
@@ -151,7 +151,7 @@ export default function StatsPage() {
       // 시뮬레이션
       water = 1.8 + Math.random() * 0.8; // 1.8-2.6L
     }
-
+    
     return {
       date: dateKey,
       calories: totalCalories,
@@ -184,7 +184,7 @@ export default function StatsPage() {
   // 현재 기간 텍스트 생성
   const getCurrentPeriodText = () => {
     const today = new Date();
-
+    
     if (selectedPeriod === "week") {
       // 이번 주의 월요일 구하기
       const targetDate = new Date(today);
@@ -194,7 +194,7 @@ export default function StatsPage() {
       const monday = new Date(targetDate.setDate(diff));
       const sunday = new Date(monday);
       sunday.setDate(monday.getDate() + 6);
-
+      
       return `${monday.getFullYear()}.${monday.getMonth() + 1}.${monday.getDate()}~${sunday.getFullYear()}.${sunday.getMonth() + 1}.${sunday.getDate()}`;
     } else if (selectedPeriod === "month") {
       const targetDate = new Date(today);
@@ -203,7 +203,7 @@ export default function StatsPage() {
       const month = targetDate.getMonth() + 1;
       const firstDay = new Date(year, targetDate.getMonth(), 1);
       const lastDay = new Date(year, targetDate.getMonth() + 1, 0);
-
+      
       return `${year}.${month}.${firstDay.getDate()}~${year}.${month}.${lastDay.getDate()}`;
     } else {
       const year = today.getFullYear() + periodOffset;
@@ -221,19 +221,19 @@ export default function StatsPage() {
     const day = targetDate.getDay();
     const diff = targetDate.getDate() - day + (day === 0 ? -6 : 1);
     const monday = new Date(targetDate.setDate(diff));
-
+    
     const dayLabels = ["월", "화", "수", "목", "금", "토", "일"];
-
+    
     for (let i = 0; i < 7; i++) {
       const date = new Date(monday);
       date.setDate(monday.getDate() + i);
-
+      
       // 미래 날짜는 제외
       if (date > today) continue;
-
+      
       const dateKey = date.toISOString().split('T')[0];
       const dayData = aggregateDataByDate(dateKey);
-
+      
       weekData.push({
         date: dayLabels[i],
         calories: dayData.calories,
@@ -244,7 +244,7 @@ export default function StatsPage() {
         water: dayData.water,
       });
     }
-
+    
     return weekData;
   };
 
@@ -257,19 +257,19 @@ export default function StatsPage() {
     targetDate.setMonth(targetDate.getMonth() + periodOffset);
     const year = targetDate.getFullYear();
     const month = targetDate.getMonth();
-
+    
     // 해당 월의 첫날과 마지막 날
     const firstDay = new Date(year, month, 1);
     const lastDay = new Date(year, month + 1, 0);
-
+    
     // 일별 데이터 생성
     for (let d = new Date(firstDay); d <= lastDay; d.setDate(d.getDate() + 1)) {
       // 미래 날짜는 제외
       if (d > today) break;
-
+      
       const dateKey = d.toISOString().split('T')[0];
       const dayData = aggregateDataByDate(dateKey);
-
+      
       monthData.push({
         date: `${d.getDate()}일`,
         calories: dayData.calories,
@@ -280,7 +280,7 @@ export default function StatsPage() {
         water: dayData.water,
       });
     }
-
+    
     return monthData;
   };
 
@@ -290,29 +290,29 @@ export default function StatsPage() {
     today.setHours(0, 0, 0, 0); // 오늘 자정으로 설정
     const yearData: any[] = [];
     const year = today.getFullYear() + periodOffset;
-
+    
     const monthLabels = ["1월", "2월", "3월", "4월", "5월", "6월", "7월", "8월", "9월", "10월", "11월", "12월"];
-
+    
     for (let month = 0; month < 12; month++) {
       const firstDay = new Date(year, month, 1);
       const lastDay = new Date(year, month + 1, 0);
-
+      
       // 미래 월은 제외
       if (firstDay > today) break;
-
+      
       // 월 단위 데이터 집계
       const monthDays: DayData[] = [];
       for (let d = new Date(firstDay); d <= lastDay; d.setDate(d.getDate() + 1)) {
         // 미래 날짜는 제외
         if (d > today) break;
-
+        
         const dateKey = d.toISOString().split('T')[0];
         monthDays.push(aggregateDataByDate(dateKey));
       }
-
+      
       // 데이터가 없으면 스킵
       if (monthDays.length === 0) continue;
-
+      
       // 평균 계산
       const avgCalories = Math.round(monthDays.reduce((sum, d) => sum + d.calories, 0) / monthDays.length) || 0;
       const avgWeight = parseFloat((monthDays.reduce((sum, d) => sum + d.weight, 0) / monthDays.length).toFixed(1)) || 0;
@@ -320,7 +320,7 @@ export default function StatsPage() {
       const avgProtein = Math.round(monthDays.reduce((sum, d) => sum + d.protein, 0) / monthDays.length) || 0;
       const avgFat = Math.round(monthDays.reduce((sum, d) => sum + d.fat, 0) / monthDays.length) || 0;
       const avgWater = parseFloat((monthDays.reduce((sum, d) => sum + d.water, 0) / monthDays.length).toFixed(1)) || 0;
-
+      
       yearData.push({
         date: monthLabels[month],
         calories: avgCalories,
@@ -331,7 +331,7 @@ export default function StatsPage() {
         water: avgWater,
       });
     }
-
+    
     return yearData;
   };
 
@@ -419,7 +419,7 @@ export default function StatsPage() {
 
         {/* Period Navigation */}
         <div className="flex items-center justify-center gap-2">
-          <button
+          <button 
             className="w-9 h-9 flex items-center justify-center text-gray-600 active:bg-gray-100 rounded-lg transition-colors"
             onClick={handlePreviousPeriod}
           >
@@ -428,7 +428,7 @@ export default function StatsPage() {
           <div className="flex items-center gap-2 px-3.5 py-2 bg-white rounded-xl shadow-sm">
             <span className="text-xs font-medium text-gray-900">{getCurrentPeriodText()}</span>
           </div>
-          <button
+          <button 
             className={`w-9 h-9 flex items-center justify-center text-gray-600 rounded-lg transition-colors ${
               periodOffset >= 0 ? 'opacity-50 cursor-not-allowed' : 'active:bg-gray-100'
             }`}
@@ -486,7 +486,7 @@ export default function StatsPage() {
               <p className="text-xs text-gray-500">일일 칼로리 추이</p>
             </div>
           </div>
-          <ResponsiveContainer width="100%" height={200}>
+          <ResponsiveContainer width="100%" height={200} minHeight={200}>
             <LineChart data={data}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
               <XAxis dataKey="date" tick={{ fontSize: 11 }} stroke="#9ca3af" />
@@ -513,11 +513,11 @@ export default function StatsPage() {
               <Scale className="w-4.5 h-4.5 text-blue-500" />
             </div>
             <div>
-              <h3 className="text-sm font-semibold text-gray-900">몸무게 변화</h3>
+              <h3 className="font-semibold text-gray-900">몸무게</h3>
               <p className="text-xs text-gray-500">체중 추이</p>
             </div>
           </div>
-          <ResponsiveContainer width="100%" height={200}>
+          <ResponsiveContainer width="100%" height={200} minHeight={200}>
             <LineChart data={data}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
               <XAxis dataKey="date" tick={{ fontSize: 11 }} stroke="#9ca3af" />
@@ -548,13 +548,13 @@ export default function StatsPage() {
               <p className="text-xs text-gray-500">탄수화물 · 단백질 · 지방</p>
             </div>
           </div>
-          <ResponsiveContainer width="100%" height={220}>
+          <ResponsiveContainer width="100%" height={220} minHeight={220}>
             <AreaChart data={data}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
               <XAxis dataKey="date" tick={{ fontSize: 11 }} stroke="#9ca3af" />
               <YAxis tick={{ fontSize: 11 }} stroke="#9ca3af" />
               <Tooltip content={<CustomTooltip />} />
-              <Legend
+              <Legend 
                 wrapperStyle={{ fontSize: "11px", paddingTop: "10px" }}
                 iconType="circle"
               />
@@ -603,7 +603,7 @@ export default function StatsPage() {
               <p className="text-xs text-gray-500">일일 수분 섭취 추이</p>
             </div>
           </div>
-          <ResponsiveContainer width="100%" height={200}>
+          <ResponsiveContainer width="100%" height={200} minHeight={200}>
             <LineChart data={data}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
               <XAxis dataKey="date" tick={{ fontSize: 11 }} stroke="#9ca3af" />

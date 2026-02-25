@@ -29,7 +29,7 @@ export function MealList({ meals, onRemoveMeal, onEditMeal, onAddCustomMeal }: M
     if (autoCloseTimerRef.current) {
       clearTimeout(autoCloseTimerRef.current);
     }
-
+    
     // 1.5초 후 자동으로 닫기
     autoCloseTimerRef.current = setTimeout(() => {
       setCurrentX(0);
@@ -66,7 +66,7 @@ export function MealList({ meals, onRemoveMeal, onEditMeal, onAddCustomMeal }: M
     cancelAutoCloseTimer(); // 이동 중에는 타이머 취소
     const deltaX = e.touches[0].clientX - startX;
     const newX = initialX + deltaX;
-
+    
     // -80 ~ 0 범위 내에서만 이동 허용
     setCurrentX(Math.max(-80, Math.min(0, newX)));
   };
@@ -95,7 +95,7 @@ export function MealList({ meals, onRemoveMeal, onEditMeal, onAddCustomMeal }: M
     cancelAutoCloseTimer(); // 이동 중에는 타이머 취소
     const deltaX = e.clientX - startX;
     const newX = initialX + deltaX;
-
+    
     // -80 ~ 0 범위 내에서만 이동 허용
     setCurrentX(Math.max(-80, Math.min(0, newX)));
   };

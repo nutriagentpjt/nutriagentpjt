@@ -18,12 +18,12 @@ export default function Root() {
   // 스크롤 이벤트 핸들러
   const handleScroll = () => {
     setIsScrolling(true);
-
+    
     // 이전 타이머 취소
     if (scrollTimeoutRef.current) {
       clearTimeout(scrollTimeoutRef.current);
     }
-
+    
     // 1초 후 스크롤바 숨기기
     scrollTimeoutRef.current = setTimeout(() => {
       setIsScrolling(false);
@@ -56,7 +56,7 @@ export default function Root() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white flex justify-center">
       <div className="w-full max-w-[390px] relative flex flex-col h-screen">
-        <div
+        <div 
           className={`flex-1 overflow-y-auto pb-[68px] transition-all ${
             isScrolling
               ? "[&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-300 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:opacity-100"
