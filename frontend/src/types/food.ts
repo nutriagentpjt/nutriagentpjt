@@ -10,3 +10,8 @@ export interface Food {
   servingSize: string;
   servingUnit: string;
 }
+
+export interface FoodSearchResponse {
+  foods: Food[];
+  total: number;
+}

@@ -3,13 +3,13 @@ import axios, {
     AxiosError,
     InternalAxiosRequestConfig,
 } from 'axios';
-import type { ApiError } from '@types/api';
+import type { ApiError } from '../types';
 import { getAccessToken, removeAccessToken } from '@utils/auth';
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
-const api: AxiosInstance = axios.create({
-    baseURL: BASE_URL,
+const apiClient = axios.create({
+    baseURL: import.meta.env.VITE_API_URL + '/api',
     timeout: 10000,
     headers: {
         'Content-Type': 'application/json',
@@ -17,7 +17,7 @@ const api: AxiosInstance = axios.create({
 });
 
 // 🔹 Request Interceptor
-api.interceptors.request.use(
+apiClient.interceptors.request.use(
     (config: InternalAxiosRequestConfig) => {
         const token = getAccessToken();
 
@@ -38,17 +38,9 @@ api.interceptors.request.use(
 );
 
 // 🔹 Response Interceptor
-api.interceptors.response.use(
-    (response) => {
-        if (import.meta.env.DEV) {
-            console.log('✅ API Response:', {
-                url: response.config.url,
-                status: response.status,
-            });
-        }
-        return response;
-    },
-    (error: AxiosError): Promise<ApiError> => {
+apiClient.interceptors.response.use(
+    (response) => response,
+    (error: AxiosError) => {
         const apiError: ApiError = {
             message: 'Unexpected error occurred',
         };
@@ -84,4 +76,4 @@ api.interceptors.response.use(
     }
 );
 
-export default api;
+export default apiClient;

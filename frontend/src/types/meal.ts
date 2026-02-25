@@ -1,24 +1,41 @@
+// src/types/meal.ts
+
+export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack';
+
 export interface Meal {
-    id: string;
-    foodId: string;
+    id: number;
+    userId: number;
+
+    foodId: number;
     foodName: string;
-    servings: number;
+
+    mealType: MealType;
+    amount: number;
+
+    date: string;       // YYYY-MM-DD
+    createdAt: string;  // ISO timestamp
 
     calories: number;
-    protein: number;
     carbs: number;
+    protein: number;
     fat: number;
-    fiber: number;
-
-    date: string;        // YYYY-MM-DD
-    mealTime: string;    // ISO string
 }
 
-export interface AddMealRequest {
+export interface CreateMealRequest {
+    userId: number;
     foodId: string;
     servings: number;
     date: string;
     mealTime: string;
 }
 
-export type UpdateMealRequest = Partial<AddMealRequest>;
+export type UpdateMealRequest = Partial<CreateMealRequest>;
+
+export interface MealSummaryResponse {
+    date: string;
+    totalCalories: number;
+    totalCarbs: number;
+    totalProtein: number;
+    totalFat: number;
+    meals: Meal[];
+}
