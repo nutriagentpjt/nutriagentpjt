@@ -32,12 +32,12 @@ export default function AIAgentPage() {
   // 스크롤 이벤트 핸들러
   const handleScroll = () => {
     setIsScrolling(true);
-
+    
     // 이전 타이머 취소
     if (scrollTimeoutRef.current) {
       clearTimeout(scrollTimeoutRef.current);
     }
-
+    
     // 1초 후 스크롤바 숨기기
     scrollTimeoutRef.current = setTimeout(() => {
       setIsScrolling(false);
@@ -167,7 +167,7 @@ export default function AIAgentPage() {
       </div>
 
       {/* Messages Area - 스크롤 가능 */}
-      <div
+      <div 
         className={`flex-1 overflow-y-auto px-5 py-5 space-y-4 transition-all ${
           isScrolling
             ? "[&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-300 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:opacity-100"
