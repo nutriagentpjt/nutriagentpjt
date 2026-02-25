@@ -1,28 +1,42 @@
 import api from './api';
-import type { Meal } from '../types';
+import type {
+  Meal,
+  CreateMealRequest,
+  MealSummaryResponse,
+} from '../types';
 
-export interface AddMealRequest {
-  date: string;       // YYYY-MM-DD
-  foodId: string;
-  servings: number;
-  mealTime: string;   // ISO string
-}
-
+/**
+ * 식단 관련 API 서비스
+ */
 export const mealService = {
   /**
    * 특정 날짜 식단 조회
    */
-  async getMealsByDate(date: string): Promise<Meal[]> {
+  async getMeals(userId: number, date: string): Promise<Meal[]> {
     const response = await api.get<Meal[]>('/meals', {
-      params: { date },
+      params: { userId, date },
     });
+    return response.data;
+  },
+
+  /**
+   * 특정 날짜 식단 요약 조회
+   */
+  async getMealSummary(
+      userId: number,
+      date: string
+  ): Promise<MealSummaryResponse> {
+    const response = await api.get<MealSummaryResponse>(
+        '/meals/summary',
+        { params: { userId, date } }
+    );
     return response.data;
   },
 
   /**
    * 식단 추가
    */
-  async addMeal(data: AddMealRequest): Promise<Meal> {
+  async createMeal(data: CreateMealRequest): Promise<Meal> {
     const response = await api.post<Meal>('/meals', data);
     return response.data;
   },
@@ -30,15 +44,33 @@ export const mealService = {
   /**
    * 식단 수정
    */
-  async updateMeal(id: string, meal: Partial<Meal>): Promise<Meal> {
-    const response = await api.put<Meal>(`/meals/${id}`, meal);
+  async updateMeal(
+      id: number,
+      data: Partial<Meal>
+  ): Promise<Meal> {
+    const response = await api.put<Meal>(
+        `/meals/${id}`,
+        data
+    );
     return response.data;
   },
 
   /**
    * 식단 삭제
    */
-  async deleteMeal(id: string): Promise<void> {
+  async deleteMeal(id: number): Promise<void> {
     await api.delete(`/meals/${id}`);
+  },
+
+  /**
+   * 이미지 업로드
+   */
+  async uploadImage(file: File) {
+    const formData = new FormData();
+    formData.append('image', file);
+
+    return api.post('/meals/upload/image', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
   },
 };
