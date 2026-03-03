@@ -132,19 +132,19 @@ public class MealService {
         // 6. 온보딩 완료 여부 확인 및 목표 추가
         UserProfile userProfile = userProfileRepository.findByUser(user).orElse(null);
         if (userProfile != null && userProfile.getOnboardingCompleted()) {
-            NutritionTarget target = nutritionTargetRepository.findByUserProfile(userProfile)
+            NutritionTarget target = nutritionTargetRepository.findByUser(user)
                     .orElse(null);
 
             if (target != null) {
                 summaryBuilder
-                        .targetCalories(target.getTargetCalories())
-                        .targetProtein(target.getTargetProtein())
-                        .targetCarbs(target.getTargetCarbs())
-                        .targetFat(target.getTargetFat())
-                        .caloriesAchievement(calculateAchievement(totalCalories, target.getTargetCalories()))
-                        .proteinAchievement(calculateAchievement(totalProtein, target.getTargetProtein()))
-                        .carbsAchievement(calculateAchievement(totalCarbs, target.getTargetCarbs()))
-                        .fatAchievement(calculateAchievement(totalFat, target.getTargetFat()));
+                        .targetCalories(target.getCalories())
+                        .targetProtein(target.getProtein())
+                        .targetCarbs(target.getCarbs())
+                        .targetFat(target.getFat())
+                        .caloriesAchievement(calculateAchievement(totalCalories, target.getCalories()))
+                        .proteinAchievement(calculateAchievement(totalProtein, target.getProtein()))
+                        .carbsAchievement(calculateAchievement(totalCarbs, target.getCarbs()))
+                        .fatAchievement(calculateAchievement(totalFat, target.getFat()));
             }
         }
 
