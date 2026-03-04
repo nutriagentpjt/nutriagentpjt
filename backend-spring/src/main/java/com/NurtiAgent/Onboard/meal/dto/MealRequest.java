@@ -8,6 +8,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDate;
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -26,8 +28,7 @@ public class MealRequest {
     private MealType mealType;
 
     @NotNull(message = "날짜를 입력해주세요")
-    @Pattern(regexp = "\\d{4}-\\d{2}-\\d{2}", message = "날짜 형식은 YYYY-MM-DD 입니다")
-    private String date;
+    private LocalDate date;
 
     private MealSource source; // RECOMMENDATION 또는 MANUAL
 

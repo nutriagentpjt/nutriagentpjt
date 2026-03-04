@@ -3,11 +3,12 @@ package com.NurtiAgent.Onboard.meal.dto;
 import com.NurtiAgent.Onboard.common.enums.MealType;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
-import jakarta.validation.constraints.Pattern;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
+import java.time.LocalDate;
 
 @Data
 @NoArgsConstructor
@@ -21,6 +22,5 @@ public class MealUpdateRequest {
 
     private MealType mealType;
 
-    @Pattern(regexp = "\\d{4}-\\d{2}-\\d{2}", message = "날짜 형식은 YYYY-MM-DD 입니다")
-    private String date;
+    private LocalDate date;
 }

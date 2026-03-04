@@ -1,6 +1,9 @@
 package com.NurtiAgent.Onboard.meal.entity;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.PositiveOrZero;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -20,21 +23,30 @@ public class Food {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @NotNull
     @Column(nullable = false)
     private String name; // 음식명
 
+    @NotNull
+    @Positive
     @Column(nullable = false)
     private Double weight; // 1회 제공량 (g)
 
+    @NotNull
+    @PositiveOrZero
     @Column(nullable = false)
     private Double calories; // 칼로리 (kcal)
 
+    @PositiveOrZero
     private Double carbs; // 탄수화물 (g)
 
+    @PositiveOrZero
     private Double protein; // 단백질 (g)
 
+    @PositiveOrZero
     private Double fat; // 지방 (g)
 
+    @PositiveOrZero
     private Double sodium; // 나트륨 (mg)
 
     @Column(nullable = false, updatable = false)

@@ -41,7 +41,7 @@ public class MealService {
                 .orElseThrow(() -> new RuntimeException("음식 정보를 찾을 수 없습니다"));
 
         // 3. 날짜 검증 (과거 30일 ~ 오늘)
-        LocalDate mealDate = LocalDate.parse(request.getDate());
+        LocalDate mealDate = request.getDate();
         LocalDate today = LocalDate.now();
         LocalDate thirtyDaysAgo = today.minusDays(30);
 
@@ -49,14 +49,19 @@ public class MealService {
             throw new IllegalArgumentException("과거 30일 ~ 오늘까지만 기록 가능합니다");
         }
 
-        // 4. 영양소 계산 (섭취량 기준)
+        // 4. 기준 제공량 검증
+        if (food.getWeight() == null || food.getWeight() <= 0) {
+            throw new IllegalStateException("음식의 기준 제공량이 유효하지 않습니다");
+        }
+
+        // 5. 영양소 계산 (섭취량 기준)
         double ratio = request.getAmount() / food.getWeight();
         double calories = food.getCalories() * ratio;
         Double protein = food.getProtein() != null ? food.getProtein() * ratio : null;
         Double carbs = food.getCarbs() != null ? food.getCarbs() * ratio : null;
         Double fat = food.getFat() != null ? food.getFat() * ratio : null;
 
-        // 5. Meal 엔티티 생성 및 저장
+        // 6. Meal 엔티티 생성 및 저장
         Meal meal = Meal.builder()
                 .user(user)
                 .food(food)
@@ -74,7 +79,7 @@ public class MealService {
 
         Meal savedMeal = mealRepository.save(meal);
 
-        // 6. Response 생성
+        // 7. Response 생성
         return MealResponse.builder()
                 .id(savedMeal.getId())
                 .userId(user.getGuestId())
@@ -193,7 +198,7 @@ public class MealService {
         }
 
         if (request.getDate() != null) {
-            LocalDate newDate = LocalDate.parse(request.getDate());
+            LocalDate newDate = request.getDate();
             LocalDate today = LocalDate.now();
             LocalDate thirtyDaysAgo = today.minusDays(30);
 
@@ -206,6 +211,12 @@ public class MealService {
         // 4. 섭취량이 변경되었으면 영양소 재계산
         if (needsRecalculation) {
             Food food = meal.getFood();
+
+            // 기준 제공량 검증
+            if (food.getWeight() == null || food.getWeight() <= 0) {
+                throw new IllegalStateException("음식의 기준 제공량이 유효하지 않습니다");
+            }
+
             double ratio = meal.getAmount() / food.getWeight();
             meal.setCalories(food.getCalories() * ratio);
             meal.setProtein(food.getProtein() != null ? food.getProtein() * ratio : null);
