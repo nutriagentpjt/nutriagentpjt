@@ -16,7 +16,6 @@ public class MealResponse {
 
     private Long id;
     private String userId; // guestId
-    private Long foodId;
     private String foodName;
     private Double amount;
     private Double calories;

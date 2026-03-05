@@ -31,6 +31,7 @@ services:
       DB_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-nutriagent}
       DB_USERNAME: ${POSTGRES_USER:-postgres}
       DB_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      FOOD_SERVICE_URL: ${FOOD_SERVICE_URL:-http://host.docker.internal:8000/foods}
     depends_on:
       postgres:
         condition: service_healthy

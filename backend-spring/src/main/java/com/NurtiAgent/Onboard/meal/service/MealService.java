@@ -1,9 +1,7 @@
 package com.NurtiAgent.Onboard.meal.service;
 
 import com.NurtiAgent.Onboard.meal.dto.*;
-import com.NurtiAgent.Onboard.meal.entity.Food;
 import com.NurtiAgent.Onboard.meal.entity.Meal;
-import com.NurtiAgent.Onboard.meal.repository.FoodRepository;
 import com.NurtiAgent.Onboard.meal.repository.MealRepository;
 import com.NurtiAgent.Onboard.profile.entity.NutritionTarget;
 import com.NurtiAgent.Onboard.profile.entity.UserProfile;
@@ -25,7 +23,7 @@ import java.util.stream.Collectors;
 public class MealService {
 
     private final MealRepository mealRepository;
-    private final FoodRepository foodRepository;
+    private final FoodService foodService;
     private final UserRepository userRepository;
     private final UserProfileRepository userProfileRepository;
     private final NutritionTargetRepository nutritionTargetRepository;
@@ -36,9 +34,8 @@ public class MealService {
         User user = userRepository.findByGuestId(guestId)
                 .orElseThrow(() -> new RuntimeException("인증 실패 (세션 없음)"));
 
-        // 2. 음식 정보 조회
-        Food food = foodRepository.findById(request.getFoodId())
-                .orElseThrow(() -> new RuntimeException("음식 정보를 찾을 수 없습니다"));
+        // 2. 음식 정보 조회 (FastAPI)
+        FoodResponse food = foodService.getFoodByName(request.getFoodName());
 
         // 3. 날짜 검증 (과거 30일 ~ 오늘)
         LocalDate mealDate = request.getDate();
@@ -49,23 +46,17 @@ public class MealService {
             throw new IllegalArgumentException("과거 30일 ~ 오늘까지만 기록 가능합니다");
         }
 
-        // 4. 기준 제공량 검증
-        if (food.getWeight() == null || food.getWeight() <= 0) {
-            throw new IllegalStateException("음식의 기준 제공량이 유효하지 않습니다");
-        }
-
-        // 5. 영양소 계산 (섭취량 기준)
-        double ratio = request.getAmount() / food.getWeight();
-        double calories = food.getCalories() * ratio;
+        // 4. 영양소 계산 (100g 기준 → 섭취량 비례)
+        double ratio = request.getAmount() / 100.0;
+        double calories = (food.getCalories() != null ? food.getCalories() : 0.0) * ratio;
         Double protein = food.getProtein() != null ? food.getProtein() * ratio : null;
         Double carbs = food.getCarbs() != null ? food.getCarbs() * ratio : null;
         Double fat = food.getFat() != null ? food.getFat() * ratio : null;
 
-        // 6. Meal 엔티티 생성 및 저장
+        // 5. Meal 엔티티 생성 및 저장
         Meal meal = Meal.builder()
                 .user(user)
-                .food(food)
-                .foodName(food.getName())
+                .foodName(request.getFoodName())
                 .amount(request.getAmount())
                 .calories(calories)
                 .protein(protein)
@@ -83,7 +74,6 @@ public class MealService {
         return MealResponse.builder()
                 .id(savedMeal.getId())
                 .userId(user.getGuestId())
-                .foodId(food.getId())
                 .foodName(savedMeal.getFoodName())
                 .amount(savedMeal.getAmount())
                 .calories(savedMeal.getCalories())
@@ -210,15 +200,12 @@ public class MealService {
 
         // 4. 섭취량이 변경되었으면 영양소 재계산
         if (needsRecalculation) {
-            Food food = meal.getFood();
+            // FastAPI에서 음식 정보 조회
+            FoodResponse food = foodService.getFoodByName(meal.getFoodName());
 
-            // 기준 제공량 검증
-            if (food.getWeight() == null || food.getWeight() <= 0) {
-                throw new IllegalStateException("음식의 기준 제공량이 유효하지 않습니다");
-            }
-
-            double ratio = meal.getAmount() / food.getWeight();
-            meal.setCalories(food.getCalories() * ratio);
+            // 100g 기준으로 영양소 재계산
+            double ratio = meal.getAmount() / 100.0;
+            meal.setCalories((food.getCalories() != null ? food.getCalories() : 0.0) * ratio);
             meal.setProtein(food.getProtein() != null ? food.getProtein() * ratio : null);
             meal.setCarbs(food.getCarbs() != null ? food.getCarbs() * ratio : null);
             meal.setFat(food.getFat() != null ? food.getFat() * ratio : null);
@@ -230,7 +217,6 @@ public class MealService {
         return MealResponse.builder()
                 .id(updatedMeal.getId())
                 .userId(user.getGuestId())
-                .foodId(updatedMeal.getFood().getId())
                 .foodName(updatedMeal.getFoodName())
                 .amount(updatedMeal.getAmount())
                 .calories(updatedMeal.getCalories())

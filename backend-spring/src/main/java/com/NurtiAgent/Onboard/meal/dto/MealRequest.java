@@ -16,8 +16,8 @@ import java.time.LocalDate;
 @Builder
 public class MealRequest {
 
-    @NotNull(message = "음식 ID를 입력해주세요")
-    private Long foodId;
+    @NotNull(message = "음식명을 입력해주세요")
+    private String foodName;
 
     @NotNull(message = "섭취량을 입력해주세요")
     @DecimalMin(value = "1.0", message = "섭취량은 1g 이상이어야 합니다")
