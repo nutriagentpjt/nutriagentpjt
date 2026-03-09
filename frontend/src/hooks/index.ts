@@ -6,3 +6,5 @@ export { useUpdateMeal } from './useUpdateMeal';
 export { useDeleteMeal } from './useDeleteMeal';
 export { useToast } from './useToast';
 export { useModal } from './useModal';
+export { useCamera } from './useCamera';
+export { useImageUpload } from './useImageUpload';

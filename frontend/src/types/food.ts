@@ -8,7 +8,9 @@ export interface Food {
   fat: number;
   brand?: string;
   fiber?: number;
+  sodium?: number;
   servingUnit?: string;
+  weight?: number;
 }
 
 export interface FoodSearchResponse {

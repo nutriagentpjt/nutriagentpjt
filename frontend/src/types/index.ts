@@ -6,6 +6,8 @@ export type {
   CreateMealRequest,
   UpdateMealRequest,
   MealSummaryResponse,
+  MealImageRecognitionCandidate,
+  MealImageUploadResponse,
 } from './meal';
 
 export type {

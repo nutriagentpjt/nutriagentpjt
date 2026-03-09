@@ -4,6 +4,8 @@ import { MealList } from "./meal-list";
 import { TimePickerWheel } from "./time-picker-wheel";
 import { Camera, Search, ChevronLeft, ChevronRight, Calendar, Star, X, Circle, Loader2, AlertCircle, Image as ImageIcon, Check, Plus, Scale, Droplet } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
+import { AddFoodModal } from "@/components/food";
+import type { Food } from "@/types";
 
 export default function HomePage() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -45,6 +47,8 @@ export default function HomePage() {
   const [customHour, setCustomHour] = useState(12);
   const [customMinute, setCustomMinute] = useState(0);
   const [showCustomFoodWarning, setShowCustomFoodWarning] = useState(false);
+  const [showAddFoodModal, setShowAddFoodModal] = useState(false);
+  const [selectedSearchFood, setSelectedSearchFood] = useState<Food | null>(null);
 
   // 건강 데이터 수정 모달 state
   const [showHealthModal, setShowHealthModal] = useState(false);
@@ -600,29 +604,21 @@ export default function HomePage() {
 
   // 음식 추가 핸들러
   const handleAddFood = (food: any) => {
-    const now = new Date();
-    const hour = now.getHours();
-    const minute = now.getMinutes();
-    const currentTime = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
-
-    const newMeal = {
-      id: generateMealId(),
-      name: `${food.food} | ${food.brand}`,
+    const normalizedFood: Food = {
+      id: food.id,
+      name: food.food,
+      brand: food.brand,
       calories: food.calories,
-      time: currentTime,
       protein: food.protein,
       carbs: food.carbs,
       fat: food.fat,
+      servingSize: 100,
+      servingUnit: "g",
+      weight: 100,
     };
 
-    setMealsByDate((prev) => ({
-      ...prev,
-      [currentDateKey]: [...(prev[currentDateKey] || []), newMeal],
-    }));
-
-    // 검색 상태 초기화
-    setSearchQuery("");
-    setAnalyzedFood(null);
+    setSelectedSearchFood(normalizedFood);
+    setShowAddFoodModal(true);
   };
 
   // 커스텀 음식 추가 핸들러
@@ -1751,8 +1747,16 @@ export default function HomePage() {
               </button>
             </div>
           </div>
-        </div>
-      )}
+        </div>      )}
+      <AddFoodModal
+        food={selectedSearchFood}
+        isOpen={showAddFoodModal}
+        initialDate={selectedDate}
+        onClose={() => {
+          setShowAddFoodModal(false);
+          setSelectedSearchFood(null);
+        }}
+      />
     </>
   );
 }

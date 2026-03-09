@@ -2,6 +2,7 @@ import api from './api';
 import type {
   CreateMealRequest,
   Meal,
+  MealImageUploadResponse,
   MealSummaryResponse,
   UpdateMealRequest,
 } from '@/types';
@@ -35,12 +36,14 @@ export const mealService = {
     await api.delete(`/meals/${id}`);
   },
 
-  async uploadImage(file: File) {
+  async uploadImage(file: File): Promise<MealImageUploadResponse> {
     const formData = new FormData();
     formData.append('image', file);
 
-    return api.post('/meals/upload/image', formData, {
+    const response = await api.post<MealImageUploadResponse>('/meals/upload/image', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
+
+    return response.data;
   },
 };

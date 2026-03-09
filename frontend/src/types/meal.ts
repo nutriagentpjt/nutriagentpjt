@@ -33,3 +33,23 @@ export interface MealSummaryResponse {
   totalFat: number;
   meals: Meal[];
 }
+
+export interface MealImageRecognitionCandidate {
+  id?: number | string;
+  name: string;
+  brand?: string;
+  confidence?: number;
+  calories?: number;
+  carbs?: number;
+  protein?: number;
+  fat?: number;
+  servingSize?: number;
+  servingUnit?: string;
+}
+
+export interface MealImageUploadResponse {
+  imageUrl?: string;
+  message?: string;
+  confidence?: number;
+  recognizedFoods: MealImageRecognitionCandidate[];
+}
