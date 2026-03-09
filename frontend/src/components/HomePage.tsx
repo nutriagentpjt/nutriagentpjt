@@ -1,17 +1,27 @@
-import { CalorieProgress } from "./calorie-progress";
+﻿import { CalorieProgress } from "./calorie-progress";
 import { MacroCard } from "./macro-card";
 import { MealList } from "./meal-list";
 import { TimePickerWheel } from "./time-picker-wheel";
 import { Camera, Search, ChevronLeft, ChevronRight, Calendar, Star, X, Circle, Loader2, AlertCircle, Image as ImageIcon, Check, Plus, Scale, Droplet } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { ImageSourceModal } from "@/components/camera";
 import { AddFoodModal } from "@/components/food";
 import type { Food } from "@/types";
+import { ROUTES } from "@/constants/routes";
+import { useImageUploadStore } from "@/store";
 
 export default function HomePage() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const cameraInputRef = useRef<HTMLInputElement | null>(null);
+  const galleryInputRef = useRef<HTMLInputElement | null>(null);
+  const setImageUploadFile = useImageUploadStore((state) => state.setSelectedFile);
   const [searchQuery, setSearchQuery] = useState("");
   const [showAutocomplete, setShowAutocomplete] = useState(false);
   const [autocompleteResults, setAutocompleteResults] = useState<string[]>([]);
   const searchRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
   const [favoriteBrands, setFavoriteBrands] = useState<Set<number>>(new Set([1, 3]));
   const [showImageSourceModal, setShowImageSourceModal] = useState(false);
   const [cameraMode, setCameraMode] = useState(false);
@@ -358,6 +368,58 @@ export default function HomePage() {
     "시금치", "토마토", "양파", "마늘", "감자", "단호박"
   ];
 
+  useEffect(() => {
+    const nextState = location.state as { focusSearch?: boolean } | null;
+
+    if (!nextState?.focusSearch) {
+      return;
+    }
+
+    let isCancelled = false;
+    let attemptCount = 0;
+    let timerId: number | undefined;
+    let cleanupStateTimer: number | undefined;
+
+    const focusSearchInput = () => {
+      if (isCancelled) {
+        return;
+      }
+
+      const input = searchInputRef.current;
+      attemptCount += 1;
+
+      if (!input) {
+        timerId = window.setTimeout(focusSearchInput, 100);
+        return;
+      }
+
+      input.focus({ preventScroll: true });
+      input.click();
+      const cursorPosition = input.value.length;
+      input.setSelectionRange(cursorPosition, cursorPosition);
+
+      if (document.activeElement !== input && attemptCount < 10) {
+        timerId = window.setTimeout(focusSearchInput, 100);
+        return;
+      }
+
+      cleanupStateTimer = window.setTimeout(() => {
+        navigate(location.pathname, { replace: true, state: null });
+      }, 0);
+    };
+
+    timerId = window.setTimeout(focusSearchInput, 150);
+
+    return () => {
+      isCancelled = true;
+      if (timerId) {
+        window.clearTimeout(timerId);
+      }
+      if (cleanupStateTimer) {
+        window.clearTimeout(cleanupStateTimer);
+      }
+    };
+  }, [location.pathname, location.state, navigate]);
   // 자동완성 검색 함수 (추후 DB API로 대체 가능)
   const searchAutocomplete = (query: string): string[] => {
     if (query.length < 2) return [];
@@ -516,13 +578,22 @@ export default function HomePage() {
   };
 
   const handleCameraOption = () => {
-    setShowImageSourceModal(false);
-    setCameraMode(true);
+    cameraInputRef.current?.click();
   };
 
   const handleGalleryOption = () => {
+    galleryInputRef.current?.click();
+  };
+
+  const handleSelectedUploadFile = (file?: File) => {
     setShowImageSourceModal(false);
-    setGalleryMode(true);
+
+    if (!file) {
+      return;
+    }
+
+    setImageUploadFile(file);
+    navigate(ROUTES.MEAL_UPLOAD);
   };
 
   const handleCameraCapture = () => {
@@ -746,6 +817,27 @@ export default function HomePage() {
 
   return (
     <>
+      <input
+        ref={cameraInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        className="hidden"
+        onChange={(event) => {
+          handleSelectedUploadFile(event.target.files?.[0]);
+          event.target.value = "";
+        }}
+      />
+      <input
+        ref={galleryInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(event) => {
+          handleSelectedUploadFile(event.target.files?.[0]);
+          event.target.value = "";
+        }}
+      />
       {/* Camera Mode Full Screen */}
       {cameraMode && (
         <div className="fixed inset-0 bg-black z-50 flex items-center justify-center">
@@ -898,6 +990,7 @@ export default function HomePage() {
             <form onSubmit={handleSearchSubmit} className="relative">
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-gray-400 pointer-events-none z-10" />
               <input
+                ref={searchInputRef}
                 type="text"
                 placeholder="음식 검색..."
                 value={searchQuery}
@@ -1207,7 +1300,7 @@ export default function HomePage() {
                 <button
                   onClick={() => {
                     setRecognitionFailed(false);
-                    setCameraMode(true);
+                    navigate(ROUTES.MEAL_UPLOAD);
                   }}
                   className="flex-1 px-4 py-3 bg-gray-100 text-gray-700 rounded-xl font-medium text-sm active:bg-gray-200 transition-colors"
                 >
@@ -1226,38 +1319,12 @@ export default function HomePage() {
       )}
 
       {/* Image Source Modal */}
-      {showImageSourceModal && (
-        <div 
-          className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center px-5"
-          onClick={() => setShowImageSourceModal(false)}
-        >
-          <div 
-            className="bg-white rounded-2xl p-6 w-full max-w-[340px] shadow-xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex flex-col items-center text-center">
-              <h3 className="text-lg font-bold text-gray-900 mb-4">이미지 출처 선택</h3>
-              <p className="text-sm text-gray-600 mb-6">
-                음식을 인식할 이미지를 선택하세요.
-              </p>
-              <div className="flex gap-2.5 w-full">
-                <button
-                  onClick={handleCameraOption}
-                  className="flex-1 px-4 py-3 bg-gray-100 text-gray-700 rounded-xl font-medium text-sm active:bg-gray-200 transition-colors"
-                >
-                  카메라
-                </button>
-                <button
-                  onClick={handleGalleryOption}
-                  className="flex-1 px-4 py-3 bg-green-500 text-white rounded-xl font-medium text-sm active:bg-green-600 transition-colors"
-                >
-                  갤러리
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <ImageSourceModal
+        isOpen={showImageSourceModal}
+        onClose={() => setShowImageSourceModal(false)}
+        onCamera={handleCameraOption}
+        onGallery={handleGalleryOption}
+      />
 
       {/* Empty Search Warning Modal */}
       {showEmptySearchWarning && (
@@ -1312,7 +1379,7 @@ export default function HomePage() {
                 <button
                   onClick={() => {
                     setShowNoResultsWarning(false);
-                    setCameraMode(true);
+                    navigate(ROUTES.MEAL_UPLOAD);
                   }}
                   className="flex-1 px-4 py-3 bg-gray-100 text-gray-700 rounded-xl font-medium text-sm active:bg-gray-200 transition-colors"
                 >
@@ -1760,3 +1827,18 @@ export default function HomePage() {
     </>
   );
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
