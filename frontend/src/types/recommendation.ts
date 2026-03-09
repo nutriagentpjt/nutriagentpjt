@@ -1,32 +1,43 @@
-import type { MealType } from "./meal";
+import type { MealType } from './meal';
 
 export interface Recommendation {
-    setId: string;
-    foodId: number;
-    foodName: string;
-    recommendedAmount: number;
-    score: number;
-    reasons: string[];
+  setId: string;
+  foodId: number;
+  foodName: string;
+  recommendedAmount: number;
+  score: number;
+  reasons: string[];
+  nutrients: {
+    calories: number;
+    carbs: number;
+    protein: number;
+    fat: number;
+  };
+}
 
-    nutrients: {
-        calories: number;
-        carbs: number;
-        protein: number;
-        fat: number;
-    };
+export interface NutritionGap {
+  calories: number;
+  carbs: number;
+  protein: number;
+  fat: number;
 }
 
 export interface RecommendationResponse {
-    setId: string;
-    mealType: MealType;
-    recommendations: Recommendation[];
+  setId: string;
+  mealType: MealType;
+  recommendations: Recommendation[];
+  gap: NutritionGap;
+  coachingMessage?: string;
+}
 
-    gap: {
-        calories: number;
-        carbs: number;
-        protein: number;
-        fat: number;
-    };
+export interface SaveRecommendationRequest {
+  setId: string;
+  foodId: number;
+  mealType: MealType;
+  date: string;
+}
 
-    coachingMessage?: string;
+export interface RecommendationSettings {
+  preferredMealTypes?: MealType[];
+  excludedFoodIds?: number[];
 }

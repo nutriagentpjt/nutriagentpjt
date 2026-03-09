@@ -1,22 +1,26 @@
-export type { Food } from './food';
+export type { Food, FoodSearchResponse } from './food';
 
 export type {
-    Meal,
-    MealType,
-    CreateMealRequest,
-    UpdateMealRequest,
-    MealSummaryResponse
+  Meal,
+  MealType,
+  CreateMealRequest,
+  UpdateMealRequest,
+  MealSummaryResponse,
 } from './meal';
 
 export type {
-    OnboardingRequest,
-    OnboardingResponse,
-    ActivityLevel
+  ActivityLevel,
+  OnboardingRequest,
+  OnboardingResponse,
+  UserProfile,
 } from './onboarding';
 
 export type {
-    Recommendation,
-    RecommendationResponse
+  NutritionGap,
+  Recommendation,
+  RecommendationResponse,
+  RecommendationSettings,
+  SaveRecommendationRequest,
 } from './recommendation';
 
 export type { ApiError } from './api';

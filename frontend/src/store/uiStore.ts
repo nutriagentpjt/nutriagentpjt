@@ -1,136 +1,50 @@
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 
-/* =========================
-   Toast Types
-========================= */
-
 export interface Toast {
-    id: string;
-    message: string;
-    type: 'success' | 'error' | 'info' | 'warning';
-    duration?: number;
+  id: string;
+  message: string;
+  type: 'success' | 'error' | 'info' | 'warning';
+  duration?: number;
 }
-
-/* =========================
-   Modal Types
-========================= */
-
-export interface Modal<T = unknown> {
-    id: string;
-    isOpen: boolean;
-    data?: T;
-}
-
-/* =========================
-   UI State Interface
-========================= */
 
 interface UIState {
-    /* -------------------------
-       Toast Management
-    -------------------------- */
-    toasts: Toast[];
-    addToast: (toast: Omit<Toast, 'id'>) => void;
-    removeToast: (id: string) => void;
-    clearToasts: () => void;
-
-    /* -------------------------
-       Modal Management
-    -------------------------- */
-    modals: Record<string, Modal>;
-    openModal: <T = unknown>(id: string, data?: T) => void;
-    closeModal: (id: string) => void;
-    isModalOpen: (id: string) => boolean;
-
-    /* -------------------------
-       Global Loading
-    -------------------------- */
-    isLoading: boolean;
-    setLoading: (loading: boolean) => void;
+  toasts: Toast[];
+  activeModal: string | null;
+  modalProps: Record<string, unknown>;
+  isLoading: boolean;
+  addToast: (toast: Omit<Toast, 'id'>) => void;
+  removeToast: (id: string) => void;
+  clearToasts: () => void;
+  openModal: (name: string, props?: Record<string, unknown>) => void;
+  closeModal: () => void;
+  isModalOpen: (name: string) => boolean;
+  setLoading: (loading: boolean) => void;
 }
 
-/* =========================
-   Store
-========================= */
-
 export const useUIStore = create<UIState>()(
-    devtools(
-        (set, get) => ({
-            /* =========================
-               Toast Logic
-            ========================= */
+  devtools(
+    (set, get) => ({
+      toasts: [],
+      activeModal: null,
+      modalProps: {},
+      isLoading: false,
+      addToast: (toast) => {
+        const id = `toast-${Date.now()}`;
+        const nextToast: Toast = { ...toast, id };
+        set((state) => ({ toasts: [...state.toasts, nextToast] }));
 
-            toasts: [],
-
-            addToast: (toast) => {
-                const id = `toast-${Date.now()}`;
-                const newToast: Toast = { ...toast, id };
-
-                set((state) => ({
-                    toasts: [...state.toasts, newToast],
-                }));
-
-                // 자동 제거 (기본 3초)
-                const duration = toast.duration ?? 3000;
-
-                setTimeout(() => {
-                    get().removeToast(id);
-                }, duration);
-            },
-
-            removeToast: (id) =>
-                set((state) => ({
-                    toasts: state.toasts.filter((t) => t.id !== id),
-                })),
-
-            clearToasts: () => set({ toasts: [] }),
-
-            /* =========================
-               Modal Logic
-            ========================= */
-
-            modals: {},
-
-            openModal: (id, data) => {
-                set((state) => ({
-                    modals: {
-                        ...state.modals,
-                        [id]: {
-                            id,
-                            isOpen: true,
-                            data,
-                        },
-                    },
-                }));
-            },
-
-            closeModal: (id) => {
-                set((state) => ({
-                    modals: {
-                        ...state.modals,
-                        [id]: {
-                            ...state.modals[id],
-                            isOpen: false,
-                        },
-                    },
-                }));
-            },
-
-            isModalOpen: (id) => {
-                return get().modals[id]?.isOpen ?? false;
-            },
-
-            /* =========================
-               Global Loading
-            ========================= */
-
-            isLoading: false,
-
-            setLoading: (loading) => set({ isLoading: loading }),
-        }),
-        {
-            name: 'UIStore',
-        }
-    )
+        const duration = toast.duration ?? 3000;
+        setTimeout(() => get().removeToast(id), duration);
+      },
+      removeToast: (id) =>
+        set((state) => ({ toasts: state.toasts.filter((toast) => toast.id !== id) })),
+      clearToasts: () => set({ toasts: [] }),
+      openModal: (name, props = {}) => set({ activeModal: name, modalProps: props }),
+      closeModal: () => set({ activeModal: null, modalProps: {} }),
+      isModalOpen: (name) => get().activeModal === name,
+      setLoading: (loading) => set({ isLoading: loading }),
+    }),
+    { name: 'UIStore' },
+  ),
 );

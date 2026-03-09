@@ -1,15 +1,15 @@
 import api from './api';
-import type { Food } from '@types';
+import type { Food, FoodSearchResponse } from '@/types';
 
 export const foodService = {
-  async searchFoods(query: string): Promise<Food[]> {
-    const response = await api.get<Food[]>('/foods/search', {
-      params: { q: query },
+  async searchFoods(keyword: string): Promise<FoodSearchResponse> {
+    const response = await api.get<FoodSearchResponse>('/foods/search', {
+      params: { keyword },
     });
     return response.data;
   },
 
-  async getFoodById(id: string): Promise<Food> {
+  async getFoodById(id: number | string): Promise<Food> {
     const response = await api.get<Food>(`/foods/${id}`);
     return response.data;
   },

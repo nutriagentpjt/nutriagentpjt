@@ -1,31 +1,40 @@
 import api from './api';
-import type { MealType } from '../types/';
+import type {
+  MealType,
+  RecommendationResponse,
+  RecommendationSettings,
+  SaveRecommendationRequest,
+} from '@/types';
 
 export const recommendationService = {
-    getRecommendations: (
-        userId: number,
-        mealType: MealType,
-        date?: string,
-        limit?: number
-    ) =>
-        api.get('/recommendations', {
-            params: { userId, mealType, date, limit },
-        }),
+  async getRecommendations(
+    userId: number,
+    mealType: MealType,
+    date?: string,
+    limit?: number,
+  ): Promise<RecommendationResponse> {
+    const response = await api.get<RecommendationResponse>('/recommendations', {
+      params: { userId, mealType, date, limit },
+    });
+    return response.data;
+  },
 
-    saveRecommendation: (data: unknown) =>
-        api.post('/recommendations/save', data),
+  saveRecommendation: (data: SaveRecommendationRequest) =>
+    api.post('/recommendations/save', data),
 
-    getSettings: (userId: number) =>
-        api.get('/recommendations/settings', {
-            params: { userId },
-        }),
+  async getSettings(userId: number): Promise<RecommendationSettings> {
+    const response = await api.get<RecommendationSettings>('/recommendations/settings', {
+      params: { userId },
+    });
+    return response.data;
+  },
 
-    saveSettings: (data: unknown) =>
-        api.post('/recommendations/settings', data),
+  saveSettings: (data: RecommendationSettings) =>
+    api.post('/recommendations/settings', data),
 
-    submitFeedback: (data: unknown) =>
-        api.post('/recommendations/feedback', data),
+  submitFeedback: (data: Record<string, unknown>) =>
+    api.post('/recommendations/feedback', data),
 
-    recordEvent: (data: unknown) =>
-        api.post('/recommendations/events', data),
+  recordEvent: (data: Record<string, unknown>) =>
+    api.post('/recommendations/events', data),
 };

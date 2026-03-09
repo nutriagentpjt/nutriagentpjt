@@ -1,16 +1,12 @@
 import { useUIStore } from '../store';
 
-/**
- * Modal 관리 훅
- * @param modalId 모달 ID
- */
 export function useModal(modalId: string) {
-  const { openModal, closeModal, isModalOpen, modals } = useUIStore();
-  
+  const { openModal, closeModal, isModalOpen, modalProps } = useUIStore();
+
   return {
     isOpen: isModalOpen(modalId),
-    data: modals[modalId]?.data,
-    open: (data?: any) => openModal(modalId, data),
-    close: () => closeModal(modalId),
+    data: isModalOpen(modalId) ? modalProps : undefined,
+    open: (data?: Record<string, unknown>) => openModal(modalId, data),
+    close: () => closeModal(),
   };
 }

@@ -1,14 +1,14 @@
 export interface Food {
-  id: string;
+  id: number | string;
   name: string;
-  brand?: string;
+  servingSize: number | string;
   calories: number;
-  protein: number;
   carbs: number;
+  protein: number;
   fat: number;
-  fiber: number;
-  servingSize: string;
-  servingUnit: string;
+  brand?: string;
+  fiber?: number;
+  servingUnit?: string;
 }
 
 export interface FoodSearchResponse {

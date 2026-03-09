@@ -1,50 +1,52 @@
-import { Outlet, useLocation, useNavigate } from "react-router-dom";
-import { Home, Bot, BarChart3, User } from "lucide-react";
-import { useState, useRef, useEffect } from "react";
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Outlet, useLocation } from 'react-router-dom';
+import { Header } from './Header';
+import { TabNavigation } from './TabNavigation';
+
+const headerTitles: Record<string, string> = {
+  '/onboarding/welcome': '온보딩',
+  '/onboarding/tdee': '기초 대사량 계산',
+  '/onboarding/goal': '목표 설정',
+  '/meals/search': '음식 검색',
+  '/meals/upload': '이미지 업로드',
+  '/meals/save': '식단 저장',
+  '/meals': '내 식단',
+  '/recommendations': '추천',
+  '/recommendations/settings': '추천 설정',
+  '/mypage': '마이페이지',
+};
 
 export default function MainLayout() {
   const location = useLocation();
-  const navigate = useNavigate();
   const [isScrolling, setIsScrolling] = useState(false);
-  const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const isActive = (path: string) => {
-    if (path === "/") {
-      return location.pathname === "/";
-    }
-    return location.pathname.startsWith(path);
-  };
+  const headerTitle = useMemo(() => headerTitles[location.pathname], [location.pathname]);
 
-  // 스크롤 이벤트 핸들러
   const handleScroll = () => {
     setIsScrolling(true);
-    
-    // 이전 타이머 취소
+
     if (scrollTimeoutRef.current) {
       clearTimeout(scrollTimeoutRef.current);
     }
-    
-    // 1초 후 스크롤바 숨기기
+
     scrollTimeoutRef.current = setTimeout(() => {
       setIsScrolling(false);
     }, 1000);
   };
 
-  // 마우스 호버 이벤트 핸들러
   const handleMouseEnter = () => {
     setIsScrolling(true);
-    // 타이머 취소
+
     if (scrollTimeoutRef.current) {
       clearTimeout(scrollTimeoutRef.current);
     }
   };
 
   const handleMouseLeave = () => {
-    // 마우스가 나가면 즉시 숨김
     setIsScrolling(false);
   };
 
-  // 컴포넌트 언마운트 시 타이머 정리
   useEffect(() => {
     return () => {
       if (scrollTimeoutRef.current) {
@@ -54,13 +56,14 @@ export default function MainLayout() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white flex justify-center">
-      <div className="w-full max-w-[390px] relative flex flex-col h-screen">
-        <div 
+    <div className="flex min-h-screen justify-center bg-gradient-to-b from-gray-50 to-white">
+      <div className="relative flex h-screen w-full max-w-[390px] flex-col">
+        <Header title={headerTitle} />
+        <div
           className={`flex-1 overflow-y-auto pb-[68px] transition-all ${
             isScrolling
-              ? "[&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-300 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:opacity-100"
-              : "[&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-300 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:opacity-0"
+              ? '[&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-300 [&::-webkit-scrollbar-thumb]:opacity-100'
+              : '[&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-300 [&::-webkit-scrollbar-thumb]:opacity-0'
           } [&::-webkit-scrollbar-thumb]:transition-opacity [&::-webkit-scrollbar-thumb]:duration-300`}
           onScroll={handleScroll}
           onMouseEnter={handleMouseEnter}
@@ -68,50 +71,7 @@ export default function MainLayout() {
         >
           <Outlet />
         </div>
-
-        {/* Bottom Navigation */}
-        <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[390px] bg-white/80 backdrop-blur-md border-t border-gray-200/50 z-40 shadow-lg">
-          <div className="px-5 py-2.5">
-            <div className="flex items-center justify-around">
-              <button
-                onClick={() => navigate("/")}
-                className={`flex flex-col items-center gap-0.5 py-1.5 px-3 transition-all active:scale-95 ${
-                  isActive("/") ? "text-green-500" : "text-gray-400 active:text-gray-600"
-                }`}
-              >
-                <Home className={`w-5.5 h-5.5 transition-transform ${isActive("/") ? "scale-110" : ""}`} />
-                <span className="text-[10px] font-medium">{isActive("/") && "홈"}</span>
-              </button>
-              <button
-                onClick={() => navigate("/ai-agent")}
-                className={`flex flex-col items-center gap-0.5 py-1.5 px-3 transition-all active:scale-95 ${
-                  isActive("/ai-agent") ? "text-green-500" : "text-gray-400 active:text-gray-600"
-                }`}
-              >
-                <Bot className={`w-5.5 h-5.5 transition-transform ${isActive("/ai-agent") ? "scale-110" : ""}`} />
-                <span className="text-[10px] font-medium">{isActive("/ai-agent") && "AI 에이전트"}</span>
-              </button>
-              <button
-                onClick={() => navigate("/stats")}
-                className={`flex flex-col items-center gap-0.5 py-1.5 px-3 transition-all active:scale-95 ${
-                  isActive("/stats") ? "text-green-500" : "text-gray-400 active:text-gray-600"
-                }`}
-              >
-                <BarChart3 className={`w-5.5 h-5.5 transition-transform ${isActive("/stats") ? "scale-110" : ""}`} />
-                <span className="text-[10px] font-medium">{isActive("/stats") && "통계"}</span>
-              </button>
-              <button
-                onClick={() => navigate("/profile")}
-                className={`flex flex-col items-center gap-0.5 py-1.5 px-3 transition-all active:scale-95 ${
-                  isActive("/profile") ? "text-green-500" : "text-gray-400 active:text-gray-600"
-                }`}
-              >
-                <User className={`w-5.5 h-5.5 transition-transform ${isActive("/profile") ? "scale-110" : ""}`} />
-                <span className="text-[10px] font-medium">{isActive("/profile") && "프로필"}</span>
-              </button>
-            </div>
-          </div>
-        </div>
+        <TabNavigation />
       </div>
     </div>
   );
