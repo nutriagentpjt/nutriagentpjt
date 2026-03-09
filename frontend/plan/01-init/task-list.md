@@ -4,42 +4,42 @@
 
 ### 1.1 프로젝트 생성 및 기본 설정
 
-- [ ] Vite + React + TypeScript 프로젝트 생성
-- [ ] ESLint + Prettier 설정
-- [ ] tsconfig.json 경로 별칭 설정 (`@/` → `src/`)
-- [ ] .gitignore 설정
-- [ ] 환경 변수 설정 (`.env.example`, `.env.local`)
-  - [ ] `VITE_API_URL`
+- [x] Vite + React + TypeScript 프로젝트 생성
+- [x] ESLint + Prettier 설정
+- [x] tsconfig.json 경로 별칭 설정 (`@/` → `src/`)
+- [x] .gitignore 설정
+- [x] 환경 변수 설정 (`.env.example`, `.env.local`)
+  - [x] `VITE_API_URL`
 
 ### 1.2 핵심 의존성 설치
 
-- [ ] Tailwind CSS 설치 및 설정
-  - [ ] `tailwind.config.js` 커스텀 설정 (색상 팔레트)
-  - [ ] `globals.css` 설정
-- [ ] React Router v6 설치
-- [ ] Zustand 설치
-- [ ] TanStack Query 설치
-- [ ] Axios 설치
-- [ ] React Hook Form + Zod 설치
-- [ ] Recharts 또는 Chart.js 설치 (영양소 차트)
-- [ ] react-webcam 설치 (카메라 기능)
+- [x] Tailwind CSS 설치 및 설정
+  - [x] `tailwind.config.js` 커스텀 설정 (색상 팔레트)
+  - [x] `globals.css` 설정
+- [x] React Router v6 설치
+- [x] Zustand 설치
+- [x] TanStack Query 설치
+- [x] Axios 설치
+- [x] React Hook Form + Zod 설치
+- [x] Recharts 또는 Chart.js 설치 (영양소 차트)
+- [x] react-webcam 설치 (카메라 기능)
 
 ### 1.3 디렉토리 구조 생성
 
-- [ ] `src/components/` 구조 생성
-  - [ ] `common/` - 재사용 컴포넌트
-  - [ ] `food/` - 음식 관련
-  - [ ] `meal/` - 식단 관련
-  - [ ] `recommendation/` - 추천 관련
-  - [ ] `camera/` - 카메라 관련
-  - [ ] `chart/` - 차트 관련
-- [ ] `src/pages/` 생성
-- [ ] `src/hooks/` 생성
-- [ ] `src/services/` 생성
-- [ ] `src/store/` 생성
-- [ ] `src/types/` 생성
-- [ ] `src/utils/` 생성
-- [ ] `src/layouts/` 생성
+- [x] `src/components/` 구조 생성
+  - [x] `common/` - 재사용 컴포넌트
+  - [x] `food/` - 음식 관련
+  - [x] `meal/` - 식단 관련
+  - [x] `recommendation/` - 추천 관련
+  - [x] `camera/` - 카메라 관련
+  - [x] `chart/` - 차트 관련
+- [x] `src/pages/` 생성
+- [x] `src/hooks/` 생성
+- [x] `src/services/` 생성
+- [x] `src/store/` 생성
+- [x] `src/types/` 생성
+- [x] `src/utils/` 생성
+- [x] `src/layouts/` 생성
 
 ---
 
@@ -47,40 +47,40 @@
 
 ### 2.1 API 레이어 설정
 
-- [ ] Axios 인스턴스 생성 (`services/api.ts`)
-- [ ] 요청 인터셉터 설정
-- [ ] 응답 인터셉터 설정 (에러 처리)
-- [ ] API 에러 타입 정의 (`types/api.ts`)
+- [x] Axios 인스턴스 생성 (`services/api.ts`)
+- [x] 요청 인터셉터 설정
+- [x] 응답 인터셉터 설정 (에러 처리)
+- [x] API 에러 타입 정의 (`types/api.ts`)
 
 ### 2.2 TanStack Query 설정
 
-- [ ] QueryClient 생성 및 설정
-- [ ] QueryProvider 컴포넌트 생성
-- [ ] 공통 Query Keys 정의
+- [x] QueryClient 생성 및 설정
+- [x] QueryProvider 컴포넌트 생성
+- [x] 공통 Query Keys 정의
 
 ### 2.3 Zustand 스토어 생성
 
 - [ ] `authStore.ts` - 인증 상태 (선택적)
-- [ ] `mealStore.ts` - 선택된 음식, 날짜
-- [ ] `settingsStore.ts` - UI 설정
+- [x] `mealStore.ts` - 선택된 음식, 날짜
+- [x] `settingsStore.ts` - UI 설정
 
 ### 2.4 라우터 설정
 
-- [ ] 라우트 정의 (`App.tsx` 또는 `router.tsx`)
-- [ ] 라우트 경로 상수 정의
+- [x] 라우트 정의 (`App.tsx` 또는 `router.tsx`)
+- [x] 라우트 경로 상수 정의
 
 ### 2.5 레이아웃 컴포넌트
 
-- [ ] `MainLayout` 템플릿 구현
-- [ ] `TabNavigation` 컴포넌트 구현 (하단 탭)
-- [ ] `Header` 컴포넌트 구현
+- [x] `MainLayout` 템플릿 구현
+- [x] `TabNavigation` 컴포넌트 구현 (하단 탭)
+- [x] `Header` 컴포넌트 구현
 
 ### 2.6 타입 정의
 
-- [ ] `types/food.ts` - Food, FoodSearchResponse
-- [ ] `types/meal.ts` - Meal, MealType, CreateMealRequest
-- [ ] `types/recommendation.ts` - Recommendation, RecommendationResponse
-- [ ] `types/onboarding.ts` - UserProfile, OnboardingRequest
+- [x] `types/food.ts` - Food, FoodSearchResponse
+- [x] `types/meal.ts` - Meal, MealType, CreateMealRequest
+- [x] `types/recommendation.ts` - Recommendation, RecommendationResponse
+- [x] `types/onboarding.ts` - UserProfile, OnboardingRequest
 
 ---
 
@@ -88,19 +88,19 @@
 
 ### 3.1 기본 컴포넌트
 
-- [ ] `Button` - variant(primary, secondary, outline), size, loading, disabled
-- [ ] `Input` - type, placeholder, error 상태
-- [ ] `Card` - 기본 카드 컨테이너
-- [ ] `Badge` - 태그 표시 (추천 사유)
-- [ ] `Spinner` - 로딩 인디케이터
-- [ ] `Skeleton` - 로딩 플레이스홀더
+- [x] `Button` - variant(primary, secondary, outline), size, loading, disabled
+- [x] `Input` - type, placeholder, error 상태
+- [x] `Card` - 기본 카드 컨테이너
+- [x] `Badge` - 태그 표시 (추천 사유)
+- [x] `Spinner` - 로딩 인디케이터
+- [x] `Skeleton` - 로딩 플레이스홀더
 
 ### 3.2 유틸리티 컴포넌트
 
-- [ ] `Toast` - 알림 토스트 (success, error, info)
-- [ ] `Modal` - 공통 모달
-- [ ] `BottomSheet` - 하단 시트
-- [ ] `ProgressBar` - 진행률 바 (영양소 달성률)
+- [x] `Toast` - 알림 토스트 (success, error, info)
+- [x] `Modal` - 공통 모달
+- [x] `BottomSheet` - 하단 시트
+- [x] `ProgressBar` - 진행률 바 (영양소 달성률)
 
 ---
 
@@ -108,28 +108,28 @@
 
 ### 4.1 API 및 타입
 
-- [ ] `services/foodService.ts` 구현
-  - [ ] `searchFoods(keyword)` - GET /api/foods/search
+- [x] `services/foodService.ts` 구현
+  - [x] `searchFoods(keyword)` - GET /api/foods/search
 
 ### 4.2 훅 구현
 
-- [ ] `hooks/useFoodSearch.ts` - 음식 검색 쿼리 (디바운싱)
-- [ ] `hooks/useDebounce.ts` - 디바운싱 유틸 훅
+- [x] `hooks/useFoodSearch.ts` - 음식 검색 쿼리 (디바운싱)
+- [x] `hooks/useDebounce.ts` - 디바운싱 유틸 훅
 
 ### 4.3 컴포넌트
 
-- [ ] `components/food/FoodSearchInput.tsx` - 검색창
-- [ ] `components/food/FoodCard.tsx` - 음식 카드
-- [ ] `components/food/FoodList.tsx` - 음식 리스트
+- [x] `components/food/FoodSearchInput.tsx` - 검색창
+- [x] `components/food/FoodCard.tsx` - 음식 카드
+- [x] `components/food/FoodList.tsx` - 음식 리스트
 
 ### 4.4 페이지
 
-- [ ] `pages/MealRecording/FoodSearchPage.tsx` - 음식 검색 페이지
-  - [ ] 검색창
-  - [ ] 검색 결과 리스트
-  - [ ] 빈 상태 UI
-  - [ ] 로딩 상태
-  - [ ] 음식 선택 → state 저장 → 다음 화면
+- [x] `pages/MealRecording/FoodSearchPage.tsx` - 음식 검색 페이지
+  - [x] 검색창
+  - [x] 검색 결과 리스트
+  - [x] 빈 상태 UI
+  - [x] 로딩 상태
+  - [x] 음식 선택 → state 저장 → 다음 화면
 
 ---
 
@@ -137,29 +137,37 @@
 
 ### 5.1 API
 
-- [ ] `services/mealService.ts` - `uploadImage(file)` - POST /api/meals/upload/image
+- [x] `services/mealService.ts` - `uploadImage(file)` - POST /api/meals/upload/image
 
 ### 5.2 훅
 
 - [ ] `hooks/useCamera.ts` - 카메라 권한, 스트림 관리
-- [ ] `hooks/useImageUpload.ts` - 이미지 업로드 뮤테이션
+- [x] `hooks/useImageUpload.ts` - 이미지 업로드 뮤테이션
 
 ### 5.3 컴포넌트
 
 - [ ] `components/camera/CameraCapture.tsx` - 카메라 컴포넌트
-- [ ] `components/camera/ImagePreview.tsx` - 이미지 미리보기
+- [x] `components/camera/ImagePreview.tsx` - 이미지 미리보기
 
 ### 5.4 페이지
 
-- [ ] `pages/MealRecording/ImageUploadPage.tsx`
-  - [ ] 바텀 시트 (카메라/갤러리 선택)
-  - [ ] 카메라 화면
-  - [ ] 미리보기 화면
+- [x] `pages/MealRecording/ImageUploadPage.tsx`
+  - [x] 바텀 시트 (카메라/갤러리 선택)
+  - [x] 카메라 화면
+  - [x] 미리보기 화면
   - [ ] 로딩 오버레이
   - [ ] OCR/분류 결과 모달 (신뢰도별 UI)
-  - [ ] 에러 처리 (파일 크기, 형식, 인식 실패)
+  - [x] 에러 처리 (파일 크기, 형식, 인식 실패)
 
 ---
+
+현재 기기의 기본 카메라/갤러리를 여는 방식을 우선 사용하고 있음. 
+`hooks/useCamera.ts` - 카메라 권한, 스트림 관리
+`components/camera/CameraCapture.tsx` - 카메라 컴포넌트
+의 경우 구현은 되어있으나, 메인 플로우에 적용되지 않음. 이 부분은 추후 논의를 통해
+앱 내부 스트림 카메라를 사용할지, 사용자 기기의 기본 카메라/갤러리를 사용할지 결정이 필요함.
+
+로딩 오버레이 및 OCR/분류 결과 모달은 해당 파트와 병합이 이루어진 뒤 진행할 예정
 
 ## Phase 6: 식단 기록 - 식단 저장 (UC-006)
 
