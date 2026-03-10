@@ -64,5 +64,5 @@ bin/
 postgres_data/
 
 # Documentation (deployment guides)
-docs/ubuntu-deployment-guide.md
+docs/
 docker-compose.ubuntu.yml
