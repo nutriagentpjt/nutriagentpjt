@@ -9,6 +9,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.List;
 
@@ -26,7 +27,12 @@ public class FoodService {
             throw new IllegalArgumentException("검색어를 입력해주세요");
         }
 
-        String url = foodServiceUrl + "/search?query=" + keyword.trim();
+        // URL 인코딩을 안전하게 처리
+        String url = UriComponentsBuilder.fromHttpUrl(foodServiceUrl)
+                .path("/search")
+                .queryParam("query", keyword.trim())
+                .build()
+                .toUriString();
 
         try {
             // FastAPI 호출 - List<FoodResponse> 반환
@@ -50,7 +56,12 @@ public class FoodService {
     }
 
     public FoodResponse getFoodByName(String foodName) {
-        String url = foodServiceUrl + "/detail?name=" + foodName;
+        // URL 인코딩을 안전하게 처리
+        String url = UriComponentsBuilder.fromHttpUrl(foodServiceUrl)
+                .path("/detail")
+                .queryParam("name", foodName)
+                .build()
+                .toUriString();
 
         try {
             FoodResponse response = restTemplate.getForObject(url, FoodResponse.class);
