@@ -28,12 +28,8 @@ public class Meal {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "food_id", nullable = false)
-    private Food food;
-
     @Column(nullable = false)
-    private String foodName; // 음식명 (조회 성능을 위해 비정규화)
+    private String foodName; // 음식명
 
     @Column(nullable = false)
     private Double amount; // 섭취량 (g)
