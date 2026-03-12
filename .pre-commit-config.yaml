@@ -18,7 +18,7 @@ repos:
       # Frontend linting (ESLint)
       - id: local-eslint
         name: eslint
-        entry: npm run lint
+        entry: npm --prefix frontend run lint
         language: system
         files: ^frontend/.*\.(js|jsx|ts|tsx)$
         pass_filenames: false
@@ -26,17 +26,19 @@ repos:
       # Python linting (backend-fastapi)
       - id: local-ruff-check
         name: ruff check
-        entry: uv run --directory backend-fastapi ruff check --force-exclude --fix --exit-non-zero-on-fix
+        entry: uv run --directory backend-fastapi ruff check . --force-exclude --fix --exit-non-zero-on-fix
         require_serial: true
         language: system
         types: [python]
-        files: ^backend-fastapi/
+        files: ^backend-fastapi/.*\.py$
+        pass_filenames: false
 
       # Python formatting (backend-fastapi)
       - id: local-ruff-format
         name: ruff format
-        entry: uv run --directory backend-fastapi ruff format --force-exclude --exit-non-zero-on-format
+        entry: uv run --directory backend-fastapi ruff format . --force-exclude --exit-non-zero-on-format
         require_serial: true
         language: system
         types: [python]
-        files: ^backend-fastapi/
+        files: ^backend-fastapi/.*\.py$
+        pass_filenames: false
