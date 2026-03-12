@@ -96,6 +96,7 @@ public class ProfileService {
                 .fat(nutritionResult.getFat())
                 .bmr(nutritionResult.getBmr())
                 .tdee(nutritionResult.getTdee())
+                .manualOverride(false)  // 온보딩 시에는 자동 계산
                 .build();
         nutritionTargetRepository.save(nutritionTarget);
 
@@ -168,20 +169,23 @@ public class ProfileService {
 
         // BMR/TDEE 재계산이 필요한 경우
         if (needsRecalculation) {
-            NutritionCalculatorService.NutritionResult nutritionResult =
-                    nutritionCalculatorService.calculateNutritionTargets(userProfile);
-
             NutritionTarget nutritionTarget = nutritionTargetRepository.findByUser(user)
-                    .orElse(NutritionTarget.builder().user(user).build());
+                    .orElse(NutritionTarget.builder().user(user).manualOverride(false).build());
 
-            nutritionTarget.setCalories(nutritionResult.getTargetCalories());
-            nutritionTarget.setProtein(nutritionResult.getProtein());
-            nutritionTarget.setCarbs(nutritionResult.getCarbs());
-            nutritionTarget.setFat(nutritionResult.getFat());
-            nutritionTarget.setBmr(nutritionResult.getBmr());
-            nutritionTarget.setTdee(nutritionResult.getTdee());
+            // 수동 설정된 경우 재계산하지 않음
+            if (!nutritionTarget.getManualOverride()) {
+                NutritionCalculatorService.NutritionResult nutritionResult =
+                        nutritionCalculatorService.calculateNutritionTargets(userProfile);
 
-            nutritionTargetRepository.save(nutritionTarget);
+                nutritionTarget.setCalories(nutritionResult.getTargetCalories());
+                nutritionTarget.setProtein(nutritionResult.getProtein());
+                nutritionTarget.setCarbs(nutritionResult.getCarbs());
+                nutritionTarget.setFat(nutritionResult.getFat());
+                nutritionTarget.setBmr(nutritionResult.getBmr());
+                nutritionTarget.setTdee(nutritionResult.getTdee());
+
+                nutritionTargetRepository.save(nutritionTarget);
+            }
         }
 
         return buildProfileResponse(user, userProfile, dietaryPreference);
@@ -201,6 +205,35 @@ public class ProfileService {
                         .protein(nutritionTarget.getProtein())
                         .carbs(nutritionTarget.getCarbs())
                         .fat(nutritionTarget.getFat())
+                        .manualOverride(nutritionTarget.getManualOverride())
+                        .build())
+                .build();
+    }
+
+    @Transactional
+    public NutritionTargetResponse updateNutritionTargets(String guestId, NutritionTargetUpdateRequest request) {
+        User user = userRepository.findByGuestId(guestId)
+                .orElseThrow(() -> new RuntimeException("인증 실패 (세션 없음)"));
+
+        NutritionTarget nutritionTarget = nutritionTargetRepository.findByUser(user)
+                .orElseThrow(() -> new RuntimeException("목표 정보 없음 (온보딩 미완료)"));
+
+        // 목표 영양소 수동 업데이트
+        nutritionTarget.setCalories(request.getCalories());
+        nutritionTarget.setProtein(request.getProtein());
+        nutritionTarget.setCarbs(request.getCarbs());
+        nutritionTarget.setFat(request.getFat());
+        nutritionTarget.setManualOverride(true);  // 수동 설정 플래그
+
+        nutritionTargetRepository.save(nutritionTarget);
+
+        return NutritionTargetResponse.builder()
+                .target(NutritionTargetResponse.TargetDto.builder()
+                        .calories(nutritionTarget.getCalories())
+                        .protein(nutritionTarget.getProtein())
+                        .carbs(nutritionTarget.getCarbs())
+                        .fat(nutritionTarget.getFat())
+                        .manualOverride(nutritionTarget.getManualOverride())
                         .build())
                 .build();
     }

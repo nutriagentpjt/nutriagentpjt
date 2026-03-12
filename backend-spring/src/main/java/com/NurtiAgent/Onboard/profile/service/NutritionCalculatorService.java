@@ -43,7 +43,7 @@ public class NutritionCalculatorService {
      */
     public double calculateTargetCalories(double tdee, HealthGoal healthGoal) {
         return switch (healthGoal) {
-            case DIET -> tdee * 0.8;              // 다이어트: TDEE의 80%
+            case DIET -> tdee * 0.85;             // 다이어트: TDEE의 85% (-15%)
             case BULK_UP -> tdee * 1.15;          // 벌크업: TDEE의 115%
             case LEAN_MASS_UP -> tdee * 1.1;      // 린매스업: TDEE의 110%
             case MAINTAIN -> tdee;                 // 체중 유지: TDEE 그대로
