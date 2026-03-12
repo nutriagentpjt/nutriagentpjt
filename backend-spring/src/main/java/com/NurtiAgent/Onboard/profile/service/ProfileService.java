@@ -205,6 +205,32 @@ public class ProfileService {
                 .build();
     }
 
+    @Transactional
+    public NutritionTargetResponse updateNutritionTargets(String guestId, NutritionTargetUpdateRequest request) {
+        User user = userRepository.findByGuestId(guestId)
+                .orElseThrow(() -> new RuntimeException("인증 실패 (세션 없음)"));
+
+        NutritionTarget nutritionTarget = nutritionTargetRepository.findByUser(user)
+                .orElseThrow(() -> new RuntimeException("목표 정보 없음 (온보딩 미완료)"));
+
+        // 목표 영양소 수동 업데이트
+        nutritionTarget.setCalories(request.getCalories());
+        nutritionTarget.setProtein(request.getProtein());
+        nutritionTarget.setCarbs(request.getCarbs());
+        nutritionTarget.setFat(request.getFat());
+
+        nutritionTargetRepository.save(nutritionTarget);
+
+        return NutritionTargetResponse.builder()
+                .target(NutritionTargetResponse.TargetDto.builder()
+                        .calories(nutritionTarget.getCalories())
+                        .protein(nutritionTarget.getProtein())
+                        .carbs(nutritionTarget.getCarbs())
+                        .fat(nutritionTarget.getFat())
+                        .build())
+                .build();
+    }
+
     private OnboardingResponse buildOnboardingResponse(User user, UserProfile profile, DietaryPreference preference) {
         OnboardingResponse.DietaryConstraintsDto constraintsDto = null;
         if (preference.getConstraints() != null) {
