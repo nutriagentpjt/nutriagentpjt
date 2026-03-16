@@ -1,8 +1,7 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { mealService } from '../services';
+﻿import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '../constants/queryKeys';
-import { useAuthStore } from '../store/authStore';
-import type { Meal } from '../types/';
+import { mealService } from '../services';
+import type { UpdateMealRequest } from '../types';
 
 /**
  * 식단 수정 훅
@@ -10,15 +9,14 @@ import type { Meal } from '../types/';
  */
 export function useUpdateMeal() {
   const queryClient = useQueryClient();
-  const userId = useAuthStore((s) => s.userId) ?? 1;
 
   return useMutation({
     mutationFn: ({
-                   id,
-                   meal,
-                 }: {
+      id,
+      meal,
+    }: {
       id: number;
-      meal: Partial<Meal>;
+      meal: UpdateMealRequest;
     }) => mealService.updateMeal(id, meal),
 
     onSuccess: (_data, variables) => {
@@ -27,11 +25,11 @@ export function useUpdateMeal() {
       if (!date) return;
 
       queryClient.invalidateQueries({
-        queryKey: queryKeys.meals.byDate(userId, date),
+        queryKey: queryKeys.meals.byDate(date),
       });
 
       queryClient.invalidateQueries({
-        queryKey: queryKeys.meals.summary(userId, date),
+        queryKey: queryKeys.meals.summary(date),
       });
     },
   });

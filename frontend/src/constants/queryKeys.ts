@@ -1,4 +1,4 @@
-import type { MealType } from '@/types/meal';
+﻿import type { MealType } from '@/types/meal';
 
 export const queryKeys = {
   foods: {
@@ -8,8 +8,8 @@ export const queryKeys = {
   },
   meals: {
     all: ['meals'] as const,
-    byDate: (userId: number, date: string) => ['meals', 'byDate', userId, date] as const,
-    summary: (userId: number, date: string) => ['meals', 'summary', userId, date] as const,
+    byDate: (date: string) => ['meals', 'byDate', date] as const,
+    summary: (date: string) => ['meals', 'summary', date] as const,
     detail: (id: number) => ['meals', 'detail', id] as const,
   },
   recommendations: {

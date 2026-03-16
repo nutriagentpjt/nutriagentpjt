@@ -1,13 +1,17 @@
-export type { Food, FoodSearchResponse } from './food';
+﻿export type { Food, FoodSearchResponse } from './food';
 
 export type {
-  Meal,
-  MealType,
+  ApiMealType,
   CreateMealRequest,
-  UpdateMealRequest,
-  MealSummaryResponse,
+  Meal,
   MealImageRecognitionCandidate,
   MealImageUploadResponse,
+  MealListResponse,
+  MealListSummary,
+  MealSource,
+  MealSummaryResponse,
+  MealType,
+  UpdateMealRequest,
 } from './meal';
 
 export type {

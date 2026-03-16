@@ -1,4 +1,4 @@
-import { Calendar, CheckCircle, ChevronLeft, ChevronRight, X } from 'lucide-react';
+﻿import { Calendar, CheckCircle, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { useEffect, useMemo, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -144,7 +144,7 @@ export function AddFoodModal({ food, isOpen, onClose, onSaved, initialDate, redi
 
     try {
       await addMealMutation.mutateAsync({
-        foodId: food.id,
+        foodName: food.name,
         mealType: parsed.data.mealType,
         amount: parsed.data.amount,
         date: nextDateKey,
