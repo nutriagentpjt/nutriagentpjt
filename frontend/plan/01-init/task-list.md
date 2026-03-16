@@ -173,31 +173,36 @@
 
 ### 6.1 API
 
-- [ ] `services/mealService.ts`
-  - [ ] `createMeal(data)` - POST /api/meals
+- [x] `services/mealService.ts`
+  - [x] `createMeal(data)` - POST /api/meals
 
 ### 6.2 훅
 
-- [ ] `hooks/useAddMeal.ts` - 식단 저장 뮤테이션
+- [x] `hooks/useAddMeal.ts` - 식단 저장 뮤테이션
 
 ### 6.3 컴포넌트
 
-- [ ] `components/meal/MealTypeSelector.tsx` - 식사 시간대 선택
-- [ ] `components/meal/NutritionPreview.tsx` - 예상 영양소 표시
+- [x] `components/meal/MealTypeSelector.tsx` - 식사 시간대 선택
+- [x] `components/meal/NutritionPreview.tsx` - 예상 영양소 표시
 
 ### 6.4 페이지
 
-- [ ] `pages/MealRecording/MealSavePage.tsx`
-  - [ ] 선택된 음식 정보 표시
-  - [ ] 섭취량 입력 (숫자 키패드)
-  - [ ] 실시간 영양소 계산 (`utils/nutritionCalculator.ts`)
-  - [ ] 식사 시간대 선택 (버튼 그룹)
-  - [ ] 날짜 선택 (날짜 피커)
-  - [ ] 저장 버튼
-  - [ ] 유효성 검증 (React Hook Form + Zod)
+- [x] `pages/MealRecording/MealSavePage.tsx`
+  - [x] 선택된 음식 정보 표시
+  - [x] 섭취량 입력 (숫자 키패드)
+  - [x] 실시간 영양소 계산 (`utils/nutritionCalculator.ts`)
+  - [x] 식사 시간대 선택 (버튼 그룹)
+  - [x] 날짜 선택 (날짜 피커)
+  - [x] 저장 버튼
+  - [x] 유효성 검증 (React Hook Form + Zod)
   - [ ] 저장 후 일간 조회 화면으로 이동
 
 ---
+
+저장 후  일간 조회 화면으로 이동의 경우
+현재 DailyMealViewPage.tsx가 placeholder 상태이므로 실제 일간 조회 페이지로 완전히 연결된 상태는 아님.
+(기존 UX대로 홈으로 보내는 방식)
+이 부분은 UI 구성을 어떻게 할지 조금 더 고민해볼 예정
 
 ## Phase 7: 식단 기록 - 식단 조회 (UC-007)
 
