@@ -1,3 +1,5 @@
+import type { MealType } from '@/types';
+
 export interface StoredMealEntry {
   id: number;
   name: string;
@@ -6,6 +8,7 @@ export interface StoredMealEntry {
   protein: number;
   carbs: number;
   fat: number;
+  mealType?: MealType;
 }
 
 export type StoredMealsByDate = Record<string, StoredMealEntry[]>;

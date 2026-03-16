@@ -6,6 +6,7 @@ import { useMealStore } from '@/store';
 
 export default function MealSavePage() {
   const navigate = useNavigate();
+  const selectedDate = useMealStore((state) => state.selectedDate);
   const selectedFood = useMealStore((state) => state.selectedFood);
 
   useEffect(() => {
@@ -14,5 +15,15 @@ export default function MealSavePage() {
     }
   }, [navigate, selectedFood]);
 
-  return <AddFoodModal food={selectedFood} isOpen={!!selectedFood} onClose={() => navigate(ROUTES.MEAL_SEARCH)} />;
+  const initialDate = selectedDate ? new Date(`${selectedDate}T00:00:00`) : new Date();
+
+  return (
+    <AddFoodModal
+      food={selectedFood}
+      isOpen={!!selectedFood}
+      initialDate={initialDate}
+      onClose={() => navigate(ROUTES.MEAL_SEARCH)}
+      redirectTo={ROUTES.HOME}
+    />
+  );
 }

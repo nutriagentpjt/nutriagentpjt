@@ -1,8 +1,32 @@
 import type { Meal } from '../types';
 
-/**
- * 여러 식단의 영양소 합계 계산
- */
+interface NutrientValues {
+  calories: number;
+  carbs: number;
+  protein: number;
+  fat: number;
+}
+
+export function calculateNutrients(baseNutrients: NutrientValues, amount: number, servingSize: number): NutrientValues {
+  if (!servingSize || servingSize <= 0 || amount <= 0) {
+    return {
+      calories: 0,
+      carbs: 0,
+      protein: 0,
+      fat: 0,
+    };
+  }
+
+  const ratio = amount / servingSize;
+
+  return {
+    calories: Math.round(baseNutrients.calories * ratio),
+    carbs: Math.round(baseNutrients.carbs * ratio * 10) / 10,
+    protein: Math.round(baseNutrients.protein * ratio * 10) / 10,
+    fat: Math.round(baseNutrients.fat * ratio * 10) / 10,
+  };
+}
+
 export function calculateTotalNutrition(meals: Meal[]) {
   return meals.reduce(
     (acc, meal) => ({
@@ -16,17 +40,11 @@ export function calculateTotalNutrition(meals: Meal[]) {
   );
 }
 
-/**
- * 목표 대비 섭취량 퍼센트 계산
- */
 export function calculatePercentage(current: number, goal: number): number {
   if (goal === 0) return 0;
   return Math.round((current / goal) * 100);
 }
 
-/**
- * 영양소 단위 포맷팅
- */
 export function formatNutrition(value: number, unit: string): string {
   return `${Math.round(value)}${unit}`;
 }
