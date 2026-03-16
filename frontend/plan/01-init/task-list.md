@@ -199,45 +199,43 @@
 
 ---
 
-저장 후  일간 조회 화면으로 이동의 경우
-현재 DailyMealViewPage.tsx가 placeholder 상태이므로 실제 일간 조회 페이지로 완전히 연결된 상태는 아님.
-(기존 UX대로 홈으로 보내는 방식)
-이 부분은 UI 구성을 어떻게 할지 조금 더 고민해볼 예정
+저장 후 일간 조회 화면으로 이동의 경우 현재 UX대로 홈에 이미 위치해 있는 상태
+
 
 ## Phase 7: 식단 기록 - 식단 조회 (UC-007)
 
 ### 7.1 API
 
-- [ ] `services/mealService.ts`
-  - [ ] `getMeals(userId, date)` - GET /api/meals
-  - [ ] `updateMeal(id, data)` - PUT /api/meals/:id
-  - [ ] `deleteMeal(id)` - DELETE /api/meals/:id
+- [x] `services/mealService.ts`
+  - [x] `getMeals(userId, date)` - GET /api/meals
+  - [x] `updateMeal(id, data)` - PUT /api/meals/:id
+  - [x] `deleteMeal(id)` - DELETE /api/meals/:id
 
 ### 7.2 훅
 
-- [ ] `hooks/useMeals.ts` - 식단 조회 쿼리
-- [ ] `hooks/useUpdateMeal.ts` - 식단 수정 뮤테이션
-- [ ] `hooks/useDeleteMeal.ts` - 식단 삭제 뮤테이션
+- [x] `hooks/useMeals.ts` - 식단 조회 쿼리
+- [x] `hooks/useUpdateMeal.ts` - 식단 수정 뮤테이션
+- [x] `hooks/useDeleteMeal.ts` - 식단 삭제 뮤테이션
 
 ### 7.3 컴포넌트
 
-- [ ] `components/meal/NutritionSummaryCard.tsx` - 영양소 요약 카드
-  - [ ] 총 칼로리, 탄단지
-  - [ ] 목표 대비 달성률 (프로그레스 바)
-- [ ] `components/meal/MealCard.tsx` - 개별 식단 카드
-  - [ ] 음식명, 섭취량, 영양소
-  - [ ] [...] 메뉴 (수정/삭제)
-- [ ] `components/meal/MealTimeline.tsx` - 시간대별 식단 목록
+- [x] `components/meal/NutritionSummaryCard.tsx` - 영양소 요약 카드
+  - [x] 총 칼로리, 탄단지
+  - [x] 목표 대비 달성률 (프로그레스 바)
+- [x] `components/meal/MealCard.tsx` - 개별 식단 카드
+  - [x] 음식명, 섭취량, 영양소
+  - [x] [...] 메뉴 (수정/삭제)
+- [x] `components/meal/MealTimeline.tsx` - 시간대별 식단 목록
 
 ### 7.4 페이지
 
-- [ ] `pages/MealView/DailyMealViewPage.tsx`
-  - [ ] 헤더 (날짜, 좌우 화살표, 오늘 버튼)
-  - [ ] 영양소 요약 카드
-  - [ ] 시간대별 식단 목록 (아침/점심/저녁/간식)
-  - [ ] 빈 상태 UI
-  - [ ] Pull-to-refresh
-  - [ ] 수정/삭제 기능
+- [x] `pages/MealView/DailyMealViewPage.tsx`
+  - [x] 헤더 (날짜, 좌우 화살표, 오늘 버튼)
+  - [x] 영양소 요약 카드
+  - [x] 시간대별 식단 목록 (아침/점심/저녁/간식)
+  - [x] 빈 상태 UI
+  - [x] Pull-to-refresh
+  - [x] 수정/삭제 기능
 
 ---
 
