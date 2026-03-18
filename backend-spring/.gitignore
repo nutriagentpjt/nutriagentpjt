@@ -66,3 +66,15 @@ postgres_data/
 # Documentation (deployment guides)
 docs/
 docker-compose.ubuntu.yml
+
+# Claude Code - Personal Memory
+.memory/
+
+# Personal temp files
+*.swp
+*.swo
+*~
+
+# Claude Code - Session state
+.claude/.last-session
+.claude/session-log.txt
