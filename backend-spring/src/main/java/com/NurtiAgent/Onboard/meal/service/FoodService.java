@@ -1,53 +1,52 @@
 package com.NurtiAgent.Onboard.meal.service;
 
+import com.NurtiAgent.Onboard.food.repository.FoodRepository;
+import com.NurtiAgent.Onboard.food.repository.FoodRepository.FoodSearchProjection;
 import com.NurtiAgent.Onboard.meal.dto.FoodResponse;
 import com.NurtiAgent.Onboard.meal.dto.FoodSearchResponse;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.ResponseEntity;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
-import org.springframework.web.util.UriComponentsBuilder;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class FoodService {
 
-    private final RestTemplate restTemplate;
+    private final FoodRepository foodRepository;
 
-    @Value("${food.service.url}")
-    private String foodServiceUrl;
-
+    /**
+     * 음식 검색 (그룹화 + 평균)
+     * 기존 FastAPI /search 엔드포인트와 동일한 동작
+     */
     public FoodSearchResponse searchFoods(String keyword) {
+        return searchFoods(keyword, 20, 0);
+    }
+
+    /**
+     * 음식 검색 with pagination
+     */
+    public FoodSearchResponse searchFoods(String keyword, int limit, int offset) {
         if (keyword == null || keyword.trim().isEmpty()) {
             throw new IllegalArgumentException("검색어를 입력해주세요");
         }
 
-        // URL 인코딩을 안전하게 처리
-        String url = UriComponentsBuilder.fromHttpUrl(foodServiceUrl)
-                .path("/search")
-                .queryParam("query", keyword.trim())
-                .build()
-                .toUriString();
-
         try {
-            // FastAPI 호출 - List<FoodResponse> 반환
-            ResponseEntity<List<FoodResponse>> response = restTemplate.exchange(
-                    url,
-                    HttpMethod.GET,
-                    null,
-                    new ParameterizedTypeReference<List<FoodResponse>>() {}
-            );
+            Pageable pageable = PageRequest.of(offset / limit, limit);
+            List<FoodSearchProjection> projections = foodRepository.searchFoods(keyword.trim(), pageable);
 
-            List<FoodResponse> foods = response.getBody();
+            List<FoodResponse> foods = projections.stream()
+                    .map(this::projectionToResponse)
+                    .collect(Collectors.toList());
 
             return FoodSearchResponse.builder()
-                    .foods(foods != null ? foods : List.of())
-                    .total(foods != null ? foods.size() : 0)
+                    .foods(foods)
+                    .total(foods.size())
                     .build();
 
         } catch (Exception e) {
@@ -55,25 +54,54 @@ public class FoodService {
         }
     }
 
+    /**
+     * 음식 상세 조회 (정확한 이름 매칭 + 평균)
+     * 기존 FastAPI /detail 엔드포인트와 동일한 동작
+     */
     public FoodResponse getFoodByName(String foodName) {
-        // URL 인코딩을 안전하게 처리
-        String url = UriComponentsBuilder.fromHttpUrl(foodServiceUrl)
-                .path("/detail")
-                .queryParam("name", foodName)
-                .build()
-                .toUriString();
+        if (foodName == null || foodName.trim().isEmpty()) {
+            throw new IllegalArgumentException("음식 이름을 입력해주세요");
+        }
 
         try {
-            FoodResponse response = restTemplate.getForObject(url, FoodResponse.class);
+            FoodSearchProjection projection = foodRepository.findByNameExact(foodName)
+                    .orElseThrow(() -> new RuntimeException("음식 정보를 찾을 수 없습니다"));
 
-            if (response == null) {
-                throw new RuntimeException("음식 정보를 찾을 수 없습니다");
-            }
-
-            return response;
+            return projectionToResponse(projection);
 
         } catch (Exception e) {
             throw new RuntimeException("음식 정보 조회 중 오류가 발생했습니다: " + e.getMessage(), e);
         }
+    }
+
+    /**
+     * Projection을 FoodResponse로 변환
+     */
+    private FoodResponse projectionToResponse(FoodSearchProjection projection) {
+        return FoodResponse.builder()
+                .name(projection.getName())
+                .calories(roundOrNull(projection.getCalories(), 2))
+                .protein(roundOrNull(projection.getProtein(), 2))
+                .carbs(roundOrNull(projection.getCarbs(), 2))
+                .fat(roundOrNull(projection.getFat(), 2))
+                .sodium(roundOrNull(projection.getSodium(), 2))
+                .sugars(roundOrNull(projection.getSugars(), 2))
+                .fiber(roundOrNull(projection.getFiber(), 2))
+                .cholesterol(roundOrNull(projection.getCholesterol(), 2))
+                .saturatedFat(roundOrNull(projection.getSaturatedFat(), 2))
+                .transFat(roundOrNull(projection.getTransFat(), 2))
+                .variants(projection.getVariants())
+                .build();
+    }
+
+    /**
+     * 반올림 헬퍼 (null-safe)
+     */
+    private Double roundOrNull(Double value, int places) {
+        if (value == null) {
+            return null;
+        }
+        double scale = Math.pow(10, places);
+        return Math.round(value * scale) / scale;
     }
 }
