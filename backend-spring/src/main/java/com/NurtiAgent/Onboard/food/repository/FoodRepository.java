@@ -64,12 +64,12 @@ public interface FoodRepository extends JpaRepository<Food, Long> {
 
     /**
      * 자동완성용 (중복 제거된 이름만)
-     * FastAPI /autocomplete 엔드포인트와 동일한 로직
+     * Prefix search로 인덱스 활용 최적화
      */
     @Query(value = """
         SELECT DISTINCT f.name
         FROM foods f
-        WHERE LOWER(f.name) LIKE LOWER(CONCAT('%', :query, '%'))
+        WHERE LOWER(f.name) LIKE LOWER(CONCAT(:query, '%'))
         ORDER BY f.name ASC
         LIMIT :limit
         """, nativeQuery = true)

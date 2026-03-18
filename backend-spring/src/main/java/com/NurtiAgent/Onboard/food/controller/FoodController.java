@@ -1,6 +1,5 @@
 package com.NurtiAgent.Onboard.food.controller;
 
-import com.NurtiAgent.Onboard.food.repository.FoodRepository;
 import com.NurtiAgent.Onboard.meal.dto.FoodResponse;
 import com.NurtiAgent.Onboard.meal.dto.FoodSearchResponse;
 import com.NurtiAgent.Onboard.meal.service.FoodService;
@@ -23,7 +22,6 @@ import java.util.stream.IntStream;
 public class FoodController {
 
     private final FoodService foodService;
-    private final FoodRepository foodRepository;
 
     /**
      * 음식 검색 (그룹화 + 평균)
@@ -81,12 +79,7 @@ public class FoodController {
             @Parameter(description = "결과 개수 제한 (기본: 10, 최대: 50)")
             @RequestParam(defaultValue = "10") int limit
     ) {
-        // Validation
-        if (limit < 1 || limit > 50) {
-            throw new IllegalArgumentException("limit must be between 1 and 50");
-        }
-
-        List<String> names = foodRepository.findNamesForAutocomplete(query.trim(), limit);
+        List<String> names = foodService.autocomplete(query, limit);
 
         // FastAPI와 동일한 응답 형식: [{"id": 1, "name": "..."}, ...]
         // Sequential ID 사용 (hash 충돌 방지)

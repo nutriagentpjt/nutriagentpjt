@@ -99,6 +99,21 @@ public class FoodService {
     }
 
     /**
+     * 자동완성용 음식 이름 검색
+     * 검증 포함, Controller에서 직접 Repository 호출 제거를 위함
+     */
+    public List<String> autocomplete(String query, int limit) {
+        if (query == null || query.trim().isEmpty()) {
+            throw new InvalidSearchQueryException("검색어를 입력해주세요");
+        }
+        if (limit < 1 || limit > 50) {
+            throw new IllegalArgumentException("limit must be between 1 and 50");
+        }
+
+        return foodRepository.findNamesForAutocomplete(query.trim(), limit);
+    }
+
+    /**
      * 반올림 헬퍼 (null-safe)
      */
     private Double roundOrNull(Double value, int places) {
