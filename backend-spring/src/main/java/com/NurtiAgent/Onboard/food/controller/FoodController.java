@@ -11,10 +11,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 @RestController
 @RequestMapping("/foods")
@@ -41,12 +41,15 @@ public class FoodController {
             @Parameter(description = "시작 위치 (페이지네이션)")
             @RequestParam(defaultValue = "0") int offset
     ) {
-        // limit 범위 검증
+        // Validation
         if (limit < 1 || limit > 100) {
-            limit = 20;
+            throw new IllegalArgumentException("limit must be between 1 and 100");
+        }
+        if (offset < 0) {
+            throw new IllegalArgumentException("offset must be non-negative");
         }
 
-        FoodSearchResponse response = foodService.searchFoods(query, limit, offset);
+        FoodSearchResponse response = foodService.searchFoods(query.trim(), limit, offset);
         return ResponseEntity.ok(response.getFoods());
     }
 
@@ -56,18 +59,13 @@ public class FoodController {
      */
     @GetMapping("/detail")
     @Operation(summary = "음식 상세 조회", description = "정확한 음식 이름으로 평균 영양 정보를 조회합니다")
-    public ResponseEntity<?> getFoodDetail(
+    public ResponseEntity<FoodResponse> getFoodDetail(
             @Parameter(description = "음식 이름 (정확히 일치해야 함)", required = true)
             @RequestParam String name
     ) {
-        try {
-            FoodResponse response = foodService.getFoodByName(name);
-            return ResponseEntity.ok(response);
-        } catch (RuntimeException e) {
-            Map<String, String> error = new HashMap<>();
-            error.put("error", "해당 자료를 찾을 수 없습니다.");
-            return ResponseEntity.ok(error);
-        }
+        // trim() 추가 및 GlobalExceptionHandler가 처리하도록 변경
+        FoodResponse response = foodService.getFoodByName(name.trim());
+        return ResponseEntity.ok(response);
     }
 
     /**
@@ -75,7 +73,7 @@ public class FoodController {
      * FastAPI /foods/autocomplete과 동일
      */
     @GetMapping("/autocomplete")
-    @Operation(summary = "음식 자동완성", description = "검색어로 시작하는 음식 이름 목록을 반환합니다")
+    @Operation(summary = "음식 자동완성", description = "검색어를 포함하는 음식 이름 목록을 반환합니다")
     public ResponseEntity<List<Map<String, Object>>> autocomplete(
             @Parameter(description = "검색 키워드", required = true)
             @RequestParam String query,
@@ -83,22 +81,21 @@ public class FoodController {
             @Parameter(description = "결과 개수 제한 (기본: 10, 최대: 50)")
             @RequestParam(defaultValue = "10") int limit
     ) {
-        // limit 범위 검증
-        if (limit < 1) {
-            limit = 10;
-        } else if (limit > 50) {
-            limit = 50;
+        // Validation
+        if (limit < 1 || limit > 50) {
+            throw new IllegalArgumentException("limit must be between 1 and 50");
         }
 
-        List<String> names = foodRepository.findNamesForAutocomplete(query, limit);
+        List<String> names = foodRepository.findNamesForAutocomplete(query.trim(), limit);
 
         // FastAPI와 동일한 응답 형식: [{"id": 1, "name": "..."}, ...]
-        // Note: id는 더미값 (실제로는 사용되지 않음)
-        List<Map<String, Object>> response = names.stream()
-                .map(name -> {
-                    Map<String, Object> item = new HashMap<>();
-                    item.put("id", name.hashCode()); // 임시 ID
-                    item.put("name", name);
+        // Sequential ID 사용 (hash 충돌 방지)
+        List<Map<String, Object>> response = IntStream.range(0, names.size())
+                .mapToObj(i -> {
+                    Map<String, Object> item = Map.of(
+                            "id", i + 1,
+                            "name", names.get(i)
+                    );
                     return item;
                 })
                 .collect(Collectors.toList());

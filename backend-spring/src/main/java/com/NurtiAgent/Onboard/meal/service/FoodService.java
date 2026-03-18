@@ -1,5 +1,7 @@
 package com.NurtiAgent.Onboard.meal.service;
 
+import com.NurtiAgent.Onboard.food.exception.FoodNotFoundException;
+import com.NurtiAgent.Onboard.food.exception.InvalidSearchQueryException;
 import com.NurtiAgent.Onboard.food.repository.FoodRepository;
 import com.NurtiAgent.Onboard.food.repository.FoodRepository.FoodSearchProjection;
 import com.NurtiAgent.Onboard.meal.dto.FoodResponse;
@@ -33,7 +35,7 @@ public class FoodService {
      */
     public FoodSearchResponse searchFoods(String keyword, int limit, int offset) {
         if (keyword == null || keyword.trim().isEmpty()) {
-            throw new IllegalArgumentException("검색어를 입력해주세요");
+            throw new InvalidSearchQueryException("검색어를 입력해주세요");
         }
 
         try {
@@ -60,15 +62,17 @@ public class FoodService {
      */
     public FoodResponse getFoodByName(String foodName) {
         if (foodName == null || foodName.trim().isEmpty()) {
-            throw new IllegalArgumentException("음식 이름을 입력해주세요");
+            throw new InvalidSearchQueryException("음식 이름을 입력해주세요");
         }
 
         try {
-            FoodSearchProjection projection = foodRepository.findByNameExact(foodName)
-                    .orElseThrow(() -> new RuntimeException("음식 정보를 찾을 수 없습니다"));
+            FoodSearchProjection projection = foodRepository.findByNameExact(foodName.trim())
+                    .orElseThrow(() -> new FoodNotFoundException("해당 자료를 찾을 수 없습니다"));
 
             return projectionToResponse(projection);
 
+        } catch (FoodNotFoundException e) {
+            throw e;  // Re-throw as-is
         } catch (Exception e) {
             throw new RuntimeException("음식 정보 조회 중 오류가 발생했습니다: " + e.getMessage(), e);
         }
