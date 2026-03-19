@@ -51,12 +51,6 @@ public class Food {
     @Column(name = "dietary_fiber")
     private Double fiber;
 
-    @Column(name = "cholesterol")
-    private Double cholesterol;
-
-    @Column(name = "trans_fat")
-    private Double transFat;
-
     @Column(name = "potassium")
     private Double potassium;
 

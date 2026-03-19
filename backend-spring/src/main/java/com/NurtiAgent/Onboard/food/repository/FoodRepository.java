@@ -27,9 +27,7 @@ public interface FoodRepository extends JpaRepository<Food, Integer> {
             AVG(f.sodium) AS sodium,
             AVG(f.sugar) AS sugars,
             AVG(f.dietary_fiber) AS fiber,
-            AVG(f.cholesterol) AS cholesterol,
             AVG(f.saturated_fat) AS saturatedFat,
-            AVG(f.trans_fat) AS transFat,
             COUNT(f.id) AS variants
         FROM foods f
         WHERE LOWER(f.name) LIKE LOWER(CONCAT('%', :query, '%'))
@@ -52,9 +50,7 @@ public interface FoodRepository extends JpaRepository<Food, Integer> {
             AVG(f.sodium) AS sodium,
             AVG(f.sugar) AS sugars,
             AVG(f.dietary_fiber) AS fiber,
-            AVG(f.cholesterol) AS cholesterol,
             AVG(f.saturated_fat) AS saturatedFat,
-            AVG(f.trans_fat) AS transFat,
             COUNT(f.id) AS variants
         FROM foods f
         WHERE f.name = :name
@@ -88,9 +84,7 @@ public interface FoodRepository extends JpaRepository<Food, Integer> {
         Double getSodium();
         Double getSugars();
         Double getFiber();
-        Double getCholesterol();
         Double getSaturatedFat();
-        Double getTransFat();
         Integer getVariants();
     }
 }

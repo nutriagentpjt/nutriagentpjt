@@ -91,9 +91,7 @@ public class FoodService {
                 .sodium(roundOrNull(projection.getSodium(), 2))
                 .sugars(roundOrNull(projection.getSugars(), 2))
                 .fiber(roundOrNull(projection.getFiber(), 2))
-                .cholesterol(roundOrNull(projection.getCholesterol(), 2))
                 .saturatedFat(roundOrNull(projection.getSaturatedFat(), 2))
-                .transFat(roundOrNull(projection.getTransFat(), 2))
                 .variants(projection.getVariants())
                 .build();
     }
