@@ -13,12 +13,19 @@ class Settings(BaseSettings):
     # Postgres
     POSTGRES_SERVER: str = "localhost"
     POSTGRES_PORT: int = 5432
-    POSTGRES_DB: str = "mydb"
-    POSTGRES_USER: str = "admin"
+    POSTGRES_DB: str = "NutriAgent"
+    POSTGRES_USER: str = "postgres"
     POSTGRES_PASSWORD: str = ""
 
     # Internal API
     INTERNAL_API_KEY: str = ""
+
+    # Spring Boot backend
+    SPRING_BASE_URL: str = "http://localhost:8080"
+
+    # AWS Bedrock
+    AWS_REGION: str = "us-east-1"
+    BEDROCK_MODEL_ID: str = "anthropic.claude-sonnet-4-20250514"
 
 
 settings = Settings()
