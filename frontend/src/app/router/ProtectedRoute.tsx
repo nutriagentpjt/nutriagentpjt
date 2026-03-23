@@ -1,29 +1,19 @@
-import { Navigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
-import { queryKeys } from "@/constants/queryKeys";
-import { onboardingService } from "@/services/onboardingService";
-import { useAuthStore } from "@/store/authStore";
+import { Navigate } from 'react-router-dom';
+import { ROUTES } from '@/constants/routes';
 
 interface ProtectedRouteProps {
-    children: React.ReactNode;
+  children: React.ReactNode;
 }
 
 export function ProtectedRoute({ children }: ProtectedRouteProps) {
-    const userId = useAuthStore((s) => s.userId) ?? 1;
+  const isCompleted =
+    typeof window !== 'undefined' &&
+    window.localStorage.getItem('onboardingComplete') === 'true' &&
+    !!window.localStorage.getItem('userProfile');
 
-    const { data, isLoading } = useQuery({
-        queryKey: queryKeys.onboarding.byUser(userId),
-        queryFn: () => onboardingService.getOnboarding(userId),
-        enabled: !!userId,
-    });
+  if (!isCompleted) {
+    return <Navigate to={ROUTES.ONBOARDING_WELCOME} replace />;
+  }
 
-    if (isLoading) {
-        return <div>Loading...</div>;
-    }
-
-    if (!data) {
-        return <Navigate to="/onboarding/welcome" replace />;
-    }
-
-    return <>{children}</>;
+  return <>{children}</>;
 }

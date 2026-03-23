@@ -1,6 +1,7 @@
 import { createBrowserRouter } from 'react-router-dom';
 import { ROUTES } from '@/constants/routes';
 import { MainLayout } from '@/layouts';
+import { ProtectedRoute } from './ProtectedRoute';
 import HomePage from '@/pages/HomePage';
 import AIAgentPage from '@/pages/AIAgentPage';
 import StatsPage from '@/pages/StatsPage';
@@ -15,7 +16,11 @@ import { MyPage } from '@/pages/MyPage';
 export const router = createBrowserRouter([
   {
     path: ROUTES.HOME,
-    element: <MainLayout />,
+    element: (
+      <ProtectedRoute>
+        <MainLayout />
+      </ProtectedRoute>
+    ),
     children: [
       { index: true, element: <HomePage /> },
       { path: ROUTES.MEAL_SEARCH.slice(1), element: <FoodSearchPage /> },

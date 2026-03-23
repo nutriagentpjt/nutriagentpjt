@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
+import { ROUTES } from '@/constants/routes';
 import { Header } from './Header';
 import { TabNavigation } from './TabNavigation';
 
@@ -22,6 +23,7 @@ export default function MainLayout() {
   const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const headerTitle = useMemo(() => headerTitles[location.pathname], [location.pathname]);
+  const isRecommendationOverlay = location.pathname === ROUTES.RECOMMENDATION;
 
   const handleScroll = () => {
     setIsScrolling(true);
@@ -58,20 +60,22 @@ export default function MainLayout() {
   return (
     <div className="flex min-h-screen justify-center bg-gradient-to-b from-gray-50 to-white">
       <div className="relative flex h-screen w-full max-w-[390px] flex-col">
-        <Header title={headerTitle} />
+        {!isRecommendationOverlay ? <Header title={headerTitle} /> : null}
         <div
           className={`flex-1 overflow-y-auto pb-[68px] transition-all ${
             isScrolling
               ? '[&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-300 [&::-webkit-scrollbar-thumb]:opacity-100'
               : '[&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-300 [&::-webkit-scrollbar-thumb]:opacity-0'
-          } [&::-webkit-scrollbar-thumb]:transition-opacity [&::-webkit-scrollbar-thumb]:duration-300`}
+          } [&::-webkit-scrollbar-thumb]:transition-opacity [&::-webkit-scrollbar-thumb]:duration-300 ${
+            isRecommendationOverlay ? 'pb-0' : ''
+          }`}
           onScroll={handleScroll}
           onMouseEnter={handleMouseEnter}
           onMouseLeave={handleMouseLeave}
         >
           <Outlet />
         </div>
-        <TabNavigation />
+        {!isRecommendationOverlay ? <TabNavigation /> : null}
       </div>
     </div>
   );

@@ -5,6 +5,7 @@
 
 :root {
   --font-size: 16px;
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --background: #fafafa;
   --foreground: oklch(0.145 0 0);
   --card: #ffffff;
@@ -129,6 +130,7 @@
 
   body {
     @apply bg-background text-foreground;
+    font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
@@ -193,11 +195,41 @@ html {
 }
 
 @layer utilities {
+  .number-xs {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+    font-size: 0.75rem;
+    font-weight: 500;
+    line-height: 1.4;
+  }
+
+  .number-sm {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+    font-size: 0.875rem;
+    font-weight: 500;
+    line-height: 1.4;
+  }
+
   .number-md {
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
     font-size: 1.25rem;
     font-weight: 600;
     line-height: 1.2;
+  }
+
+  .number-lg {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+    font-size: 2rem;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: -0.02em;
+  }
+
+  .number-xl {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+    font-size: 2.5rem;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: -0.02em;
   }
 
   .min-touch {
@@ -242,6 +274,38 @@ html {
       transform: translateY(0);
       opacity: 1;
     }
+  }
+
+  @keyframes onboarding-slide-in-right {
+    from {
+      opacity: 0;
+      transform: translateX(48px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  @keyframes onboarding-slide-in-left {
+    from {
+      opacity: 0;
+      transform: translateX(-48px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  .animate-onboarding-slide-in-right {
+    animation: onboarding-slide-in-right 300ms ease-in-out;
+  }
+
+  .animate-onboarding-slide-in-left {
+    animation: onboarding-slide-in-left 300ms ease-in-out;
   }
 
   .btn {

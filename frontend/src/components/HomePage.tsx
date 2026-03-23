@@ -1,12 +1,13 @@
-﻿import { CalorieProgress } from "./calorie-progress";
+import { CalorieProgress } from "./calorie-progress";
 import { MacroCard } from "./macro-card";
 import { MealList } from "./meal-list";
 import { TimePickerWheel } from "./time-picker-wheel";
-import { Camera, Search, ChevronLeft, ChevronRight, Calendar, Star, X, Circle, Loader2, AlertCircle, Image as ImageIcon, Check, Plus, Scale, Droplet } from "lucide-react";
+import { Camera, Search, ChevronLeft, ChevronRight, Calendar, Star, X, Circle, Loader2, AlertCircle, Image as ImageIcon, Check, Plus, Scale, Droplet, Coffee, Sun, Moon, Utensils, Clock } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { ImageSourceModal } from "@/components/camera";
 import { AddFoodModal } from "@/components/food";
+import AIRecommendations from "@/components/recommendation/AIRecommendations";
 import type { Food } from "@/types";
 import { ROUTES } from "@/constants/routes";
 import { useImageUploadStore } from "@/store";
@@ -20,9 +21,12 @@ export default function HomePage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [showAutocomplete, setShowAutocomplete] = useState(false);
   const [autocompleteResults, setAutocompleteResults] = useState<string[]>([]);
+  const [recentSearches, setRecentSearches] = useState<{ query: string; timestamp: number }[]>([]);
+  const [showRecentSearches, setShowRecentSearches] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
-  const [favoriteBrands, setFavoriteBrands] = useState<Set<number>>(new Set([1, 3]));
+  const [favoriteFoods, setFavoriteFoods] = useState<Array<{ id: number; name: string; calories: number; protein: number; carbs: number; fat: number; source?: string }>>([]);
+  const [showFavorites, setShowFavorites] = useState(false);
   const [showImageSourceModal, setShowImageSourceModal] = useState(false);
   const [cameraMode, setCameraMode] = useState(false);
   const [galleryMode, setGalleryMode] = useState(false);
@@ -59,6 +63,10 @@ export default function HomePage() {
   const [showCustomFoodWarning, setShowCustomFoodWarning] = useState(false);
   const [showAddFoodModal, setShowAddFoodModal] = useState(false);
   const [selectedSearchFood, setSelectedSearchFood] = useState<Food | null>(null);
+  const [showAIRecommendations, setShowAIRecommendations] = useState(false);
+  const [showRecentFoods, setShowRecentFoods] = useState(false);
+  const [showMealEditModal, setShowMealEditModal] = useState(false);
+  const [hoveredMealType, setHoveredMealType] = useState<string | null>(null);
 
   // 건강 데이터 수정 모달 state
   const [showHealthModal, setShowHealthModal] = useState(false);
@@ -436,6 +444,7 @@ export default function HomePage() {
       const results = searchAutocomplete(searchQuery);
       setAutocompleteResults(results);
       setShowAutocomplete(results.length > 0);
+      setShowRecentSearches(false);
     } else {
       setShowAutocomplete(false);
       setAutocompleteResults([]);
@@ -447,6 +456,7 @@ export default function HomePage() {
     const handleClickOutside = (event: MouseEvent) => {
       if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
         setShowAutocomplete(false);
+        setShowRecentSearches(false);
       }
     };
 
@@ -456,13 +466,63 @@ export default function HomePage() {
     };
   }, []);
 
+  const addRecentSearch = (query: string) => {
+    const trimmedQuery = query.trim();
+    if (!trimmedQuery) return;
+
+    const now = Date.now();
+    setRecentSearches((prev) => {
+      const filtered = prev.filter((item) => item.query !== trimmedQuery);
+      return [{ query: trimmedQuery, timestamp: now }, ...filtered].slice(0, 7);
+    });
+  };
+
+  const getFilteredRecentSearches = () => {
+    const now = Date.now();
+    const oneDayMs = 24 * 60 * 60 * 1000;
+    return recentSearches.filter((item) => now - item.timestamp < oneDayMs).slice(0, 7);
+  };
+
+  const removeRecentSearch = (query: string) => {
+    setRecentSearches((prev) => prev.filter((item) => item.query !== query));
+  };
+
+  const handleRecentSearchSelect = (query: string) => {
+    setSearchQuery(query);
+    setShowRecentSearches(false);
+    try {
+      setLastSearchQuery(query);
+      addRecentSearch(query);
+      const result = searchFoodService(query);
+      if (result.total === 0) {
+        setShowNoResultsWarning(true);
+      }
+    } catch (error) {
+      if (error instanceof Error && error.message.includes("504")) {
+        setShowTimeoutErrorModal(true);
+      } else {
+        setShowServerErrorModal(true);
+      }
+    }
+  };
+
+  const handleSearchFocus = () => {
+    if (searchQuery.trim() === "" && !analyzedFood) {
+      const filtered = getFilteredRecentSearches();
+      if (filtered.length > 0) {
+        setShowRecentSearches(true);
+      }
+    }
+  };
   // 자동완성 항목 선택
   const handleAutocompleteSelect = (item: string) => {
     setSearchQuery(item);
     setShowAutocomplete(false);
+    setShowRecentSearches(false);
     // 자동으로 검색 실행
     try {
       setLastSearchQuery(item);
+      addRecentSearch(item);
       const result = searchFoodService(item);
       if (result.total === 0) {
         setShowNoResultsWarning(true);
@@ -510,16 +570,74 @@ export default function HomePage() {
   const filteredResults = searchResult.foods;
   const showSearchResults = searchQuery.trim() !== "" || analyzedFood !== null;
 
-  const toggleFavoriteBrand = (id: number) => {
-    setFavoriteBrands((prev) => {
-      const newFavorites = new Set(prev);
-      if (newFavorites.has(id)) {
-        newFavorites.delete(id);
-      } else {
-        newFavorites.add(id);
+  const toggleFavoriteFood = (food: { id: number; name: string; calories: number; protein: number; carbs: number; fat: number }, source: string = 'search') => {
+    setFavoriteFoods((prev) => {
+      const exists = prev.find((item) => item.id === food.id);
+      if (exists) {
+        return prev.filter((item) => item.id !== food.id);
       }
-      return newFavorites;
+      return [...prev, { ...food, source }];
     });
+  };
+
+  const isFavoriteFood = (foodId: number) => {
+    return favoriteFoods.some((food) => food.id === foodId);
+  };
+
+  const removeFavoriteFood = (foodId: number) => {
+    setFavoriteFoods((prev) => prev.filter((food) => food.id !== foodId));
+  };
+
+  const getCurrentMealType = (): 'breakfast' | 'lunch' | 'dinner' | 'snack' => {
+    const hour = new Date().getHours();
+    if (hour >= 6 && hour <= 10) return 'breakfast';
+    if (hour >= 11 && hour <= 14) return 'lunch';
+    if (hour >= 17 && hour <= 20) return 'dinner';
+    return 'snack';
+  };
+
+  const addFavoriteFoodToMeal = (food: { id: number; name: string; calories: number; protein: number; carbs: number; fat: number }) => {
+    const now = new Date();
+    const newMeal = {
+      id: generateMealId(),
+      name: food.name,
+      calories: food.calories,
+      protein: food.protein,
+      carbs: food.carbs,
+      fat: food.fat,
+      time: now.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false }),
+      mealType: getCurrentMealType(),
+    };
+
+    setMealsByDate((prev) => ({
+      ...prev,
+      [currentDateKey]: [...(prev[currentDateKey] || []), newMeal],
+    }));
+
+    setToastMessage(`${food.name}이(가) 오늘의 식단에 추가되었습니다`);
+    setShowToast(true);
+    setTimeout(() => setShowToast(false), 3000);
+    setShowFavorites(false);
+  };
+
+  const getRecentFoods = () => {
+    const entries = Object.entries(mealsByDate)
+      .sort(([a], [b]) => b.localeCompare(a))
+      .slice(0, 3)
+      .flatMap(([, dayMeals]) => dayMeals as Array<{ id: number; name: string; calories: number; protein: number; carbs: number; fat: number }>);
+
+    const uniqueMap = new Map<number, { id: number; name: string; calories: number; protein: number; carbs: number; fat: number }>();
+    entries.forEach((meal) => {
+      if (!uniqueMap.has(meal.id)) {
+        uniqueMap.set(meal.id, meal);
+      }
+    });
+    return Array.from(uniqueMap.values()).slice(0, 10);
+  };
+
+  const addRecentFoodToMeal = (food: { id: number; name: string; calories: number; protein: number; carbs: number; fat: number }) => {
+    addFavoriteFoodToMeal(food);
+    setShowRecentFoods(false);
   };
 
   const handleRemoveMeal = (id: number) => {
@@ -995,9 +1113,53 @@ export default function HomePage() {
                 placeholder="음식 검색..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full h-11 bg-gradient-to-br from-white to-gray-50/50 rounded-xl shadow-sm border border-gray-100/50 pl-11 pr-3.5 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 transition-shadow hover:shadow-md"
+                onFocus={handleSearchFocus}
+                className="w-full h-11 bg-gradient-to-br from-white to-gray-50/50 rounded-xl shadow-sm border border-gray-100/50 pl-11 pr-10 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 transition-shadow hover:shadow-md"
               />
+              <button
+                type="button"
+                onClick={() => setShowFavorites(true)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center active:scale-90 transition-transform"
+                aria-label="즐겨찾기"
+              >
+                <Star className="w-5 h-5 text-green-500 fill-green-500 hover:text-green-600 hover:fill-green-600 transition-colors" />
+              </button>
             </form>
+
+            {/* Recent Searches */}
+            {showRecentSearches && !showAutocomplete && (
+              <div className="absolute left-0 right-0 top-full mt-1 bg-white rounded-xl shadow-lg border border-gray-100/50 overflow-hidden z-20">
+                <div className="px-3.5 py-2 bg-gray-50 border-b border-gray-100">
+                  <p className="text-xs font-semibold text-gray-600">최근 검색어</p>
+                </div>
+                {getFilteredRecentSearches().map((item, index) => (
+                  <div
+                    key={item.query}
+                    className={`w-full flex items-center gap-2.5 px-3.5 py-3 ${
+                      index !== getFilteredRecentSearches().length - 1 ? 'border-b border-gray-100' : ''
+                    }`}
+                  >
+                    <Clock className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                    <button
+                      onClick={() => handleRecentSearchSelect(item.query)}
+                      className="flex-1 text-left text-sm text-gray-900 hover:text-green-600 transition-colors"
+                    >
+                      {item.query}
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        removeRecentSearch(item.query);
+                      }}
+                      className="w-5 h-5 flex items-center justify-center hover:bg-gray-100 rounded-full transition-colors"
+                      aria-label="삭제"
+                    >
+                      <X className="w-3.5 h-3.5 text-gray-400" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
 
             {/* Autocomplete Suggestions */}
             {showAutocomplete && (
@@ -1203,7 +1365,31 @@ export default function HomePage() {
             <h2 className="text-xs font-semibold text-gray-700 mb-2.5 px-0.5">
               오늘의 식단
             </h2>
-            <MealList meals={meals} onRemoveMeal={handleRemoveMeal} onEditMeal={handleEditMeal} onAddCustomMeal={handleOpenAddCustomModal} />
+            <button
+              onClick={() => setShowAIRecommendations(true)}
+              className="w-full mb-3 bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200 rounded-2xl p-4 flex items-center justify-between active:scale-[0.98] transition-transform"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-xl flex items-center justify-center">
+                  <Star className="w-5 h-5 text-white" />
+                </div>
+                <div className="text-left">
+                  <p className="text-sm font-semibold text-gray-900">AI 추천 받기</p>
+                  <p className="text-xs text-gray-500">맞춤형 식단을 추천해드려요</p>
+                </div>
+              </div>
+              <ChevronRight className="w-5 h-5 text-gray-400" />
+            </button>
+            <div className="flex justify-end mb-1.5">
+              <button
+                onClick={() => setShowRecentFoods(true)}
+                className="text-[10px] text-green-600 hover:text-green-700 font-medium px-2 py-1 hover:bg-green-50 rounded transition-colors flex items-center gap-1"
+              >
+                <Coffee className="w-3.5 h-3.5" />
+                최근에 먹은 음식
+              </button>
+            </div>
+            <MealList meals={meals} onRemoveMeal={handleRemoveMeal} onEditMeal={handleEditMeal} onAddCustomMeal={handleOpenAddCustomModal} onHeaderClick={() => setShowMealEditModal(true)} />
           </div>
         )}
       </div>
@@ -1815,6 +2001,253 @@ export default function HomePage() {
             </div>
           </div>
         </div>      )}
+
+      {/* AI Recommendations Screen */}
+      {showAIRecommendations && (
+        <AIRecommendations
+          onClose={() => setShowAIRecommendations(false)}
+          onSaveFood={(food) => {
+            const newMeal = {
+              id: generateMealId(),
+              name: food.name,
+              calories: food.calories,
+              protein: food.protein,
+              carbs: food.carbs,
+              fat: food.fat,
+              time: new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false }),
+              mealType: getCurrentMealType(),
+            };
+
+            setMealsByDate((prev) => ({
+              ...prev,
+              [currentDateKey]: [...(prev[currentDateKey] || []), newMeal],
+            }));
+          }}
+          onToggleFavorite={(food) => toggleFavoriteFood(food, 'ai')}
+          isFavorite={isFavoriteFood}
+        />
+      )}
+
+      {/* Meal Edit Modal */}
+      {showMealEditModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-end justify-center sm:items-center" onClick={() => setShowMealEditModal(false)}>
+          <div className="w-full sm:max-w-[390px] bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl max-h-[85vh] flex flex-col animate-slide-up" onClick={(e) => e.stopPropagation()}>
+            <div className="flex-shrink-0 px-5 pt-4 pb-3 border-b border-gray-100">
+              <div className="w-12 h-1 bg-gray-300 rounded-full mx-auto mb-4"></div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-lg font-bold text-gray-900">오늘의 식단</h2>
+                  <p className="text-xs text-gray-500 mt-0.5">{meals.length}개의 식사</p>
+                </div>
+                <button onClick={() => setShowMealEditModal(false)} className="w-9 h-9 flex items-center justify-center rounded-xl bg-gray-100 hover:bg-gray-200 active:scale-95 transition-all" aria-label="닫기">
+                  <X className="w-5 h-5 text-gray-600" />
+                </button>
+              </div>
+            </div>
+
+            <div className="flex-shrink-0 px-5 py-3 bg-gray-50 border-b border-gray-100">
+              <div className="grid grid-cols-4 gap-2">
+                {[
+                  { type: 'breakfast', label: '아침', icon: Sun },
+                  { type: 'lunch', label: '점심', icon: Utensils },
+                  { type: 'dinner', label: '저녁', icon: Moon },
+                  { type: 'snack', label: '간식', icon: Coffee },
+                ].map((item) => {
+                  const Icon = item.icon;
+                  const count = meals.filter((meal) => {
+                    const hour = parseInt(meal.time.split(':')[0]);
+                    if (item.type === 'breakfast') return hour >= 6 && hour <= 10;
+                    if (item.type === 'lunch') return hour >= 11 && hour <= 14;
+                    if (item.type === 'dinner') return hour >= 17 && hour <= 20;
+                    return hour < 6 || (hour > 10 && hour < 11) || (hour > 14 && hour < 17) || hour > 20;
+                  }).length;
+
+                  return (
+                    <div key={item.type} className="flex flex-col items-center justify-center p-2.5 bg-white rounded-xl border border-gray-200">
+                      <Icon className="w-4 h-4 text-green-600 mb-1" />
+                      <span className="text-[10px] font-medium text-gray-700">{item.label}</span>
+                      <span className="text-xs font-semibold text-green-600 mt-0.5">{count}개</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto px-5 py-4">
+              {meals.length > 0 ? (
+                <div className="space-y-3">
+                  {[
+                    { type: 'breakfast', label: '아침', timeRange: [6, 10], icon: Sun, timeText: '06:00-10:59' },
+                    { type: 'lunch', label: '점심', timeRange: [11, 14], icon: Utensils, timeText: '11:00-14:59' },
+                    { type: 'dinner', label: '저녁', timeRange: [17, 20], icon: Moon, timeText: '17:00-20:59' },
+                    { type: 'snack', label: '간식', timeRange: null, icon: Coffee, timeText: '식사 시간 외' },
+                  ].map((mealType) => {
+                    const Icon = mealType.icon;
+                    const mealItems = meals.filter((meal) => {
+                      const hour = parseInt(meal.time.split(':')[0]);
+                      if (mealType.type === 'snack') {
+                        return hour < 6 || (hour > 10 && hour < 11) || (hour > 14 && hour < 17) || hour > 20;
+                      }
+                      const [start, end] = mealType.timeRange;
+                      return hour >= start && hour <= end;
+                    });
+
+                    if (mealItems.length === 0) return null;
+
+                    return (
+                      <div key={mealType.type} className="mb-4">
+                        <div className="flex items-center gap-2 mb-2.5">
+                          <Icon className="w-4 h-4 text-green-600" />
+                          <div className="relative inline-block" onMouseEnter={() => setHoveredMealType(mealType.type)} onMouseLeave={() => setHoveredMealType(null)} onTouchStart={() => setHoveredMealType(mealType.type)}>
+                            <h3 className="text-sm font-semibold text-gray-900 cursor-help">{mealType.label}</h3>
+                            {hoveredMealType === mealType.type && (
+                              <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 px-2.5 py-1.5 bg-white text-gray-900 text-xs rounded-lg border border-gray-200 shadow-lg whitespace-nowrap z-[70] animate-fade-in">
+                                {mealType.timeText}
+                                <div className="absolute right-full top-1/2 -translate-y-1/2 w-0 h-0 border-t-[5px] border-b-[5px] border-r-[5px] border-transparent border-r-white" style={{ filter: 'drop-shadow(-1px 0 1px rgba(0,0,0,0.05))' }}></div>
+                              </div>
+                            )}
+                          </div>
+                          <span className="text-xs text-gray-500">{mealItems.length}개</span>
+                        </div>
+                        <div className="space-y-2">
+                          {mealItems.map((meal) => (
+                            <div key={meal.id} className="bg-white rounded-xl p-3.5 border border-gray-200 hover:border-green-300 transition-colors">
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium text-gray-900 truncate mb-1">{meal.name}</p>
+                                  <p className="text-xs text-gray-500">{meal.time}</p>
+                                </div>
+                                <div className="text-right flex-shrink-0">
+                                  <p className="text-sm font-semibold text-gray-900">{meal.calories}</p>
+                                  <p className="text-[10px] text-gray-500">kcal</p>
+                                </div>
+                              </div>
+                              <div className="mt-3 flex items-center gap-2">
+                                <button onClick={() => handleEditMeal(meal)} className="flex-1 px-3 py-2 bg-green-50 hover:bg-green-100 active:bg-green-200 text-green-700 rounded-lg text-xs font-medium transition-colors">수정</button>
+                                <button onClick={() => handleRemoveMeal(meal.id)} className="flex-1 px-3 py-2 bg-red-50 hover:bg-red-100 active:bg-red-200 text-red-600 rounded-lg text-xs font-medium transition-colors">삭제</button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="flex h-full flex-col items-center justify-center text-center py-10">
+                  <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gray-100">
+                    <Utensils className="h-8 w-8 text-gray-300" />
+                  </div>
+                  <h3 className="mb-2 text-sm font-semibold text-gray-900">아직 등록된 식단이 없습니다</h3>
+                  <p className="text-xs text-gray-500">검색 또는 직접 추가로 오늘의 식단을 채워보세요.</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Favorites Screen */}
+      {showFavorites && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
+          <div className="w-full sm:max-w-[390px] h-full bg-white flex flex-col sm:shadow-2xl">
+            <div className="flex-shrink-0 bg-gradient-to-r from-green-500 to-emerald-500 px-5 pt-8 pb-4 shadow-md">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-9 h-9 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
+                    <Star className="w-5 h-5 text-white fill-white" />
+                  </div>
+                  <div>
+                    <h1 className="text-lg font-bold text-white">즐겨찾기</h1>
+                    <p className="text-xs text-green-50">{favoriteFoods.length}개의 음식</p>
+                  </div>
+                </div>
+                <button onClick={() => setShowFavorites(false)} className="icon-button bg-white/20 backdrop-blur-sm hover:bg-white/30" aria-label="닫기">
+                  <X className="w-5 h-5 text-white" />
+                </button>
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto px-4 py-5 bg-gray-50">
+              {favoriteFoods.length > 0 ? (
+                <div className="space-y-2.5">
+                  {favoriteFoods.map((food) => (
+                    <div key={food.id} className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 flex items-center gap-3">
+                      <button onClick={() => addFavoriteFoodToMeal(food)} className="flex-1 text-left">
+                        <h3 className="font-semibold text-gray-900 mb-1.5">{food.name}</h3>
+                        <p className="text-xs text-gray-500">{food.calories}kcal · 단백질 {food.protein}g · 탄수화물 {food.carbs}g · 지방 {food.fat}g</p>
+                      </button>
+                      <button onClick={() => removeFavoriteFood(food.id)} className="w-9 h-9 flex items-center justify-center text-gray-400 hover:text-red-500 active:scale-90 transition-all" aria-label="즐겨찾기 제거">
+                        <X className="w-5 h-5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center h-full text-center px-5">
+                  <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                    <Star className="w-10 h-10 text-gray-300" />
+                  </div>
+                  <h3 className="font-semibold text-gray-900 mb-2">즐겨찾기가 비어있습니다</h3>
+                  <p className="text-sm text-gray-500 mb-6">음식 검색이나 AI 추천에서<br />별 아이콘을 눌러 즐겨찾기에 추가하세요</p>
+                  <button onClick={() => setShowFavorites(false)} className="btn btn-primary">음식 검색하기</button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Recent Foods Screen */}
+      {showRecentFoods && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
+          <div className="w-full sm:max-w-[390px] h-full bg-white flex flex-col sm:shadow-2xl">
+            <div className="flex-shrink-0 bg-gradient-to-r from-green-500 to-emerald-500 px-5 pt-8 pb-4 shadow-md">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-9 h-9 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
+                    <Coffee className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h1 className="text-lg font-bold text-white">최근에 먹은 음식</h1>
+                    <p className="text-xs text-green-50">최근 3일간의 기록</p>
+                  </div>
+                </div>
+                <button onClick={() => setShowRecentFoods(false)} className="icon-button bg-white/20 backdrop-blur-sm hover:bg-white/30" aria-label="닫기">
+                  <X className="w-5 h-5 text-white" />
+                </button>
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto px-4 py-5 bg-gray-50">
+              {getRecentFoods().length > 0 ? (
+                <div className="space-y-2.5">
+                  {getRecentFoods().map((food) => (
+                    <div key={food.id} className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 flex items-center gap-3">
+                      <button onClick={() => addRecentFoodToMeal(food)} className="flex-1 text-left">
+                        <h3 className="font-semibold text-gray-900 mb-1.5">{food.name}</h3>
+                        <p className="text-xs text-gray-500">{food.calories}kcal · 단백질 {food.protein}g · 탄수화물 {food.carbs}g · 지방 {food.fat}g</p>
+                      </button>
+                      <button onClick={() => toggleFavoriteFood(food, 'recent')} className="w-9 h-9 flex items-center justify-center flex-shrink-0 active:scale-90 transition-transform" aria-label={isFavoriteFood(food.id) ? '즐겨찾기 해제' : '즐겨찾기 추가'}>
+                        <Star className={`w-5 h-5 transition-all ${isFavoriteFood(food.id) ? 'text-green-500 fill-green-500' : 'text-gray-300'}`} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center h-full text-center px-5">
+                  <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                    <Coffee className="w-10 h-10 text-gray-300" />
+                  </div>
+                  <h3 className="font-semibold text-gray-900 mb-2">최근 기록이 없습니다</h3>
+                  <p className="text-sm text-gray-500 mb-6">최근 3일간 먹은 음식이 없습니다.<br />음식을 추가하면 여기에 표시됩니다.</p>
+                  <button onClick={() => setShowRecentFoods(false)} className="btn btn-primary">음식 검색하기</button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
       <AddFoodModal
         food={selectedSearchFood}
         isOpen={showAddFoodModal}
@@ -1827,6 +2260,8 @@ export default function HomePage() {
     </>
   );
 }
+
+
 
 
 
