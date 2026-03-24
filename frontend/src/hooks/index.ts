@@ -14,3 +14,4 @@ export { useRecommendationSettings } from './useRecommendationSettings';
 export { useSubmitFeedback } from './useSubmitFeedback';
 export { useOnboarding } from './useOnboarding';
 export { useSaveOnboarding } from './useSaveOnboarding';
+export { useMealSummary } from './useMealSummary';

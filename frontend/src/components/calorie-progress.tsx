@@ -1,4 +1,4 @@
-import { DonutChart } from "@/components/chart";
+import { ProgressCircle } from "@/components/chart";
 
 interface CalorieProgressProps {
   consumed: number;
@@ -7,5 +7,5 @@ interface CalorieProgressProps {
 }
 
 export function CalorieProgress({ consumed, goal, percentage }: CalorieProgressProps) {
-  return <DonutChart consumed={consumed} goal={goal} percentage={percentage} />;
+  return <ProgressCircle consumed={consumed} goal={goal} percentage={percentage} />;
 }

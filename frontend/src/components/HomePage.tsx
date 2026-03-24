@@ -8,6 +8,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { ImageSourceModal } from "@/components/camera";
 import { AddFoodModal } from "@/components/food";
 import AIRecommendations from "@/components/recommendation/AIRecommendations";
+import { useMealSummary } from "@/hooks";
 import type { RecommendationCardItem } from "@/components/recommendation";
 import type { Food } from "@/types";
 import { ROUTES } from "@/constants/routes";
@@ -207,6 +208,10 @@ export default function HomePage() {
   // 현재 선택된 날짜의 식단
   const currentDateKey = getDateKey(selectedDate);
   const meals = mealsByDate[currentDateKey] || [];
+  const { data: mealSummary } = useMealSummary({
+    date: currentDateKey,
+    enabled: Boolean(currentDateKey),
+  });
 
   // 이전 날짜의 몸무게 가져오기
   const getPreviousWeight = (dateKey: string): number | undefined => {
@@ -337,10 +342,15 @@ export default function HomePage() {
   });
 
   // meals에서 영양소 총합 계산
-  const caloriesConsumed = meals.reduce((sum, meal) => sum + meal.calories, 0);
-  const totalProtein = meals.reduce((sum, meal) => sum + meal.protein, 0);
-  const totalCarbs = meals.reduce((sum, meal) => sum + meal.carbs, 0);
-  const totalFat = meals.reduce((sum, meal) => sum + meal.fat, 0);
+  const localCaloriesConsumed = meals.reduce((sum, meal) => sum + meal.calories, 0);
+  const localTotalProtein = meals.reduce((sum, meal) => sum + meal.protein, 0);
+  const localTotalCarbs = meals.reduce((sum, meal) => sum + meal.carbs, 0);
+  const localTotalFat = meals.reduce((sum, meal) => sum + meal.fat, 0);
+
+  const caloriesConsumed = mealSummary?.consumed.calories ?? localCaloriesConsumed;
+  const totalProtein = mealSummary?.consumed.protein ?? localTotalProtein;
+  const totalCarbs = mealSummary?.consumed.carbs ?? localTotalCarbs;
+  const totalFat = mealSummary?.consumed.fat ?? localTotalFat;
 
   const caloriesGoal = 2000;
   const percentage = Math.round((caloriesConsumed / caloriesGoal) * 100);
