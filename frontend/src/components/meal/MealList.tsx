@@ -155,7 +155,7 @@ export function MealList({ meals, onRemoveMeal, onEditMeal, onAddCustomMeal }: M
 
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100/50 overflow-hidden">
-      <div className="px-3.5 py-2.5 bg-white border-b border-gray-100">
+      <div className="px-3.5 py-2.5 bg-white border-b border-gray-100 transition-all active:brightness-95">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1.5">
             <Utensils className="w-3.5 h-3.5 text-green-500" />
@@ -195,7 +195,7 @@ export function MealList({ meals, onRemoveMeal, onEditMeal, onAddCustomMeal }: M
 
           {/* 스와이프 가능한 메뉴 항목 */}
           <div
-            className="relative bg-white flex items-center gap-2.5 p-3.5 touch-pan-y"
+            className="relative bg-white flex items-center gap-2.5 p-3.5 touch-pan-y transition-all active:brightness-95"
             style={{
               transform: `translateX(${
                 swipedId === meal.id ? currentX : 0

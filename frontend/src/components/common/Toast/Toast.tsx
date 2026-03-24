@@ -7,7 +7,26 @@ export interface ToastProps {
 }
 
 export function Toast(props: ToastProps) {
-  return <Toaster closeButton richColors position="top-center" {...props} />;
+  return (
+    <Toaster
+      closeButton={false}
+      richColors={false}
+      position="bottom-center"
+      offset={20}
+      mobileOffset={20}
+      toastOptions={{
+        style: {
+          background: '#f0fdf4',
+          color: '#15803d',
+          border: '1px solid #bbf7d0',
+          borderRadius: '0.75rem',
+          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+          padding: '1rem 1.25rem',
+        },
+      }}
+      {...props}
+    />
+  );
 }
 
 export const showToast = {

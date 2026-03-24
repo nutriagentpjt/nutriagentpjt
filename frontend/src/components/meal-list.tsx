@@ -22,6 +22,7 @@ export function MealList({ meals, onRemoveMeal, onEditMeal, onAddCustomMeal, onH
   const [currentX, setCurrentX] = useState(0);
   const [initialX, setInitialX] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
+  const [isHeaderPressed, setIsHeaderPressed] = useState(false);
   const autoCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const startAutoCloseTimer = () => {
@@ -139,10 +140,18 @@ export function MealList({ meals, onRemoveMeal, onEditMeal, onAddCustomMeal, onH
 
   return (
     <div
-      className="cursor-pointer overflow-hidden rounded-2xl border border-gray-100/50 bg-white shadow-sm transition-all active:brightness-95"
-      onClick={() => onHeaderClick?.()}
+      className={`overflow-hidden rounded-2xl border border-gray-100/50 bg-white shadow-sm transition-all ${
+        isHeaderPressed ? 'brightness-95' : ''
+      }`}
     >
-      <div className="border-b border-gray-100 bg-white px-3.5 py-2.5">
+      <div
+        className="cursor-pointer border-b border-gray-100 bg-white px-3.5 py-2.5 transition-all active:brightness-95"
+        onPointerDown={() => setIsHeaderPressed(true)}
+        onPointerUp={() => setIsHeaderPressed(false)}
+        onPointerCancel={() => setIsHeaderPressed(false)}
+        onPointerLeave={() => setIsHeaderPressed(false)}
+        onClick={() => onHeaderClick?.()}
+      >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1.5">
             <Utensils className="h-3.5 w-3.5 text-green-500" />
@@ -156,6 +165,9 @@ export function MealList({ meals, onRemoveMeal, onEditMeal, onAddCustomMeal, onH
                   event.stopPropagation();
                   onAddCustomMeal();
                 }}
+                onPointerDown={(event) => {
+                  event.stopPropagation();
+                }}
                 className="flex items-center gap-1 rounded-lg bg-green-50 px-2 py-1 transition-colors hover:bg-green-100 active:bg-green-200"
               >
                 <Plus className="h-3 w-3 text-green-600" />
@@ -168,13 +180,20 @@ export function MealList({ meals, onRemoveMeal, onEditMeal, onAddCustomMeal, onH
       {meals.map((meal, index) => (
         <div key={meal.id} className={`relative ${index !== meals.length - 1 ? 'border-b border-gray-100' : ''}`}>
           <div className="absolute bottom-0 right-0 top-0 flex w-20 items-center justify-center bg-red-500">
-            <button onClick={() => handleRemove(meal.id)} className="flex h-full w-full items-center justify-center" aria-label="식단 삭제">
+            <button
+              onClick={(event) => {
+                event.stopPropagation();
+                handleRemove(meal.id);
+              }}
+              className="flex h-full w-full items-center justify-center"
+              aria-label="식단 삭제"
+            >
               <Trash2 className="h-5 w-5 text-white" />
             </button>
           </div>
 
           <div
-            className="relative flex touch-pan-y items-center gap-2.5 bg-white p-3.5"
+            className="relative flex touch-pan-y items-center gap-2.5 bg-white p-3.5 transition-all active:brightness-95"
             style={{
               transform: `translateX(${swipedId === meal.id ? currentX : 0}px)`,
               transition: swipedId === meal.id && currentX !== 0 ? 'none' : 'transform 0.3s ease-out',

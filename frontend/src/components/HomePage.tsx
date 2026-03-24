@@ -8,6 +8,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { ImageSourceModal } from "@/components/camera";
 import { AddFoodModal } from "@/components/food";
 import AIRecommendations from "@/components/recommendation/AIRecommendations";
+import type { RecommendationCardItem } from "@/components/recommendation";
 import type { Food } from "@/types";
 import { ROUTES } from "@/constants/routes";
 import { useImageUploadStore } from "@/store";
@@ -1199,7 +1200,7 @@ export default function HomePage() {
                   )}
                 </p>
                 <p className="text-xs text-gray-500">
-                  관심 브랜드 {favoriteBrands.size}개
+                  관심 음식 {favoriteFoods.length}개
                 </p>
               </div>
             </div>
@@ -1225,17 +1226,29 @@ export default function HomePage() {
                       </p>
                     </div>
                     <button
-                      onClick={() => toggleFavoriteBrand(result.id)}
+                      onClick={() =>
+                        toggleFavoriteFood(
+                          {
+                            id: result.id,
+                            name: `${result.food} | ${result.brand}`,
+                            calories: result.calories,
+                            protein: result.protein,
+                            carbs: result.carbs,
+                            fat: result.fat,
+                          },
+                          'search',
+                        )
+                      }
                       className="w-9 h-9 flex items-center justify-center flex-shrink-0 active:scale-90 transition-transform"
                       aria-label={
-                        favoriteBrands.has(result.id)
-                          ? "관심 브랜드 해제"
-                          : "관심 브랜드 추가"
+                        isFavoriteFood(result.id)
+                          ? "관심 음식 해제"
+                          : "관심 음식 추가"
                       }
                     >
                       <Star
                         className={`w-5 h-5 transition-all ${
-                          favoriteBrands.has(result.id)
+                          isFavoriteFood(result.id)
                             ? "text-green-500 fill-green-500"
                             : "text-gray-300"
                         }`}
@@ -1650,7 +1663,7 @@ export default function HomePage() {
       {/* Edit Meal Modal */}
       {editingMeal && (
         <div 
-          className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center px-5"
+          className="fixed inset-0 bg-black/50 z-[80] flex items-center justify-center px-5"
           onClick={() => setEditingMeal(null)}
         >
           <div 
@@ -2006,22 +2019,21 @@ export default function HomePage() {
       {showAIRecommendations && (
         <AIRecommendations
           onClose={() => setShowAIRecommendations(false)}
-          onSaveFood={(food) => {
-            const newMeal = {
-              id: generateMealId(),
-              name: food.name,
-              calories: food.calories,
-              protein: food.protein,
-              carbs: food.carbs,
-              fat: food.fat,
-              time: new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false }),
-              mealType: getCurrentMealType(),
-            };
-
-            setMealsByDate((prev) => ({
-              ...prev,
-              [currentDateKey]: [...(prev[currentDateKey] || []), newMeal],
-            }));
+          mealType={getCurrentMealType()}
+          date={currentDateKey}
+          onSaveFood={(food: RecommendationCardItem) => {
+            setSelectedSearchFood({
+              id: food.foodId,
+              name: food.foodName,
+              servingSize: 100,
+              calories: food.nutrients.calories,
+              carbs: food.nutrients.carbs,
+              protein: food.nutrients.protein,
+              fat: food.nutrients.fat,
+              servingUnit: 'g',
+              weight: 100,
+            });
+            setShowAddFoodModal(true);
           }}
           onToggleFavorite={(food) => toggleFavoriteFood(food, 'ai')}
           isFavorite={isFavoriteFood}

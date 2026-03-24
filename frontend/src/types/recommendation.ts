@@ -37,6 +37,22 @@ export interface SaveRecommendationRequest {
   date: string;
 }
 
+export interface RecommendationFeedbackRequest {
+  setId: string;
+  foodId: number;
+  feedback: 'liked' | 'disliked';
+  mealType: MealType;
+  date: string;
+}
+
+export interface RecommendationEventRequest {
+  setId: string;
+  foodId: number;
+  event: 'save';
+  mealType: MealType;
+  date: string;
+}
+
 export interface RecommendationSettings {
   preferredMealTypes?: MealType[];
   excludedFoodIds?: number[];

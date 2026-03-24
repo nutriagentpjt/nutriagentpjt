@@ -12,8 +12,8 @@ export function CalorieProgress({ consumed, goal, percentage }: CalorieProgressP
 
   const data = isOverGoal
     ? [
-        { name: '목표량', value: goal },
         { name: '초과량', value: consumed - goal },
+        { name: '목표량', value: goal },
       ]
     : [
         { name: '섭취량', value: consumed },
@@ -21,7 +21,7 @@ export function CalorieProgress({ consumed, goal, percentage }: CalorieProgressP
       ];
 
   const colors = isOverGoal
-    ? ['url(#redGradient)', 'url(#yellowGradient)']
+    ? ['url(#yellowGradient)', 'url(#redGradient)']
     : ['url(#greenGradient)', '#f0f0f0'];
 
   return (

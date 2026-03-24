@@ -1,6 +1,8 @@
 import api from './api';
 import type {
   MealType,
+  RecommendationEventRequest,
+  RecommendationFeedbackRequest,
   RecommendationResponse,
   RecommendationSettings,
   SaveRecommendationRequest,
@@ -32,9 +34,9 @@ export const recommendationService = {
   saveSettings: (data: RecommendationSettings) =>
     api.post('/recommendations/settings', data),
 
-  submitFeedback: (data: Record<string, unknown>) =>
+  submitFeedback: (data: RecommendationFeedbackRequest) =>
     api.post('/recommendations/feedback', data),
 
-  recordEvent: (data: Record<string, unknown>) =>
+  recordEvent: (data: RecommendationEventRequest) =>
     api.post('/recommendations/events', data),
 };

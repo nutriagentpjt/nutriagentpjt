@@ -24,6 +24,8 @@ export type {
 export type {
   NutritionGap,
   Recommendation,
+  RecommendationEventRequest,
+  RecommendationFeedbackRequest,
   RecommendationResponse,
   RecommendationSettings,
   SaveRecommendationRequest,

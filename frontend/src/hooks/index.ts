@@ -8,3 +8,4 @@ export { useToast } from './useToast';
 export { useModal } from './useModal';
 export { useCamera } from './useCamera';
 export { useImageUpload } from './useImageUpload';
+export { useRecommendations } from './useRecommendations';
