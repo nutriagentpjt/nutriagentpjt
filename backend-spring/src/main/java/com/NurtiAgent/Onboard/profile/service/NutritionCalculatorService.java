@@ -13,15 +13,17 @@ import org.springframework.stereotype.Service;
 public class NutritionCalculatorService {
 
     /**
-     * Harris-Benedict 공식을 사용하여 BMR (기초대사량) 계산
+     * Mifflin-St Jeor 공식을 사용하여 BMR (기초대사량) 계산
+     * 출처: Mifflin MD et al. "A new predictive equation for resting energy expenditure" Am J Clin Nutr. 1990
+     * 실측치 대비 ±10% 이내 정확도
      */
     public double calculateBMR(Gender gender, int age, double height, double weight) {
         if (gender == Gender.MALE) {
-            // 남성: BMR = 88.362 + (13.397 × 체중kg) + (4.799 × 키cm) - (5.677 × 나이)
-            return 88.362 + (13.397 * weight) + (4.799 * height) - (5.677 * age);
+            // 남성: BMR = (10 × 체중kg) + (6.25 × 키cm) - (5 × 나이) + 5
+            return (10 * weight) + (6.25 * height) - (5 * age) + 5;
         } else {
-            // 여성: BMR = 447.593 + (9.247 × 체중kg) + (3.098 × 키cm) - (4.330 × 나이)
-            return 447.593 + (9.247 * weight) + (3.098 * height) - (4.330 * age);
+            // 여성: BMR = (10 × 체중kg) + (6.25 × 키cm) - (5 × 나이) - 161
+            return (10 * weight) + (6.25 * height) - (5 * age) - 161;
         }
     }
 
@@ -52,36 +54,45 @@ public class NutritionCalculatorService {
     }
 
     /**
-     * 목표 칼로리 기반으로 영양소 목표 계산
+     * 목표 칼로리 및 체중 기반으로 영양소 목표 계산
+     * 단백질은 체중 기반으로 먼저 계산한 뒤 나머지 칼로리를 탄수화물과 지방 비율로 분배
+     * 출처: ISSN Position Stand (Jager et al., 2017) - 운동하는 성인 1.4-2.0 g/kg/day
      */
-    public MacroNutrients calculateMacroNutrients(double targetCalories, HealthGoal healthGoal) {
-        double proteinRatio, carbRatio, fatRatio;
+    public MacroNutrients calculateMacroNutrients(double targetCalories, HealthGoal healthGoal, double weight) {
+        double proteinGrams, carbsGrams, fatGrams;
 
         switch (healthGoal) {
-            case DIET, LEAN_MASS_UP -> {
-                // 다이어트/린매스업: 고단백, 중탄수, 저지방
-                proteinRatio = 0.30;
-                carbRatio = 0.40;
-                fatRatio = 0.30;
+            case DIET -> {
+                // 다이어트: 단백질 2.0 g/kg (근손실 방지), 남은 칼로리를 탄40:지30 비율로 배분
+                proteinGrams = weight * 2.0;
+                double proteinCalories = proteinGrams * 4;
+                double remainingCalories = targetCalories - proteinCalories;
+                carbsGrams = (remainingCalories * (40.0 / 70.0)) / 4;
+                fatGrams = (remainingCalories * (30.0 / 70.0)) / 9;
+            }
+            case LEAN_MASS_UP -> {
+                // 린매스업: 단백질 1.8 g/kg, 남은 칼로리를 탄45:지25 비율로 배분
+                proteinGrams = weight * 1.8;
+                double proteinCalories = proteinGrams * 4;
+                double remainingCalories = targetCalories - proteinCalories;
+                carbsGrams = (remainingCalories * (45.0 / 70.0)) / 4;
+                fatGrams = (remainingCalories * (25.0 / 70.0)) / 9;
             }
             case BULK_UP -> {
-                // 벌크업: 고단백, 고탄수, 중지방
-                proteinRatio = 0.25;
-                carbRatio = 0.50;
-                fatRatio = 0.25;
+                // 벌크업: 단백질 1.6 g/kg, 남은 칼로리를 탄50:지25 비율로 배분
+                proteinGrams = weight * 1.6;
+                double proteinCalories = proteinGrams * 4;
+                double remainingCalories = targetCalories - proteinCalories;
+                carbsGrams = (remainingCalories * (50.0 / 75.0)) / 4;
+                fatGrams = (remainingCalories * (25.0 / 75.0)) / 9;
             }
             default -> {
-                // 체중 유지/일반 건강: 균형 잡힌 비율
-                proteinRatio = 0.20;
-                carbRatio = 0.50;
-                fatRatio = 0.30;
+                // 체중 유지/일반 건강: 칼로리 비율 기반 (탄50:단20:지30)
+                proteinGrams = (targetCalories * 0.20) / 4;
+                carbsGrams = (targetCalories * 0.50) / 4;
+                fatGrams = (targetCalories * 0.30) / 9;
             }
         }
-
-        // 칼로리를 그램으로 변환 (단백질: 4kcal/g, 탄수화물: 4kcal/g, 지방: 9kcal/g)
-        double proteinGrams = (targetCalories * proteinRatio) / 4;
-        double carbsGrams = (targetCalories * carbRatio) / 4;
-        double fatGrams = (targetCalories * fatRatio) / 9;
 
         return MacroNutrients.builder()
                 .calories(targetCalories)
@@ -99,7 +110,7 @@ public class NutritionCalculatorService {
                                    profile.getHeight(), profile.getWeight());
         double tdee = calculateTDEE(bmr, profile.getActivityLevel());
         double targetCalories = calculateTargetCalories(tdee, profile.getHealthGoal());
-        MacroNutrients macros = calculateMacroNutrients(targetCalories, profile.getHealthGoal());
+        MacroNutrients macros = calculateMacroNutrients(targetCalories, profile.getHealthGoal(), profile.getWeight());
 
         return NutritionResult.builder()
                 .bmr(bmr)
