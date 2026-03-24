@@ -1,7 +1,7 @@
-import { useMutation } from '@tanstack/react-query';
 import { useState } from 'react';
 import { CheckCircle, Sparkles, X } from 'lucide-react';
 import { recommendationService } from '@/services';
+import { useSaveRecommendation, useSubmitFeedback } from '@/hooks';
 import type { MealType } from '@/types';
 import CoachingMessage from './CoachingMessage';
 import RecommendationCard, { type RecommendationCardItem } from './RecommendationCard';
@@ -46,13 +46,8 @@ export default function AIRecommendations({
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
 
-  const saveRecommendationMutation = useMutation({
-    mutationFn: recommendationService.saveRecommendation,
-  });
-
-  const feedbackMutation = useMutation({
-    mutationFn: recommendationService.submitFeedback,
-  });
+  const saveRecommendationMutation = useSaveRecommendation();
+  const feedbackMutation = useSubmitFeedback();
 
   const recommendationEventMutation = useMutation({
     mutationFn: recommendationService.recordEvent,

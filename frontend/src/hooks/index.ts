@@ -9,3 +9,6 @@ export { useModal } from './useModal';
 export { useCamera } from './useCamera';
 export { useImageUpload } from './useImageUpload';
 export { useRecommendations } from './useRecommendations';
+export { useSaveRecommendation } from './useSaveRecommendation';
+export { useRecommendationSettings } from './useRecommendationSettings';
+export { useSubmitFeedback } from './useSubmitFeedback';

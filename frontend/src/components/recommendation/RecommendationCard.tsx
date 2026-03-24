@@ -1,5 +1,6 @@
-import { Plus, Star, ThumbsDown, ThumbsUp } from 'lucide-react';
+import { Plus, Star } from 'lucide-react';
 import type { Recommendation } from '@/types';
+import FeedbackButtons from './FeedbackButtons';
 
 export interface RecommendationCardItem extends Recommendation {
   imageUrl?: string;
@@ -92,35 +93,11 @@ export default function RecommendationCard({
       ) : null}
 
       <div className="flex gap-2">
-        <button
-          onClick={() => onLike?.(recommendation)}
-          className={`min-touch flex-1 rounded-xl py-3.5 font-semibold transition-all active:scale-[0.97] ${
-            preference === 'liked' ? 'bg-green-500 text-white shadow-md' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-          }`}
-          aria-label="선호"
-          aria-pressed={preference === 'liked'}
-        >
-          <span className="flex items-center justify-center gap-2 text-sm">
-            <ThumbsUp className="h-5 w-5" />
-            좋아요
-          </span>
-        </button>
-
-        <button
-          onClick={() => onDislike?.(recommendation)}
-          className={`min-touch flex-1 rounded-xl py-3.5 font-semibold transition-all active:scale-[0.97] ${
-            preference === 'disliked'
-              ? 'bg-gray-400 text-white shadow-md'
-              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-          }`}
-          aria-label="비선호"
-          aria-pressed={preference === 'disliked'}
-        >
-          <span className="flex items-center justify-center gap-2 text-sm">
-            <ThumbsDown className="h-5 w-5" />
-            싫어요
-          </span>
-        </button>
+        <FeedbackButtons
+          preference={preference}
+          onLike={() => onLike?.(recommendation)}
+          onDislike={() => onDislike?.(recommendation)}
+        />
 
         <button
           onClick={() => onSave?.(recommendation)}
