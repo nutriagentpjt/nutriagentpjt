@@ -297,7 +297,7 @@
 
 ### 9.4 페이지
 
-- [] `pages/Recommendation/SettingsPage.tsx` - 추천 설정
+- [ ] `pages/Recommendation/SettingsPage.tsx` - 추천 설정
   - [ ] 알레르기 음식 태그 입력
   - [ ] 비선호 음식 입력
   - [ ] 선호 음식 입력
