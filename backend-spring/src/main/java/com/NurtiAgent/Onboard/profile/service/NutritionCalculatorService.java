@@ -13,15 +13,17 @@ import org.springframework.stereotype.Service;
 public class NutritionCalculatorService {
 
     /**
-     * Harris-Benedict 공식을 사용하여 BMR (기초대사량) 계산
+     * Mifflin-St Jeor 공식을 사용하여 BMR (기초대사량) 계산
+     * 출처: Mifflin MD et al. "A new predictive equation for resting energy expenditure" Am J Clin Nutr. 1990
+     * 실측치 대비 ±10% 이내 정확도
      */
     public double calculateBMR(Gender gender, int age, double height, double weight) {
         if (gender == Gender.MALE) {
-            // 남성: BMR = 88.362 + (13.397 × 체중kg) + (4.799 × 키cm) - (5.677 × 나이)
-            return 88.362 + (13.397 * weight) + (4.799 * height) - (5.677 * age);
+            // 남성: BMR = (10 × 체중kg) + (6.25 × 키cm) - (5 × 나이) + 5
+            return (10 * weight) + (6.25 * height) - (5 * age) + 5;
         } else {
-            // 여성: BMR = 447.593 + (9.247 × 체중kg) + (3.098 × 키cm) - (4.330 × 나이)
-            return 447.593 + (9.247 * weight) + (3.098 * height) - (4.330 * age);
+            // 여성: BMR = (10 × 체중kg) + (6.25 × 키cm) - (5 × 나이) - 161
+            return (10 * weight) + (6.25 * height) - (5 * age) - 161;
         }
     }
 
@@ -53,27 +55,34 @@ public class NutritionCalculatorService {
 
     /**
      * 목표 칼로리 기반으로 영양소 목표 계산
+     * 전체 칼로리 비율을 건강 목표에 맞게 배분
      */
     public MacroNutrients calculateMacroNutrients(double targetCalories, HealthGoal healthGoal) {
         double proteinRatio, carbRatio, fatRatio;
 
         switch (healthGoal) {
-            case DIET, LEAN_MASS_UP -> {
-                // 다이어트/린매스업: 고단백, 중탄수, 저지방
-                proteinRatio = 0.30;
+            case DIET -> {
+                // 다이어트: 탄40 : 단30 : 지30
                 carbRatio = 0.40;
+                proteinRatio = 0.30;
                 fatRatio = 0.30;
             }
+            case LEAN_MASS_UP -> {
+                // 린매스업: 탄45 : 단30 : 지25
+                carbRatio = 0.45;
+                proteinRatio = 0.30;
+                fatRatio = 0.25;
+            }
             case BULK_UP -> {
-                // 벌크업: 고단백, 고탄수, 중지방
-                proteinRatio = 0.25;
+                // 벌크업: 탄50 : 단25 : 지25
                 carbRatio = 0.50;
+                proteinRatio = 0.25;
                 fatRatio = 0.25;
             }
             default -> {
-                // 체중 유지/일반 건강: 균형 잡힌 비율
-                proteinRatio = 0.20;
+                // 체중 유지/일반 건강: 탄50 : 단20 : 지30
                 carbRatio = 0.50;
+                proteinRatio = 0.20;
                 fatRatio = 0.30;
             }
         }
