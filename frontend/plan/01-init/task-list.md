@@ -278,32 +278,34 @@
 
 ### 9.1 API
 
-- [ ] `services/recommendationService.ts`
-  - [ ] `saveRecommendation(data)` - POST /api/recommendations/save
-  - [ ] `saveSettings(data)` - POST /api/recommendations/settings
-  - [ ] `getSettings(userId)` - GET /api/recommendations/settings
-  - [ ] `submitFeedback(data)` - POST /api/recommendations/feedback
-  - [ ] `recordEvent(data)` - POST /api/recommendations/events
+- [x] `services/recommendationService.ts`
+  - [x] `saveRecommendation(data)` - POST /api/recommendations/save
+  - [x] `saveSettings(data)` - POST /api/recommendations/settings
+  - [x] `getSettings(userId)` - GET /api/recommendations/settings
+  - [x] `submitFeedback(data)` - POST /api/recommendations/feedback
+  - [x] `recordEvent(data)` - POST /api/recommendations/events
 
 ### 9.2 훅
 
-- [ ] `hooks/useSaveRecommendation.ts` - 추천 저장 뮤테이션
-- [ ] `hooks/useRecommendationSettings.ts` - 설정 조회/저장
-- [ ] `hooks/useSubmitFeedback.ts` - 피드백 제출
+- [x] `hooks/useSaveRecommendation.ts` - 추천 저장 뮤테이션
+- [x] `hooks/useRecommendationSettings.ts` - 설정 조회/저장
+- [x] `hooks/useSubmitFeedback.ts` - 피드백 제출
 
 ### 9.3 컴포넌트
 
-- [ ] `components/recommendation/FeedbackButtons.tsx` - 👍/👎 버튼
+- [x] `components/recommendation/FeedbackButtons.tsx` - 👍/👎 버튼
 
 ### 9.4 페이지
 
-- [ ] `pages/Recommendation/SettingsPage.tsx` - 추천 설정
+- [] `pages/Recommendation/SettingsPage.tsx` - 추천 설정
   - [ ] 알레르기 음식 태그 입력
   - [ ] 비선호 음식 입력
   - [ ] 선호 음식 입력
   - [ ] 저장 버튼
 
 ---
+
+추천 설정은 프로필(마이페이지)에서 수정을 가능하게 할지 고민 중
 
 ## Phase 10: 온보딩 (UC-001)
 
