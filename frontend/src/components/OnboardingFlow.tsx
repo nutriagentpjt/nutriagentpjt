@@ -1,7 +1,9 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Activity, Carrot, Check, ChevronRight, Heart, Target } from 'lucide-react';
+import { useAuthStore } from '@/store/authStore';
 import { ROUTES } from '@/constants/routes';
+import { useOnboarding, useSaveOnboarding } from '@/hooks';
 import { calculateBMR, calculateTDEE } from '@/utils/tdeeCalculator';
 import {
   ONBOARDING_COMPLETE_KEY,
@@ -39,7 +41,9 @@ interface OnboardingFlowProps {
 export default function OnboardingFlow({ fallbackStep }: OnboardingFlowProps) {
   const navigate = useNavigate();
   const location = useLocation();
+  const userId = useAuthStore((state) => state.userId) ?? 1;
   const draft = loadOnboardingDraft();
+  const hasHydratedFromServerRef = useRef(false);
 
   const initialStep =
     typeof window !== 'undefined'
@@ -59,6 +63,15 @@ export default function OnboardingFlow({ fallbackStep }: OnboardingFlowProps) {
   const [fatPercentage, setFatPercentage] = useState(25);
   const [allergies, setAllergies] = useState<string[]>(draft.allergies);
 
+  const hasLocalDraft =
+    typeof window !== 'undefined' && Boolean(window.localStorage.getItem(ONBOARDING_DRAFT_KEY));
+
+  const { data: onboardingData } = useOnboarding({
+    userId,
+    enabled: !hasLocalDraft,
+  });
+  const saveOnboardingMutation = useSaveOnboarding();
+
   const calculatedTDEE = useMemo(() => {
     const ageValue = Number(age);
     const weightValue = Number(weight);
@@ -71,6 +84,46 @@ export default function OnboardingFlow({ fallbackStep }: OnboardingFlowProps) {
   const carbsGrams = useMemo(() => Math.round((goalCalories * (carbsPercentage / 100)) / 4), [carbsPercentage, goalCalories]);
   const proteinGrams = useMemo(() => Math.round((goalCalories * (proteinPercentage / 100)) / 4), [goalCalories, proteinPercentage]);
   const fatGrams = useMemo(() => Math.round((goalCalories * (fatPercentage / 100)) / 9), [fatPercentage, goalCalories]);
+
+  useEffect(() => {
+    if (!onboardingData || hasHydratedFromServerRef.current) {
+      return;
+    }
+
+    hasHydratedFromServerRef.current = true;
+
+    setGender(onboardingData.gender);
+    setAge(String(onboardingData.age));
+    setWeight(String(onboardingData.weight));
+    setHeight(String(onboardingData.height));
+    setActivityLevel(onboardingData.activityLevel);
+    setGoalCalories(onboardingData.goalCalories);
+
+    const totalCalories = onboardingData.goalCalories || 1;
+    const nextCarbsPercentage = Math.round(((onboardingData.goalCarbs * 4) / totalCalories) * 100);
+    const nextProteinPercentage = Math.round(((onboardingData.goalProtein * 4) / totalCalories) * 100);
+    const nextFatPercentage = Math.max(
+      0,
+      100 - nextCarbsPercentage - nextProteinPercentage,
+    );
+
+    setCarbsPercentage(nextCarbsPercentage);
+    setProteinPercentage(nextProteinPercentage);
+    setFatPercentage(nextFatPercentage);
+
+    saveOnboardingDraft({
+      gender: onboardingData.gender,
+      age: onboardingData.age,
+      weight: onboardingData.weight,
+      height: onboardingData.height,
+      activityLevel: onboardingData.activityLevel,
+      tdee: onboardingData.tdee,
+      goalCalories: onboardingData.goalCalories,
+      goalCarbs: onboardingData.goalCarbs,
+      goalProtein: onboardingData.goalProtein,
+      goalFat: onboardingData.goalFat,
+    });
+  }, [onboardingData]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -139,8 +192,9 @@ export default function OnboardingFlow({ fallbackStep }: OnboardingFlowProps) {
     goToStep(5);
   };
 
-  const handleComplete = () => {
-    completeOnboarding({
+  const handleComplete = async () => {
+    const onboardingPayload = {
+      userId,
       gender,
       age: Number(age),
       weight: Number(weight),
@@ -152,7 +206,26 @@ export default function OnboardingFlow({ fallbackStep }: OnboardingFlowProps) {
       goalProtein: proteinGrams,
       goalFat: fatGrams,
       allergies,
-    });
+    };
+
+    try {
+      await saveOnboardingMutation.mutateAsync({
+        userId: onboardingPayload.userId,
+        gender: onboardingPayload.gender,
+        age: onboardingPayload.age,
+        weight: onboardingPayload.weight,
+        height: onboardingPayload.height,
+        activityLevel: onboardingPayload.activityLevel,
+        goalCalories: onboardingPayload.goalCalories,
+        goalCarbs: onboardingPayload.goalCarbs,
+        goalProtein: onboardingPayload.goalProtein,
+        goalFat: onboardingPayload.goalFat,
+      });
+    } catch {
+      // Preserve the current onboarding UX even if the API is temporarily unavailable.
+    }
+
+    completeOnboarding(onboardingPayload);
     navigate(ROUTES.HOME, { replace: true });
   };
 
