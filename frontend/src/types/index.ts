@@ -16,6 +16,7 @@ export type {
 
 export type {
   ActivityLevel,
+  DietStyle,
   OnboardingRequest,
   OnboardingResponse,
   UserProfile,

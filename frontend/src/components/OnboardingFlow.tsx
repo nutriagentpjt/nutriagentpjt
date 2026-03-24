@@ -6,6 +6,7 @@ import { ROUTES } from '@/constants/routes';
 import { useOnboarding, useSaveOnboarding } from '@/hooks';
 import { calculateBMR, calculateTDEE } from '@/utils/tdeeCalculator';
 import {
+  ONBOARDING_DRAFT_KEY,
   ONBOARDING_COMPLETE_KEY,
   ONBOARDING_STEP_KEY,
   activityOptions,
@@ -14,7 +15,7 @@ import {
   loadOnboardingDraft,
   saveOnboardingDraft,
 } from '@/pages/Onboarding/shared';
-import type { ActivityLevel } from '@/types/onboarding';
+import type { ActivityLevel, DietStyle, Gender } from '@/types/onboarding';
 
 const allergyOptions = [
   { emoji: '🥛', label: '우유 (유제품)', value: '우유' },
@@ -52,7 +53,7 @@ export default function OnboardingFlow({ fallbackStep }: OnboardingFlowProps) {
 
   const [step, setStep] = useState(Number.isFinite(initialStep) ? initialStep : fallbackStep);
   const [direction, setDirection] = useState(1);
-  const [gender, setGender] = useState<'male' | 'female'>(draft.gender);
+  const [gender, setGender] = useState<Gender>(draft.gender);
   const [age, setAge] = useState(String(draft.age || ''));
   const [weight, setWeight] = useState(String(draft.weight || ''));
   const [height, setHeight] = useState(String(draft.height || ''));
@@ -61,6 +62,7 @@ export default function OnboardingFlow({ fallbackStep }: OnboardingFlowProps) {
   const [carbsPercentage, setCarbsPercentage] = useState(50);
   const [proteinPercentage, setProteinPercentage] = useState(25);
   const [fatPercentage, setFatPercentage] = useState(25);
+  const [selectedDietStyle, setSelectedDietStyle] = useState<DietStyle | null>(draft.dietStyles[0] ?? null);
   const [allergies, setAllergies] = useState<string[]>(draft.allergies);
 
   const hasLocalDraft =
@@ -110,6 +112,7 @@ export default function OnboardingFlow({ fallbackStep }: OnboardingFlowProps) {
     setCarbsPercentage(nextCarbsPercentage);
     setProteinPercentage(nextProteinPercentage);
     setFatPercentage(nextFatPercentage);
+    setSelectedDietStyle(onboardingData.dietStyles?.[0] ?? null);
 
     saveOnboardingDraft({
       gender: onboardingData.gender,
@@ -122,6 +125,7 @@ export default function OnboardingFlow({ fallbackStep }: OnboardingFlowProps) {
       goalCarbs: onboardingData.goalCarbs,
       goalProtein: onboardingData.goalProtein,
       goalFat: onboardingData.goalFat,
+      dietStyles: onboardingData.dietStyles ?? [],
     });
   }, [onboardingData]);
 
@@ -140,6 +144,7 @@ export default function OnboardingFlow({ fallbackStep }: OnboardingFlowProps) {
       goalCarbs: carbsGrams,
       goalProtein: proteinGrams,
       goalFat: fatGrams,
+      dietStyles: selectedDietStyle ? [selectedDietStyle] : [],
       allergies,
     });
   }, [
@@ -157,6 +162,7 @@ export default function OnboardingFlow({ fallbackStep }: OnboardingFlowProps) {
     goalCalories,
     height,
     proteinGrams,
+    selectedDietStyle,
     step,
     weight,
   ]);
@@ -205,6 +211,7 @@ export default function OnboardingFlow({ fallbackStep }: OnboardingFlowProps) {
       goalCarbs: carbsGrams,
       goalProtein: proteinGrams,
       goalFat: fatGrams,
+      dietStyles: selectedDietStyle ? [selectedDietStyle] : [],
       allergies,
     };
 
@@ -220,6 +227,7 @@ export default function OnboardingFlow({ fallbackStep }: OnboardingFlowProps) {
         goalCarbs: onboardingPayload.goalCarbs,
         goalProtein: onboardingPayload.goalProtein,
         goalFat: onboardingPayload.goalFat,
+        dietStyles: onboardingPayload.dietStyles,
       });
     } catch {
       // Preserve the current onboarding UX even if the API is temporarily unavailable.
@@ -232,6 +240,7 @@ export default function OnboardingFlow({ fallbackStep }: OnboardingFlowProps) {
   const handleCarbsChange = (value: number) => {
     const remaining = 100 - value;
     const ratio = proteinPercentage / (proteinPercentage + fatPercentage);
+    setSelectedDietStyle(null);
     setCarbsPercentage(value);
     setProteinPercentage(Math.round(remaining * ratio));
     setFatPercentage(Math.round(remaining * (1 - ratio)));
@@ -240,6 +249,7 @@ export default function OnboardingFlow({ fallbackStep }: OnboardingFlowProps) {
   const handleProteinChange = (value: number) => {
     const remaining = 100 - value;
     const ratio = carbsPercentage / (carbsPercentage + fatPercentage);
+    setSelectedDietStyle(null);
     setProteinPercentage(value);
     setCarbsPercentage(Math.round(remaining * ratio));
     setFatPercentage(Math.round(remaining * (1 - ratio)));
@@ -248,9 +258,22 @@ export default function OnboardingFlow({ fallbackStep }: OnboardingFlowProps) {
   const handleFatChange = (value: number) => {
     const remaining = 100 - value;
     const ratio = carbsPercentage / (carbsPercentage + proteinPercentage);
+    setSelectedDietStyle(null);
     setFatPercentage(value);
     setCarbsPercentage(Math.round(remaining * ratio));
     setProteinPercentage(Math.round(remaining * (1 - ratio)));
+  };
+
+  const applyDietStylePreset = (
+    dietStyle: DietStyle,
+    nextCarbsPercentage: number,
+    nextProteinPercentage: number,
+    nextFatPercentage: number,
+  ) => {
+    setSelectedDietStyle(dietStyle);
+    setCarbsPercentage(nextCarbsPercentage);
+    setProteinPercentage(nextProteinPercentage);
+    setFatPercentage(nextFatPercentage);
   };
 
   const transitionClass = direction > 0 ? 'animate-onboarding-slide-in-right' : 'animate-onboarding-slide-in-left';
@@ -368,8 +391,8 @@ export default function OnboardingFlow({ fallbackStep }: OnboardingFlowProps) {
                 <div className="mb-6">
                   <label className="input-label">성별</label>
                   <div className="grid grid-cols-2 gap-3">
-                    <button onClick={() => setGender('male')} className={`min-touch py-4 px-6 rounded-xl border-2 transition-all ${gender === 'male' ? 'border-green-500 bg-green-50 text-green-700 font-semibold' : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'}`}>남성</button>
-                    <button onClick={() => setGender('female')} className={`min-touch py-4 px-6 rounded-xl border-2 transition-all ${gender === 'female' ? 'border-green-500 bg-green-50 text-green-700 font-semibold' : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'}`}>여성</button>
+                    <button onClick={() => setGender('MALE')} className={`min-touch py-4 px-6 rounded-xl border-2 transition-all ${gender === 'MALE' ? 'border-green-500 bg-green-50 text-green-700 font-semibold' : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'}`}>남성</button>
+                    <button onClick={() => setGender('FEMALE')} className={`min-touch py-4 px-6 rounded-xl border-2 transition-all ${gender === 'FEMALE' ? 'border-green-500 bg-green-50 text-green-700 font-semibold' : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'}`}>여성</button>
                   </div>
                 </div>
                 <button onClick={() => goToStep(3)} className="btn-primary w-full min-touch flex items-center justify-center gap-2">다음<ChevronRight className="w-5 h-5" /></button>
@@ -445,12 +468,12 @@ export default function OnboardingFlow({ fallbackStep }: OnboardingFlowProps) {
                   <div className="mb-6">
                     <p className="text-xs text-gray-500 mb-3">대표적인 식이요법 방식</p>
                     <div className="grid grid-cols-2 gap-2 mb-1">
-                      <button type="button" onClick={() => { setCarbsPercentage(45); setProteinPercentage(30); setFatPercentage(25); }} className="px-3 py-2.5 bg-white border-2 border-gray-200 rounded-xl text-xs font-medium text-gray-700 hover:border-green-400 hover:bg-green-50 active:scale-95 transition-all"><div className="font-semibold text-sm mb-0.5">린매스업</div><div className="text-[10px] text-gray-500">근육 증가 + 지방 최소</div></button>
-                      <button type="button" onClick={() => { setCarbsPercentage(50); setProteinPercentage(25); setFatPercentage(25); }} className="px-3 py-2.5 bg-white border-2 border-gray-200 rounded-xl text-xs font-medium text-gray-700 hover:border-green-400 hover:bg-green-50 active:scale-95 transition-all"><div className="font-semibold text-sm mb-0.5">클린 벌크</div><div className="text-[10px] text-gray-500">균형 잡힌 체중 증가</div></button>
-                      <button type="button" onClick={() => { setCarbsPercentage(45); setProteinPercentage(20); setFatPercentage(35); }} className="px-3 py-2.5 bg-white border-2 border-gray-200 rounded-xl text-xs font-medium text-gray-700 hover:border-green-400 hover:bg-green-50 active:scale-95 transition-all"><div className="font-semibold text-sm mb-0.5">더티 벌크</div><div className="text-[10px] text-gray-500">빠른 체중 증가 (지방 포함)</div></button>
-                      <button type="button" onClick={() => { setCarbsPercentage(40); setProteinPercentage(35); setFatPercentage(25); }} className="px-3 py-2.5 bg-white border-2 border-gray-200 rounded-xl text-xs font-medium text-gray-700 hover:border-green-400 hover:bg-green-50 active:scale-95 transition-all"><div className="font-semibold text-sm mb-0.5">컷팅</div><div className="text-[10px] text-gray-500">체지방 감소 + 근육 유지</div></button>
+                      <button type="button" onClick={() => applyDietStylePreset('LEAN_MASS_UP', 45, 30, 25)} className={`px-3 py-2.5 bg-white border-2 rounded-xl text-xs font-medium text-gray-700 active:scale-95 transition-all ${selectedDietStyle === 'LEAN_MASS_UP' ? 'border-green-500 bg-green-50 text-green-700' : 'border-gray-200 hover:border-green-400 hover:bg-green-50'}`}><div className="font-semibold text-sm mb-0.5">린매스업</div><div className="text-[10px] text-gray-500">근육 증가 + 지방 최소</div></button>
+                      <button type="button" onClick={() => applyDietStylePreset('CLEAN_BULK', 50, 25, 25)} className={`px-3 py-2.5 bg-white border-2 rounded-xl text-xs font-medium text-gray-700 active:scale-95 transition-all ${selectedDietStyle === 'CLEAN_BULK' ? 'border-green-500 bg-green-50 text-green-700' : 'border-gray-200 hover:border-green-400 hover:bg-green-50'}`}><div className="font-semibold text-sm mb-0.5">클린 벌크</div><div className="text-[10px] text-gray-500">균형 잡힌 체중 증가</div></button>
+                      <button type="button" onClick={() => applyDietStylePreset('DIRTY_BULK', 45, 20, 35)} className={`px-3 py-2.5 bg-white border-2 rounded-xl text-xs font-medium text-gray-700 active:scale-95 transition-all ${selectedDietStyle === 'DIRTY_BULK' ? 'border-green-500 bg-green-50 text-green-700' : 'border-gray-200 hover:border-green-400 hover:bg-green-50'}`}><div className="font-semibold text-sm mb-0.5">더티 벌크</div><div className="text-[10px] text-gray-500">빠른 체중 증가 (지방 포함)</div></button>
+                      <button type="button" onClick={() => applyDietStylePreset('CUTTING', 40, 35, 25)} className={`px-3 py-2.5 bg-white border-2 rounded-xl text-xs font-medium text-gray-700 active:scale-95 transition-all ${selectedDietStyle === 'CUTTING' ? 'border-green-500 bg-green-50 text-green-700' : 'border-gray-200 hover:border-green-400 hover:bg-green-50'}`}><div className="font-semibold text-sm mb-0.5">컷팅</div><div className="text-[10px] text-gray-500">체지방 감소 + 근육 유지</div></button>
                     </div>
-                    <button type="button" onClick={() => { setCarbsPercentage(5); setProteinPercentage(25); setFatPercentage(70); }} className="w-full px-3 py-2.5 bg-white border-2 border-gray-200 rounded-xl text-xs font-medium text-gray-700 hover:border-green-400 hover:bg-green-50 active:scale-95 transition-all"><div className="font-semibold text-sm mb-0.5">저탄고지 (LCHF/키토)</div><div className="text-[10px] text-gray-500">지방 기반 에너지 식단</div></button>
+                    <button type="button" onClick={() => applyDietStylePreset('LOW_CARB', 5, 25, 70)} className={`w-full px-3 py-2.5 bg-white border-2 rounded-xl text-xs font-medium text-gray-700 active:scale-95 transition-all ${selectedDietStyle === 'LOW_CARB' ? 'border-green-500 bg-green-50 text-green-700' : 'border-gray-200 hover:border-green-400 hover:bg-green-50'}`}><div className="font-semibold text-sm mb-0.5">저탄고지 (LCHF/키토)</div><div className="text-[10px] text-gray-500">지방 기반 에너지 식단</div></button>
                   </div>
                   <div className="mb-6">
                     <div className="flex items-center justify-between mb-3"><label className="text-sm font-medium text-gray-700">탄수화물</label><div className="flex items-center gap-2"><span className="number-sm text-secondary-600">{carbsPercentage}%</span><span className="text-xs text-gray-500">({carbsGrams}g)</span></div></div>

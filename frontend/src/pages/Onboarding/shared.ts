@@ -1,7 +1,7 @@
-import type { ActivityLevel, OnboardingRequest } from '@/types/onboarding';
+import type { ActivityLevel, DietStyle, Gender, OnboardingRequest } from '@/types/onboarding';
 
 export interface OnboardingDraft {
-  gender: 'male' | 'female';
+  gender: Gender;
   age: number;
   weight: number;
   height: number;
@@ -11,6 +11,7 @@ export interface OnboardingDraft {
   goalCarbs: number;
   goalProtein: number;
   goalFat: number;
+  dietStyles: DietStyle[];
   allergies: string[];
 }
 
@@ -20,16 +21,17 @@ export const ONBOARDING_COMPLETE_KEY = 'onboardingComplete';
 export const ONBOARDING_STEP_KEY = 'onboardingCurrentStep';
 
 export const defaultOnboardingDraft: OnboardingDraft = {
-  gender: 'male',
+  gender: 'MALE',
   age: 25,
   weight: 70,
   height: 175,
-  activityLevel: 'moderate',
+  activityLevel: 'MODERATELY_ACTIVE',
   tdee: 0,
   goalCalories: 2000,
   goalCarbs: 250,
   goalProtein: 125,
   goalFat: 56,
+  dietStyles: [],
   allergies: [],
 };
 
@@ -38,12 +40,38 @@ export const activityOptions: Array<{
   label: string;
   description: string;
 }> = [
-  { value: 'sedentary', label: '거의 활동 없음', description: '주로 앉아서 생활해요' },
-  { value: 'light', label: '가벼운 활동', description: '주 1-3회 가볍게 운동해요' },
-  { value: 'moderate', label: '보통 활동', description: '주 3-5회 규칙적으로 운동해요' },
-  { value: 'active', label: '높은 활동', description: '주 6-7회 강도 있게 운동해요' },
-  { value: 'very_active', label: '매우 높은 활동', description: '운동량이 아주 많거나 육체노동이 있어요' },
+  { value: 'SEDENTARY', label: '거의 활동 없음', description: '주로 앉아서 생활해요' },
+  { value: 'LIGHTLY_ACTIVE', label: '가벼운 활동', description: '주 1-3회 가볍게 운동해요' },
+  { value: 'MODERATELY_ACTIVE', label: '보통 활동', description: '주 3-5회 규칙적으로 운동해요' },
+  { value: 'VERY_ACTIVE', label: '높은 활동', description: '주 6-7회 강도 있게 운동해요' },
+  { value: 'EXTRA_ACTIVE', label: '매우 높은 활동', description: '운동량이 아주 많거나 육체노동이 있어요' },
 ];
+
+function normalizeGender(gender?: string): Gender {
+  return gender === 'female' || gender === 'FEMALE' ? 'FEMALE' : 'MALE';
+}
+
+function normalizeActivityLevel(activityLevel?: string): ActivityLevel {
+  switch (activityLevel) {
+    case 'sedentary':
+    case 'SEDENTARY':
+      return 'SEDENTARY';
+    case 'light':
+    case 'LIGHTLY_ACTIVE':
+      return 'LIGHTLY_ACTIVE';
+    case 'moderate':
+    case 'MODERATELY_ACTIVE':
+      return 'MODERATELY_ACTIVE';
+    case 'active':
+    case 'VERY_ACTIVE':
+      return 'VERY_ACTIVE';
+    case 'very_active':
+    case 'EXTRA_ACTIVE':
+      return 'EXTRA_ACTIVE';
+    default:
+      return defaultOnboardingDraft.activityLevel;
+  }
+}
 
 export function loadOnboardingDraft(): OnboardingDraft {
   if (typeof window === 'undefined') {
@@ -54,9 +82,16 @@ export function loadOnboardingDraft(): OnboardingDraft {
     const raw = window.localStorage.getItem(ONBOARDING_DRAFT_KEY);
     if (!raw) return defaultOnboardingDraft;
 
+    const parsed = JSON.parse(raw) as Partial<OnboardingDraft> & {
+      gender?: string;
+      activityLevel?: string;
+    };
+
     return {
       ...defaultOnboardingDraft,
-      ...(JSON.parse(raw) as Partial<OnboardingDraft>),
+      ...parsed,
+      gender: normalizeGender(parsed.gender),
+      activityLevel: normalizeActivityLevel(parsed.activityLevel),
     };
   } catch {
     return defaultOnboardingDraft;
@@ -87,6 +122,7 @@ export function completeOnboarding(draft: OnboardingDraft) {
     goalCarbs: draft.goalCarbs,
     goalProtein: draft.goalProtein,
     goalFat: draft.goalFat,
+    dietStyles: draft.dietStyles,
     tdee: draft.tdee,
     allergies: draft.allergies,
   };

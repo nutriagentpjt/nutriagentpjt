@@ -14,10 +14,11 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { ROUTES } from '@/constants/routes';
 
-type ActivityLevelValue = 'sedentary' | 'light' | 'moderate' | 'active' | 'very_active';
+type ActivityLevelValue = 'SEDENTARY' | 'LIGHTLY_ACTIVE' | 'MODERATELY_ACTIVE' | 'VERY_ACTIVE' | 'EXTRA_ACTIVE';
+type GenderValue = 'MALE' | 'FEMALE';
 
 interface StoredProfile {
-  gender?: 'male' | 'female';
+  gender?: GenderValue;
   age?: number;
   weight?: number;
   height?: number;
@@ -32,30 +33,65 @@ interface StoredProfile {
 const STORAGE_KEY = 'userProfile';
 
 const activityLabelMap: Record<ActivityLevelValue, string> = {
-  sedentary: '거의 활동 없음',
-  light: '가벼운 활동',
-  moderate: '보통 활동',
-  active: '높은 활동',
-  very_active: '매우 높은 활동',
+  SEDENTARY: '거의 활동 없음',
+  LIGHTLY_ACTIVE: '가벼운 활동',
+  MODERATELY_ACTIVE: '보통 활동',
+  VERY_ACTIVE: '높은 활동',
+  EXTRA_ACTIVE: '매우 높은 활동',
 };
 
 const defaultProfile: StoredProfile = {
-  gender: 'male',
+  gender: 'MALE',
   age: 25,
   weight: 70,
   height: 175,
-  activityLevel: 'moderate',
+  activityLevel: 'MODERATELY_ACTIVE',
   goalCalories: 2000,
   goalCarbs: 250,
   goalProtein: 125,
   goalFat: 56,
 };
 
+function normalizeGender(gender?: string): GenderValue {
+  return gender === 'female' || gender === 'FEMALE' ? 'FEMALE' : 'MALE';
+}
+
+function normalizeActivityLevel(activityLevel?: string): ActivityLevelValue {
+  switch (activityLevel) {
+    case 'sedentary':
+    case 'SEDENTARY':
+      return 'SEDENTARY';
+    case 'light':
+    case 'LIGHTLY_ACTIVE':
+      return 'LIGHTLY_ACTIVE';
+    case 'moderate':
+    case 'MODERATELY_ACTIVE':
+      return 'MODERATELY_ACTIVE';
+    case 'active':
+    case 'VERY_ACTIVE':
+      return 'VERY_ACTIVE';
+    case 'very_active':
+    case 'EXTRA_ACTIVE':
+      return 'EXTRA_ACTIVE';
+    default:
+      return defaultProfile.activityLevel ?? 'MODERATELY_ACTIVE';
+  }
+}
+
 function loadStoredProfile(): StoredProfile {
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
     if (!raw) return defaultProfile;
-    return { ...defaultProfile, ...(JSON.parse(raw) as StoredProfile) };
+    const parsed = JSON.parse(raw) as StoredProfile & {
+      gender?: string;
+      activityLevel?: string;
+    };
+    return {
+      ...defaultProfile,
+      ...parsed,
+      gender: normalizeGender(parsed.gender),
+      activityLevel: normalizeActivityLevel(parsed.activityLevel),
+    };
   } catch {
     return defaultProfile;
   }
@@ -71,7 +107,7 @@ export default function ProfilePage() {
   const [editWeight, setEditWeight] = useState(profile.weight?.toString() ?? '');
   const [editHeight, setEditHeight] = useState(profile.height?.toString() ?? '');
   const [editAge, setEditAge] = useState(profile.age?.toString() ?? '');
-  const [editActivityLevel, setEditActivityLevel] = useState<ActivityLevelValue>(profile.activityLevel ?? 'moderate');
+  const [editActivityLevel, setEditActivityLevel] = useState<ActivityLevelValue>(profile.activityLevel ?? 'MODERATELY_ACTIVE');
   const [editGoalCalories, setEditGoalCalories] = useState(profile.goalCalories ?? 2000);
   const [editCarbsPercentage, setEditCarbsPercentage] = useState(50);
   const [editProteinPercentage, setEditProteinPercentage] = useState(25);
@@ -177,7 +213,7 @@ export default function ProfilePage() {
                   <p className="text-sm font-semibold text-gray-900">{profile.age ?? '-'}세</p>
                 </div>
               </div>
-              <p className="text-sm text-gray-400">{profile.gender === 'female' ? '여성' : '남성'}</p>
+              <p className="text-sm text-gray-400">{profile.gender === 'FEMALE' ? '여성' : '남성'}</p>
             </div>
 
             <div className="flex items-center justify-between py-2">
@@ -211,7 +247,7 @@ export default function ProfilePage() {
                 </div>
                 <div>
                   <p className="text-xs text-gray-500">활동량</p>
-                  <p className="text-sm font-semibold text-gray-900">{activityLabelMap[profile.activityLevel ?? 'moderate']}</p>
+                  <p className="text-sm font-semibold text-gray-900">{activityLabelMap[profile.activityLevel ?? 'MODERATELY_ACTIVE']}</p>
                 </div>
               </div>
             </div>
@@ -367,11 +403,11 @@ export default function ProfilePage() {
                   onChange={(event) => setEditActivityLevel(event.target.value as ActivityLevelValue)}
                   className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-gray-900 focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-500/50"
                 >
-                  <option value="sedentary">거의 활동 없음</option>
-                  <option value="light">가벼운 활동 (주 1-3회)</option>
-                  <option value="moderate">보통 활동 (주 3-5회)</option>
-                  <option value="active">높은 활동 (주 6-7회)</option>
-                  <option value="very_active">매우 높은 활동 (하루 2회)</option>
+                  <option value="SEDENTARY">거의 활동 없음</option>
+                  <option value="LIGHTLY_ACTIVE">가벼운 활동 (주 1-3회)</option>
+                  <option value="MODERATELY_ACTIVE">보통 활동 (주 3-5회)</option>
+                  <option value="VERY_ACTIVE">높은 활동 (주 6-7회)</option>
+                  <option value="EXTRA_ACTIVE">매우 높은 활동 (하루 2회)</option>
                 </select>
               </div>
             </div>
