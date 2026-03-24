@@ -252,7 +252,7 @@
 
 ### 8.3 컴포넌트
 
-- [x] `components/chart/DonutChart.tsx` - 도넛 차트 (칼로리 달성률)
+- [ ] `components/chart/DonutChart.tsx` - 도넛 차트 (칼로리 달성률)
 - [ ] `components/chart/BarChart.tsx` - 바 차트 (영양소 갭)
 - [ ] `components/recommendation/NutritionGapChart.tsx` - 갭 시각화
 - [x] `components/recommendation/CoachingMessage.tsx` - AI 코칭 메시지
@@ -311,19 +311,19 @@
 
 ### 10.1 API
 
-- [ ] `services/onboardingService.ts`
-  - [ ] `saveOnboarding(data)` - POST /api/onboarding
-  - [ ] `getOnboarding(userId)` - GET /api/onboarding
-  - [ ] `deleteOnboarding(userId)` - DELETE /api/onboarding
+- [x] `services/onboardingService.ts`
+  - [x] `saveOnboarding(data)` - POST /api/onboarding
+  - [x] `getOnboarding(userId)` - GET /api/onboarding
+  - [x] `deleteOnboarding(userId)` - DELETE /api/onboarding
 
 ### 10.2 훅
 
-- [ ] `hooks/useOnboarding.ts` - 온보딩 정보 조회
-- [ ] `hooks/useSaveOnboarding.ts` - 온보딩 저장
+- [x] `hooks/useOnboarding.ts` - 온보딩 정보 조회
+- [x] `hooks/useSaveOnboarding.ts` - 온보딩 저장
 
 ### 10.3 유틸리티
 
-- [ ] `utils/tdeeCalculator.ts` - TDEE 계산 함수
+- [x] `utils/tdeeCalculator.ts` - TDEE 계산 함수
 
 ### 10.4 페이지
 
@@ -343,32 +343,35 @@
 
 ---
 
+온보딩 페이지는 명세보다 세분화 및 구체화 된 상태
+
 ## Phase 11: 홈 화면
 
 ### 11.1 API
 
-- [ ] `services/mealService.ts`
-  - [ ] `getMealSummary(userId, date)` - GET /api/meals/summary
+- [x] `services/mealService.ts`
+  - [x] `getMealSummary(userId, date)` - GET /api/meals/summary
 
 ### 11.2 훅
 
-- [ ] `hooks/useMealSummary.ts` - 식사 요약 조회
+- [x] `hooks/useMealSummary.ts` - 식사 요약 조회
 
 ### 11.3 컴포넌트
 
-- [ ] `components/chart/ProgressCircle.tsx` - 큰 프로그레스 서클
+- [x] `components/chart/ProgressCircle.tsx` - 큰 프로그레스 서클
 
 ### 11.4 페이지
 
-- [ ] `pages/Home/HomePage.tsx`
-  - [ ] 오늘 날짜
-  - [ ] 총 칼로리 / 목표 칼로리 (큰 프로그레스 서클)
-  - [ ] 빠른 액션 버튼 ([식단 기록하기], [추천 받기])
-  - [ ] 최근 식단 미리보기 (3개)
-  - [ ] [전체 보기] 버튼
+- [x] `pages/Home/HomePage.tsx`
+  - [x] 오늘 날짜
+  - [x] 총 칼로리 / 목표 칼로리 (큰 프로그레스 서클)
+  - [x] 빠른 액션 버튼 ([식단 기록하기], [추천 받기])
+  - [x] 최근 식단 미리보기 (3개)
+  - [x] [전체 보기] 버튼
   - [ ] 주간 통계 (선택적)
 
 ---
+최근 식단 미리보기는 홈 페이지에서 즉시 확인 혹은 헤더를 터치해 편집 가능
 
 ## Phase 12: 마이페이지
 
