@@ -19,7 +19,7 @@ export function useRecommendations({
   enabled = true,
 }: UseRecommendationsParams) {
   return useQuery({
-    queryKey: queryKeys.recommendations.list(userId, mealType, date),
+    queryKey: queryKeys.recommendations.list(userId, mealType, date, limit),
     queryFn: () => recommendationService.getRecommendations(userId, mealType, date, limit),
     enabled: enabled && Boolean(userId) && Boolean(mealType) && Boolean(date),
   });

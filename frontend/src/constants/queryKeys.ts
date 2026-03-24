@@ -14,8 +14,8 @@ export const queryKeys = {
   },
   recommendations: {
     all: ['recommendations'] as const,
-    list: (userId: number, mealType: MealType, date: string) =>
-      ['recommendations', 'list', userId, mealType, date] as const,
+    list: (userId: number, mealType: MealType, date: string, limit?: number) =>
+      ['recommendations', 'list', userId, mealType, date, limit ?? 'default'] as const,
     settings: (userId: number) => ['recommendations', 'settings', userId] as const,
   },
   onboarding: {
