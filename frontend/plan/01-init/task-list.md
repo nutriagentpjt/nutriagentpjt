@@ -243,34 +243,34 @@
 
 ### 8.1 API
 
-- [ ] `services/recommendationService.ts`
-  - [ ] `getRecommendations(userId, mealType, date, limit)` - GET /api/recommendations
+- [x] `services/recommendationService.ts`
+  - [x] `getRecommendations(userId, mealType, date, limit)` - GET /api/recommendations
 
 ### 8.2 훅
 
-- [ ] `hooks/useRecommendations.ts` - 추천 조회 쿼리
+- [x] `hooks/useRecommendations.ts` - 추천 조회 쿼리
 
 ### 8.3 컴포넌트
 
-- [ ] `components/chart/DonutChart.tsx` - 도넛 차트 (칼로리 달성률)
+- [x] `components/chart/DonutChart.tsx` - 도넛 차트 (칼로리 달성률)
 - [ ] `components/chart/BarChart.tsx` - 바 차트 (영양소 갭)
 - [ ] `components/recommendation/NutritionGapChart.tsx` - 갭 시각화
-- [ ] `components/recommendation/CoachingMessage.tsx` - AI 코칭 메시지
-- [ ] `components/recommendation/RecommendationCard.tsx` - 추천 음식 카드
-  - [ ] 음식명, 추천 섭취량, 영양소
-  - [ ] 추천 점수, 사유 태그
-  - [ ] [저장하기] 버튼
-  - [ ] 👍/👎 피드백 버튼
+- [x] `components/recommendation/CoachingMessage.tsx` - AI 코칭 메시지
+- [x] `components/recommendation/RecommendationCard.tsx` - 추천 음식 카드
+  - [x] 음식명, 추천 섭취량, 영양소
+  - [x] 추천 점수, 사유 태그
+  - [x] [저장하기] 버튼
+  - [x] 👍/👎 피드백 버튼
 
 ### 8.4 페이지
 
-- [ ] `pages/Recommendation/RecommendationPage.tsx`
-  - [ ] 식사 시간대 선택
+- [x] `pages/Recommendation/RecommendationPage.tsx`
+  - [x] 식사 시간대 선택
   - [ ] 현재 상태 요약 카드
   - [ ] 영양소 갭 시각화
   - [ ] AI 코칭 메시지
-  - [ ] 추천 음식 리스트
-  - [ ] 온보딩 미완료 처리 (409 에러)
+  - [x] 추천 음식 리스트
+  - [x] 온보딩 미완료 처리 (409 에러)
 
 ---
 
