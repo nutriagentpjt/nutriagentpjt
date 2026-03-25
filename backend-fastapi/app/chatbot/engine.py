@@ -1,7 +1,7 @@
+import asyncio
 import json
 import logging
 from collections.abc import AsyncGenerator
-
 import boto3
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -131,7 +131,7 @@ class ConversationEngine:
             if tool_config:
                 kwargs["toolConfig"] = tool_config
 
-            response = self.client.converse(**kwargs)
+            response = await asyncio.to_thread(self.client.converse, **kwargs)
 
             assistant_msg = response["output"]["message"]
             messages.append(assistant_msg)
@@ -209,14 +209,21 @@ class ConversationEngine:
             if tool_config:
                 kwargs["toolConfig"] = tool_config
 
-            response = self.client.converse_stream(**kwargs)
+            response = await asyncio.to_thread(self.client.converse_stream, **kwargs)
 
             # 스트리밍 응답 처리
             full_text = ""
             tool_call_blocks = []
             current_tool_use = None
 
-            for event in response["stream"]:
+            stream_iter = response["stream"].__iter__()
+            while True:
+                event = await asyncio.to_thread(
+                    next, stream_iter, None
+                )
+                if event is None:
+                    break
+
                 if "contentBlockStart" in event:
                     start = event["contentBlockStart"].get("start", {})
                     if "toolUse" in start:
