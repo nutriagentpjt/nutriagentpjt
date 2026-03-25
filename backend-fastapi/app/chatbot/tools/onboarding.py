@@ -77,6 +77,11 @@ class UpdateOnboardingTool(BaseTool):
                 "items": {"type": "string"},
                 "description": "비선호 음식 목록",
             },
+            "allergies": {
+                "type": "array",
+                "items": {"type": "string"},
+                "description": "알레르기 목록 (예: 우유, 땅콩, 대두)",
+            },
         },
         "required": [],
     }
