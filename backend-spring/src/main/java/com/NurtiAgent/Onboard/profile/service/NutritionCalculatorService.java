@@ -80,12 +80,6 @@ public class NutritionCalculatorService {
                 carbsGrams = (remainingCalories * (45.0 / 70.0)) / 4;
                 fatGrams = (remainingCalories * (25.0 / 70.0)) / 9;
             }
-            case LEAN_MASS_UP -> {
-                // 린매스업: 탄45 : 단30 : 지25
-                carbRatio = 0.45;
-                proteinRatio = 0.30;
-                fatRatio = 0.25;
-            }
             case BULK_UP -> {
                 // 벌크업: 단백질 1.6 g/kg, 남은 칼로리를 탄50:지25 비율로 배분
                 // 단백질이 목표 칼로리의 35%를 초과하지 않도록 제한
