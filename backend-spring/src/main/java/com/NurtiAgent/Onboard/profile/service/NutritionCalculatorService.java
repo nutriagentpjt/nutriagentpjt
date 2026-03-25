@@ -64,7 +64,8 @@ public class NutritionCalculatorService {
         switch (healthGoal) {
             case DIET -> {
                 // 다이어트: 단백질 2.0 g/kg (근손실 방지), 남은 칼로리를 탄40:지30 비율로 배분
-                proteinGrams = weight * 2.0;
+                // 단백질이 목표 칼로리의 40%를 초과하지 않도록 제한
+                proteinGrams = Math.min(weight * 2.0, (targetCalories * 0.40) / 4);
                 double proteinCalories = proteinGrams * 4;
                 double remainingCalories = targetCalories - proteinCalories;
                 carbsGrams = (remainingCalories * (40.0 / 70.0)) / 4;
@@ -72,7 +73,8 @@ public class NutritionCalculatorService {
             }
             case LEAN_MASS_UP -> {
                 // 린매스업: 단백질 1.8 g/kg, 남은 칼로리를 탄45:지25 비율로 배분
-                proteinGrams = weight * 1.8;
+                // 단백질이 목표 칼로리의 40%를 초과하지 않도록 제한
+                proteinGrams = Math.min(weight * 1.8, (targetCalories * 0.40) / 4);
                 double proteinCalories = proteinGrams * 4;
                 double remainingCalories = targetCalories - proteinCalories;
                 carbsGrams = (remainingCalories * (45.0 / 70.0)) / 4;
@@ -80,7 +82,8 @@ public class NutritionCalculatorService {
             }
             case BULK_UP -> {
                 // 벌크업: 단백질 1.6 g/kg, 남은 칼로리를 탄50:지25 비율로 배분
-                proteinGrams = weight * 1.6;
+                // 단백질이 목표 칼로리의 35%를 초과하지 않도록 제한
+                proteinGrams = Math.min(weight * 1.6, (targetCalories * 0.35) / 4);
                 double proteinCalories = proteinGrams * 4;
                 double remainingCalories = targetCalories - proteinCalories;
                 carbsGrams = (remainingCalories * (50.0 / 75.0)) / 4;
