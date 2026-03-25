@@ -292,7 +292,13 @@ class ConversationEngine:
             # tool 결과 반영 후 다시 스트리밍 (루프 계속)
 
     def _build_system_prompt(self, persona: PersonaConfig) -> str:
-        base = persona.system_prompt
+        common = (
+            "너는 NutriAgent의 식단·운동 관리 AI 어시스턴트야. "
+            "사용자의 건강 목표 달성을 돕는 퍼스널 트레이너 역할을 해.\n"
+            "식단 추천, 영양 분석, 운동 조언, 건강 습관 코칭이 주된 역할이야. "
+            "대화 중 주제가 크게 벗어나면 자연스럽게 건강·식단 주제로 돌아와줘.\n\n"
+        )
+        base = common + persona.system_prompt
         rules = [
             "\n## 공통 규칙",
             "- 사용자의 건강 데이터나 식단 정보가 필요하면 반드시 적절한 도구를 사용해 조회하세요.",
