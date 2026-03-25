@@ -1,5 +1,6 @@
 from pathlib import Path
 
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 ENV_FILE = Path(__file__).resolve().parents[3] / ".env"
@@ -26,6 +27,14 @@ class Settings(BaseSettings):
     # AWS Bedrock
     AWS_REGION: str = "us-east-1"
     BEDROCK_MODEL_ID: str = "anthropic.claude-sonnet-4-20250514"
+
+    @model_validator(mode="after")
+    def _validate_secrets(self) -> "Settings":
+        if not self.INTERNAL_API_KEY:
+            raise ValueError("INTERNAL_API_KEY must be set and non-empty")
+        if not self.POSTGRES_PASSWORD:
+            raise ValueError("POSTGRES_PASSWORD must be set and non-empty")
+        return self
 
 
 settings = Settings()
