@@ -251,42 +251,39 @@ public class MealService {
 
     @Transactional(readOnly = true)
     public MealSummaryResponse getMealSummary(String guestId, String dateStr) {
-        // 1. 사용자 조회
         User user = userRepository.findByGuestId(guestId)
                 .orElseThrow(() -> new RuntimeException("인증 실패 (세션 없음)"));
 
-        // 2. 날짜 파싱
         LocalDate date = LocalDate.parse(dateStr);
-
-        // 3. 해당 날짜의 식단 기록 조회
         List<Meal> meals = mealRepository.findByUserAndDate(user, date);
 
-        // 4. 영양소 합계 계산
-        double totalCalories = meals.stream()
-                .mapToDouble(Meal::getCalories)
-                .sum();
-        double totalProtein = meals.stream()
-                .filter(m -> m.getProtein() != null)
-                .mapToDouble(Meal::getProtein)
-                .sum();
-        double totalCarbs = meals.stream()
-                .filter(m -> m.getCarbs() != null)
-                .mapToDouble(Meal::getCarbs)
-                .sum();
-        double totalFat = meals.stream()
-                .filter(m -> m.getFat() != null)
-                .mapToDouble(Meal::getFat)
-                .sum();
+        return buildSummary(meals);
+    }
 
-        MealSummaryResponse.ConsumedNutrition consumed = MealSummaryResponse.ConsumedNutrition.builder()
-                .calories(totalCalories)
-                .protein(totalProtein)
-                .carbs(totalCarbs)
-                .fat(totalFat)
-                .build();
+    @Transactional(readOnly = true)
+    public MealSummaryResponse getMealSummaryByMealType(String guestId, String dateStr, com.NurtiAgent.Onboard.common.enums.MealType mealType) {
+        User user = userRepository.findByGuestId(guestId)
+                .orElseThrow(() -> new RuntimeException("인증 실패 (세션 없음)"));
+
+        LocalDate date = LocalDate.parse(dateStr);
+        List<Meal> meals = mealRepository.findByUserAndDateAndMealType(user, date, mealType);
+
+        return buildSummary(meals);
+    }
+
+    private MealSummaryResponse buildSummary(List<Meal> meals) {
+        double totalCalories = meals.stream().mapToDouble(Meal::getCalories).sum();
+        double totalProtein = meals.stream().filter(m -> m.getProtein() != null).mapToDouble(Meal::getProtein).sum();
+        double totalCarbs = meals.stream().filter(m -> m.getCarbs() != null).mapToDouble(Meal::getCarbs).sum();
+        double totalFat = meals.stream().filter(m -> m.getFat() != null).mapToDouble(Meal::getFat).sum();
 
         return MealSummaryResponse.builder()
-                .consumed(consumed)
+                .consumed(MealSummaryResponse.ConsumedNutrition.builder()
+                        .calories(totalCalories)
+                        .protein(totalProtein)
+                        .carbs(totalCarbs)
+                        .fat(totalFat)
+                        .build())
                 .build();
     }
 

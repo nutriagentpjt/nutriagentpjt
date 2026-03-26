@@ -41,15 +41,8 @@ public class RecommendationController {
             return ResponseEntity.badRequest().build();
         }
 
-        try {
-            RecommendationResponse response = recommendationService.getRecommendations(
-                    guestId, targetDate, mealType, limit);
-            return ResponseEntity.ok(response);
-        } catch (RuntimeException e) {
-            if (e.getMessage().contains("목표 설정이 필요합니다")) {
-                return ResponseEntity.status(HttpStatus.CONFLICT).body(null);
-            }
-            throw e;
-        }
+        RecommendationResponse response = recommendationService.getRecommendations(
+                guestId, targetDate, mealType, limit);
+        return ResponseEntity.ok(response);
     }
 }
