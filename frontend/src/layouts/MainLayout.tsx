@@ -24,6 +24,10 @@ export default function MainLayout() {
 
   const headerTitle = useMemo(() => headerTitles[location.pathname], [location.pathname]);
   const isRecommendationOverlay = location.pathname === ROUTES.RECOMMENDATION;
+  const hideLayoutHeader =
+    isRecommendationOverlay ||
+    location.pathname === ROUTES.MYPAGE ||
+    location.pathname === ROUTES.RECOMMENDATION_SETTINGS;
 
   const handleScroll = () => {
     setIsScrolling(true);
@@ -60,7 +64,7 @@ export default function MainLayout() {
   return (
     <div className="flex min-h-screen justify-center bg-gradient-to-b from-gray-50 to-white">
       <div className="relative flex h-screen w-full max-w-[390px] flex-col">
-        {!isRecommendationOverlay ? <Header title={headerTitle} /> : null}
+        {!hideLayoutHeader ? <Header title={headerTitle} /> : null}
         <div
           className={`flex-1 overflow-y-auto pb-[68px] transition-all ${
             isScrolling

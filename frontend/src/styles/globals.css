@@ -419,6 +419,13 @@ html {
     border: 2px solid #ffffff;
     box-shadow: 0 2px 8px rgba(15, 23, 42, 0.18);
     cursor: pointer;
+    margin-top: -6px;
+  }
+
+  .onboarding-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    accent-color: transparent;
   }
 
   .onboarding-slider::-moz-range-thumb {
@@ -429,5 +436,17 @@ html {
     border: 2px solid #ffffff;
     box-shadow: 0 2px 8px rgba(15, 23, 42, 0.18);
     cursor: pointer;
+  }
+
+  .onboarding-slider::-webkit-slider-runnable-track {
+    height: 8px;
+    border-radius: 9999px;
+    background: transparent;
+  }
+
+  .onboarding-slider::-moz-range-track {
+    height: 8px;
+    border-radius: 9999px;
+    background: transparent;
   }
 }
