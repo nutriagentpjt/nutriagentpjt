@@ -40,6 +40,9 @@ export interface UserProfile {
   diseases?: Disease[];
   waterGoal?: number;
   mealsPerDay?: number;
+  lowSodium?: boolean;
+  lowSugar?: boolean;
+  maxCaloriesPerMeal?: number;
 }
 
 export interface OnboardingConstraints {

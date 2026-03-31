@@ -16,6 +16,9 @@ export interface OnboardingDraft {
   mealsPerDay: number;
   allergies: string[];
   diseases: Disease[];
+  lowSodium: boolean;
+  lowSugar: boolean;
+  maxCaloriesPerMeal: number;
 }
 
 export const ONBOARDING_DRAFT_KEY = 'onboardingDraft';
@@ -39,6 +42,9 @@ export const defaultOnboardingDraft: OnboardingDraft = {
   mealsPerDay: 3,
   allergies: [],
   diseases: [],
+  lowSodium: false,
+  lowSugar: false,
+  maxCaloriesPerMeal: 600,
 };
 
 export const activityOptions: Array<{
@@ -134,6 +140,9 @@ export function completeOnboarding(draft: OnboardingDraft) {
     mealsPerDay: draft.mealsPerDay,
     allergies: draft.allergies,
     diseases: draft.diseases,
+    lowSodium: draft.lowSodium,
+    lowSugar: draft.lowSugar,
+    maxCaloriesPerMeal: draft.maxCaloriesPerMeal,
   };
 
   window.localStorage.setItem(USER_PROFILE_KEY, JSON.stringify(profile));

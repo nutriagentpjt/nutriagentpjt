@@ -73,8 +73,23 @@ const getProgressLabel = (step: number) => {
       return '알러지 정보';
     case 8:
       return '질환 정보';
+    case 9:
+      return '추가 설정';
     default:
       return '';
+  }
+};
+
+const getMealsPerDayFromPattern = (mealPattern: MealPattern): number => {
+  switch (mealPattern) {
+    case 'ONE_MEAL':
+      return 1;
+    case 'TWO_MEALS':
+      return 2;
+    case 'FOUR_OR_MORE_MEALS':
+      return 4;
+    default:
+      return 3;
   }
 };
 
@@ -123,6 +138,9 @@ export default function OnboardingFlow({ fallbackStep }: OnboardingFlowProps) {
   const [mealsPerDay, setMealsPerDay] = useState(draft.mealsPerDay);
   const [allergies, setAllergies] = useState<string[]>(draft.allergies);
   const [diseases, setDiseases] = useState<Disease[]>(draft.diseases);
+  const [lowSodium, setLowSodium] = useState(draft.lowSodium);
+  const [lowSugar, setLowSugar] = useState(draft.lowSugar);
+  const [maxCaloriesPerMeal, setMaxCaloriesPerMeal] = useState(draft.maxCaloriesPerMeal);
 
   const hasLocalDraft =
     typeof window !== 'undefined' && Boolean(window.localStorage.getItem(ONBOARDING_DRAFT_KEY));
@@ -159,28 +177,17 @@ export default function OnboardingFlow({ fallbackStep }: OnboardingFlowProps) {
     setHeight(String(onboardingData.height));
     setActivityLevel(onboardingData.activityLevel);
     setWaterGoal(onboardingData.waterIntakeGoal);
-    setMealsPerDay(
-      onboardingData.mealPattern === 'ONE_MEAL'
-        ? 1
-        : onboardingData.mealPattern === 'TWO_MEALS'
-        ? 2
-        : onboardingData.mealPattern === 'FOUR_OR_MORE_MEALS'
-          ? 4
-          : 3,
-    );
+    setMealsPerDay(getMealsPerDayFromPattern(onboardingData.mealPattern));
     setAllergies(onboardingData.allergies);
     setDiseases(onboardingData.diseases);
     setSelectedDietStyle(onboardingData.dietStyles?.[0] ?? null);
+    setLowSodium(onboardingData.constraints?.lowSodium ?? false);
+    setLowSugar(onboardingData.constraints?.lowSugar ?? false);
+    setMaxCaloriesPerMeal(onboardingData.constraints?.maxCaloriesPerMeal ?? defaultOnboardingDraft.maxCaloriesPerMeal);
 
+    const mealsCount = getMealsPerDayFromPattern(onboardingData.mealPattern);
     const nextGoalCalories = onboardingData.constraints?.maxCaloriesPerMeal
-      ? onboardingData.constraints.maxCaloriesPerMeal *
-        (onboardingData.mealPattern === 'TWO_MEALS'
-          ? 2
-          : onboardingData.mealPattern === 'FOUR_MEALS'
-            ? 4
-            : onboardingData.mealPattern === 'FIVE_MEALS'
-              ? 5
-              : 3)
+      ? onboardingData.constraints.maxCaloriesPerMeal * mealsCount
       : calculatedTDEE || defaultOnboardingDraft.goalCalories;
     setGoalCalories(nextGoalCalories);
 
@@ -209,16 +216,12 @@ export default function OnboardingFlow({ fallbackStep }: OnboardingFlowProps) {
         : draft.goalFat,
       dietStyles: onboardingData.dietStyles ?? [],
       waterGoal: onboardingData.waterIntakeGoal,
-      mealsPerDay:
-        onboardingData.mealPattern === 'ONE_MEAL'
-          ? 1
-          : onboardingData.mealPattern === 'TWO_MEALS'
-          ? 2
-          : onboardingData.mealPattern === 'FOUR_OR_MORE_MEALS'
-            ? 4
-            : 3,
+      mealsPerDay: mealsCount,
       allergies: onboardingData.allergies,
       diseases: onboardingData.diseases,
+      lowSodium: onboardingData.constraints?.lowSodium ?? false,
+      lowSugar: onboardingData.constraints?.lowSugar ?? false,
+      maxCaloriesPerMeal: onboardingData.constraints?.maxCaloriesPerMeal ?? defaultOnboardingDraft.maxCaloriesPerMeal,
     });
   }, [calculatedTDEE, draft.diseases, draft.goalCarbs, draft.goalFat, draft.goalProtein, draft.tdee, onboardingData]);
 
@@ -242,6 +245,9 @@ export default function OnboardingFlow({ fallbackStep }: OnboardingFlowProps) {
       mealsPerDay,
       allergies,
       diseases,
+      lowSodium,
+      lowSugar,
+      maxCaloriesPerMeal,
     });
   }, [
     activityLevel,
@@ -252,6 +258,9 @@ export default function OnboardingFlow({ fallbackStep }: OnboardingFlowProps) {
     draft.age,
     draft.diseases,
     draft.height,
+    draft.lowSodium,
+    draft.lowSugar,
+    draft.maxCaloriesPerMeal,
     draft.mealsPerDay,
     draft.tdee,
     draft.waterGoal,
@@ -260,7 +269,10 @@ export default function OnboardingFlow({ fallbackStep }: OnboardingFlowProps) {
     gender,
     goalCalories,
     height,
+    lowSodium,
+    lowSugar,
     mealsPerDay,
+    maxCaloriesPerMeal,
     proteinGrams,
     selectedDietStyle,
     step,
@@ -317,6 +329,9 @@ export default function OnboardingFlow({ fallbackStep }: OnboardingFlowProps) {
       mealsPerDay,
       allergies,
       diseases,
+      lowSodium,
+      lowSugar,
+      maxCaloriesPerMeal,
     };
 
     const onboardingPayload = {
@@ -333,9 +348,9 @@ export default function OnboardingFlow({ fallbackStep }: OnboardingFlowProps) {
         dietStyles: localProfile.dietStyles,
         waterIntakeGoal: localProfile.waterGoal,
         constraints: {
-          lowSodium: false,
-          lowSugar: false,
-          maxCaloriesPerMeal: Math.max(1, Math.round(localProfile.goalCalories / localProfile.mealsPerDay)),
+          lowSodium: localProfile.lowSodium,
+          lowSugar: localProfile.lowSugar,
+          maxCaloriesPerMeal: Math.max(1, localProfile.maxCaloriesPerMeal),
         },
       },
     };
@@ -428,11 +443,11 @@ export default function OnboardingFlow({ fallbackStep }: OnboardingFlowProps) {
           <div className="max-w-md mx-auto">
             <div className="mb-8">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-semibold text-green-600">{`Step ${step} of 8`}</span>
+                <span className="text-sm font-semibold text-green-600">{`Step ${step} of 9`}</span>
                 <span className="text-sm text-gray-500">{getProgressLabel(step)}</span>
               </div>
               <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                <div className="h-full bg-gradient-to-r from-green-500 to-emerald-600" style={{ width: `${(step / 8) * 100}%` }} />
+                <div className="h-full bg-gradient-to-r from-green-500 to-emerald-600" style={{ width: `${(step / 9) * 100}%` }} />
               </div>
             </div>
 
@@ -749,7 +764,92 @@ export default function OnboardingFlow({ fallbackStep }: OnboardingFlowProps) {
       ) : null}
 
       {step === 9 ? (
-        <div key="step-9" className={`min-h-screen flex flex-col items-center justify-center bg-white p-6 ${transitionClass}`}>
+        <div key="step-9" className={`min-h-screen bg-white p-6 pt-12 pb-24 ${transitionClass}`}>
+          <div className="mx-auto max-w-md">
+            <div className="mb-8">
+              <div className="mb-2 flex items-center justify-between">
+                <span className="text-sm font-semibold text-green-600">Step 9 of 9</span>
+                <span className="text-sm text-gray-500">추가 설정</span>
+              </div>
+              <div className="h-2 overflow-hidden rounded-full bg-gray-200">
+                <div className="h-full bg-gradient-to-r from-green-500 to-emerald-600 transition-all duration-300" style={{ width: '100%' }} />
+              </div>
+            </div>
+
+            <h2 className="mb-2 text-2xl font-bold text-gray-900">추가 식단 설정을<br />체크해주세요</h2>
+            <p className="mb-8 text-sm text-gray-600">더 건강한 식단을 위한 세부 설정입니다 (선택사항)</p>
+
+            <div className="mb-8">
+              <label className="input-label mb-4">추가 식단 설정</label>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setLowSodium((prev) => !prev)}
+                  className={`min-touch rounded-xl border-2 px-4 py-4 transition-all ${lowSodium ? 'border-green-500 bg-green-50' : 'border-gray-200 bg-white hover:border-gray-300'}`}
+                  aria-label={`저염 ${lowSodium ? '선택됨' : '선택'}`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className={`text-sm font-medium ${lowSodium ? 'text-green-700' : 'text-gray-700'}`}>저염</span>
+                    {lowSodium ? (
+                      <div className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-green-500">
+                        <Check className="h-3 w-3 text-white" />
+                      </div>
+                    ) : null}
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setLowSugar((prev) => !prev)}
+                  className={`min-touch rounded-xl border-2 px-4 py-4 transition-all ${lowSugar ? 'border-green-500 bg-green-50' : 'border-gray-200 bg-white hover:border-gray-300'}`}
+                  aria-label={`저당 ${lowSugar ? '선택됨' : '선택'}`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className={`text-sm font-medium ${lowSugar ? 'text-green-700' : 'text-gray-700'}`}>저당</span>
+                    {lowSugar ? (
+                      <div className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-green-500">
+                        <Check className="h-3 w-3 text-white" />
+                      </div>
+                    ) : null}
+                  </div>
+                </button>
+              </div>
+            </div>
+
+            <div className="mb-8">
+              <label className="input-label">식사 당 목표 최대 칼로리</label>
+              <div className="relative">
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  value={maxCaloriesPerMeal}
+                  onChange={(e) => setMaxCaloriesPerMeal(parseInt(e.target.value, 10) || defaultOnboardingDraft.maxCaloriesPerMeal)}
+                  className="input-primary pr-16"
+                  aria-label="식사 당 목표 최대 칼로리 입력"
+                />
+                <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                  <span className="text-sm font-medium text-gray-500">kcal</span>
+                </div>
+              </div>
+              <p className="input-help">한 끼 식사의 최대 칼로리 목표를 설정합니다</p>
+            </div>
+
+            <div className="text-center">
+              <button onClick={() => goToStep(10)} className="btn-primary flex w-full min-touch items-center justify-center gap-2">
+                다음
+                <ChevronRight className="w-5 h-5" />
+              </button>
+              <button onClick={() => goToStep(8)} className="mt-3 flex w-full items-center justify-center gap-1 py-2 text-sm text-gray-400 transition-colors hover:text-gray-600">
+                <ChevronRight className="w-3 h-3 rotate-180" />
+                이전으로
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {step === 10 ? (
+        <div key="step-10" className={`min-h-screen flex flex-col items-center justify-center bg-white p-6 ${transitionClass}`}>
           <div className="flex-1 flex flex-col items-center justify-center w-full max-w-md">
             <div className="mb-8 relative">
               <div className="absolute inset-0 bg-green-100 rounded-full blur-3xl opacity-40 scale-150 animate-pulse" />
@@ -766,7 +866,7 @@ export default function OnboardingFlow({ fallbackStep }: OnboardingFlowProps) {
                 시작하기
                 <ChevronRight className="w-5 h-5" />
               </button>
-              <button onClick={() => goToStep(8)} className="w-full min-touch py-3.5 px-6 text-gray-600 hover:text-gray-900 transition-colors text-sm font-medium">
+              <button onClick={() => goToStep(9)} className="w-full min-touch py-3.5 px-6 text-gray-600 hover:text-gray-900 transition-colors text-sm font-medium">
                 <div className="flex items-center justify-center gap-1"><ChevronRight className="w-3 h-3 rotate-180" />이전으로</div>
               </button>
             </div>
