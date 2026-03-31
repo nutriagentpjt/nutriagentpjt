@@ -50,6 +50,7 @@ export default function RecommendationCard({
           </div>
         </div>
         <button
+          type="button"
           onClick={() => onToggleFavorite?.(recommendation)}
           className="flex h-9 w-9 flex-shrink-0 items-center justify-center transition-transform active:scale-90"
           aria-label={isFavorite ? '즐겨찾기 해제' : '즐겨찾기 추가'}
@@ -100,6 +101,7 @@ export default function RecommendationCard({
         />
 
         <button
+          type="button"
           onClick={() => onSave?.(recommendation)}
           className="min-touch flex w-16 items-center justify-center rounded-xl bg-green-500 py-3.5 text-white shadow-md transition-all hover:bg-green-600 active:scale-[0.97]"
           aria-label="식단에 저장"

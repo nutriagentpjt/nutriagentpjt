@@ -307,6 +307,8 @@ export default function ProfilePage() {
             <div className="mb-5 flex items-center justify-between">
               <h3 className="text-lg font-bold text-gray-900">프로필 수정</h3>
               <button
+                type="button"
+                aria-label="프로필 수정 닫기"
                 onClick={() => setShowEditProfile(false)}
                 className="flex h-8 w-8 items-center justify-center rounded-full transition-colors hover:bg-gray-100 active:bg-gray-200"
               >
@@ -390,6 +392,8 @@ export default function ProfilePage() {
             <div className="mb-5 flex items-center justify-between">
               <h3 className="text-lg font-bold text-gray-900">목표 설정 수정</h3>
               <button
+                type="button"
+                aria-label="목표 설정 수정 닫기"
                 onClick={() => setShowEditGoals(false)}
                 className="flex h-8 w-8 items-center justify-center rounded-full transition-colors hover:bg-gray-100 active:bg-gray-200"
               >

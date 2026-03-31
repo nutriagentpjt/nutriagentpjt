@@ -189,6 +189,7 @@ export default function AIRecommendations({
               </div>
             </div>
             <button
+              type="button"
               onClick={onClose}
               className="icon-button bg-white/20 backdrop-blur-sm hover:bg-white/30"
               aria-label="닫기"
@@ -244,10 +245,12 @@ export default function AIRecommendations({
         </div>
 
         {showToast ? (
-          <div className="fixed bottom-20 left-1/2 z-50 -translate-x-1/2 animate-toast-slide-in">
+          <div className="fixed bottom-20 left-1/2 z-50 w-[calc(100vw-2rem)] max-w-[340px] -translate-x-1/2 animate-toast-slide-in">
             <div className="toast-success flex min-w-[280px] items-center gap-2 rounded-xl px-4 py-3 shadow-lg">
               <CheckCircle className="h-5 w-5 flex-shrink-0" />
-              <p className="text-sm font-medium">{toastMessage}</p>
+              <p className="text-sm font-medium" role="status" aria-live="polite">
+                {toastMessage}
+              </p>
             </div>
           </div>
         ) : null}

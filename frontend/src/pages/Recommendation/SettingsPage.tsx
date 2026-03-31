@@ -35,6 +35,8 @@ export default function SettingsPage() {
       <div className="border-b border-gray-200 bg-white">
         <div className="mx-auto flex w-full max-w-[390px] items-center justify-between px-5 py-4">
           <button
+            type="button"
+            aria-label="뒤로 가기"
             onClick={handleBack}
             className="flex h-10 w-10 items-center justify-center rounded-full transition-colors hover:bg-gray-100 active:bg-gray-200"
           >

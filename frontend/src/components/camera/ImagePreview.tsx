@@ -11,7 +11,13 @@ export function ImagePreview({ className, image, onConfirm, onRetake }: ImagePre
   return (
     <div className={className}>
       <div className="overflow-hidden rounded-2xl bg-gray-100">
-        <img src={image} alt="촬영한 음식 이미지 미리보기" className="aspect-[3/4] w-full object-cover" />
+        <img
+          src={image}
+          alt="촬영한 음식 이미지 미리보기"
+          loading="lazy"
+          decoding="async"
+          className="aspect-[3/4] w-full object-cover"
+        />
       </div>
 
       <div className="mt-4 flex items-center justify-between gap-3">

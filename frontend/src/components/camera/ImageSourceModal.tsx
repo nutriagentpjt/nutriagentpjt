@@ -14,12 +14,20 @@ export function ImageSourceModal({ isOpen, onCamera, onClose, onGallery }: Image
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-5" onClick={onClose}>
-      <div className="w-full max-w-[340px] rounded-2xl bg-white p-6 shadow-xl" onClick={(event) => event.stopPropagation()}>
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="image-source-modal-title"
+        className="w-full max-w-[340px] rounded-2xl bg-white p-6 shadow-xl"
+        onClick={(event) => event.stopPropagation()}
+      >
         <div className="flex flex-col items-center text-center">
           <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-green-100">
             <Camera className="h-7 w-7 text-green-500" />
           </div>
-          <h3 className="mb-2 text-lg font-bold text-gray-900">이미지 출처 선택</h3>
+          <h3 id="image-source-modal-title" className="mb-2 text-lg font-bold text-gray-900">
+            이미지 출처 선택
+          </h3>
           <p className="mb-6 text-sm text-gray-600">
             음식을 인식할 이미지를 선택하세요.
             <br />

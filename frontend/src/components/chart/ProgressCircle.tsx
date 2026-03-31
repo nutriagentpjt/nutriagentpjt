@@ -27,7 +27,11 @@ export function ProgressCircle({ consumed, goal, percentage }: ProgressCirclePro
     : ["url(#greenGradient)", "#f0f0f0"];
 
   return (
-    <div className="flex flex-col items-center">
+    <div
+      className="flex flex-col items-center"
+      role="img"
+      aria-label={`칼로리 진행률 ${calculatedPercentage}퍼센트, ${consumed} kcal 섭취, 목표 ${goal} kcal`}
+    >
       <div className="relative h-44 w-44" style={{ minHeight: "176px", minWidth: "176px" }}>
         <ResponsiveContainer width="100%" height="100%" minHeight={176}>
           <PieChart>

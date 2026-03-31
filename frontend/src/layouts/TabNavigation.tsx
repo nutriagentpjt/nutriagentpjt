@@ -29,6 +29,7 @@ export function TabNavigation() {
             <button
               key={path}
               onClick={() => navigate(path)}
+              aria-label={label}
               className={`flex flex-col items-center gap-0.5 px-3 py-1.5 transition-all active:scale-95 ${
                 isActive(path) ? 'text-green-500' : 'text-gray-400 active:text-gray-600'
               }`}
