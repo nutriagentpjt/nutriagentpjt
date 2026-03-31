@@ -16,9 +16,12 @@ export type {
 
 export type {
   ActivityLevel,
+  Disease,
   DietStyle,
+  MealPattern,
   OnboardingRequest,
   OnboardingResponse,
+  SaveOnboardingInput,
   UserProfile,
 } from './onboarding';
 

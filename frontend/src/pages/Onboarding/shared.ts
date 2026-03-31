@@ -1,4 +1,4 @@
-import type { ActivityLevel, DietStyle, Gender, OnboardingRequest } from '@/types/onboarding';
+import type { ActivityLevel, DietStyle, Disease, Gender, UserProfile } from '@/types/onboarding';
 
 export interface OnboardingDraft {
   gender: Gender;
@@ -12,7 +12,10 @@ export interface OnboardingDraft {
   goalProtein: number;
   goalFat: number;
   dietStyles: DietStyle[];
+  waterGoal: number;
+  mealsPerDay: number;
   allergies: string[];
+  diseases: Disease[];
 }
 
 export const ONBOARDING_DRAFT_KEY = 'onboardingDraft';
@@ -32,7 +35,10 @@ export const defaultOnboardingDraft: OnboardingDraft = {
   goalProtein: 125,
   goalFat: 56,
   dietStyles: [],
+  waterGoal: 2,
+  mealsPerDay: 3,
   allergies: [],
+  diseases: [],
 };
 
 export const activityOptions: Array<{
@@ -112,7 +118,7 @@ export function saveOnboardingDraft(draft: Partial<OnboardingDraft>) {
 export function completeOnboarding(draft: OnboardingDraft) {
   if (typeof window === 'undefined') return;
 
-  const profile: Omit<OnboardingRequest, 'userId'> & { tdee: number; allergies: string[] } = {
+  const profile: UserProfile = {
     gender: draft.gender,
     age: draft.age,
     weight: draft.weight,
@@ -124,7 +130,10 @@ export function completeOnboarding(draft: OnboardingDraft) {
     goalFat: draft.goalFat,
     dietStyles: draft.dietStyles,
     tdee: draft.tdee,
+    waterGoal: draft.waterGoal,
+    mealsPerDay: draft.mealsPerDay,
     allergies: draft.allergies,
+    diseases: draft.diseases,
   };
 
   window.localStorage.setItem(USER_PROFILE_KEY, JSON.stringify(profile));

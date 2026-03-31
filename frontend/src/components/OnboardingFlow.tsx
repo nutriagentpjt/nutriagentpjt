@@ -1,6 +1,17 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+﻿import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Activity, Carrot, Check, ChevronRight, Heart, Target } from 'lucide-react';
+import {
+  Activity,
+  Carrot,
+  Check,
+  ChevronRight,
+  Droplet,
+  Heart,
+  HeartPulse,
+  Shield,
+  Target,
+  TrendingUp,
+} from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { ROUTES } from '@/constants/routes';
 import { useOnboarding, useSaveOnboarding } from '@/hooks';
@@ -15,7 +26,7 @@ import {
   loadOnboardingDraft,
   saveOnboardingDraft,
 } from '@/pages/Onboarding/shared';
-import type { ActivityLevel, DietStyle, Gender } from '@/types/onboarding';
+import type { ActivityLevel, DietStyle, Disease, Gender, MealPattern } from '@/types/onboarding';
 
 const allergyOptions = [
   { emoji: '🥛', label: '우유 (유제품)', value: '우유' },
@@ -29,10 +40,55 @@ const allergyOptions = [
   { emoji: '🧂', label: '참깨', value: '참깨' },
 ] as const;
 
+const diseaseOptions = [
+  { icon: Activity, label: '당뇨병', value: 'DIABETES' as const },
+  { icon: Heart, label: '고혈압', value: 'HYPERTENSION' as const },
+  { icon: Droplet, label: '고지혈증', value: 'HYPERLIPIDEMIA' as const },
+  { icon: HeartPulse, label: '심장질환', value: 'HEART_DISEASE' as const },
+  { icon: Shield, label: '간질환', value: 'LIVER_DISEASE' as const },
+  { icon: TrendingUp, label: '비만', value: 'OBESITY' as const },
+] as const;
+
 const getRouteForStep = (step: number) => {
   if (step <= 1) return ROUTES.ONBOARDING_WELCOME;
-  if (step <= 4) return ROUTES.ONBOARDING_TDEE;
+  if (step <= 5) return ROUTES.ONBOARDING_TDEE;
   return ROUTES.ONBOARDING_GOAL;
+};
+
+const getProgressLabel = (step: number) => {
+  switch (step) {
+    case 1:
+      return '서비스 소개';
+    case 2:
+      return '성별 선택';
+    case 3:
+      return '체중, 신장, 나이 입력';
+    case 4:
+      return '활동량 선택';
+    case 5:
+      return '수분/끼니 설정';
+    case 6:
+      return '목표 설정';
+    case 7:
+      return '알러지 정보';
+    case 8:
+      return '질환 정보';
+    default:
+      return '';
+  }
+};
+
+const getMealPattern = (mealsPerDay: number): MealPattern => {
+  switch (mealsPerDay) {
+    case 1:
+      return 'ONE_MEAL';
+    case 2:
+      return 'TWO_MEALS';
+    case 4:
+      return 'FOUR_OR_MORE_MEALS';
+    default:
+      return 'THREE_MEALS';
+  }
 };
 
 interface OnboardingFlowProps {
@@ -63,7 +119,10 @@ export default function OnboardingFlow({ fallbackStep }: OnboardingFlowProps) {
   const [proteinPercentage, setProteinPercentage] = useState(25);
   const [fatPercentage, setFatPercentage] = useState(25);
   const [selectedDietStyle, setSelectedDietStyle] = useState<DietStyle | null>(draft.dietStyles[0] ?? null);
+  const [waterGoal, setWaterGoal] = useState(draft.waterGoal);
+  const [mealsPerDay, setMealsPerDay] = useState(draft.mealsPerDay);
   const [allergies, setAllergies] = useState<string[]>(draft.allergies);
+  const [diseases, setDiseases] = useState<Disease[]>(draft.diseases);
 
   const hasLocalDraft =
     typeof window !== 'undefined' && Boolean(window.localStorage.getItem(ONBOARDING_DRAFT_KEY));
@@ -99,20 +158,37 @@ export default function OnboardingFlow({ fallbackStep }: OnboardingFlowProps) {
     setWeight(String(onboardingData.weight));
     setHeight(String(onboardingData.height));
     setActivityLevel(onboardingData.activityLevel);
-    setGoalCalories(onboardingData.goalCalories);
-
-    const totalCalories = onboardingData.goalCalories || 1;
-    const nextCarbsPercentage = Math.round(((onboardingData.goalCarbs * 4) / totalCalories) * 100);
-    const nextProteinPercentage = Math.round(((onboardingData.goalProtein * 4) / totalCalories) * 100);
-    const nextFatPercentage = Math.max(
-      0,
-      100 - nextCarbsPercentage - nextProteinPercentage,
+    setWaterGoal(onboardingData.waterIntakeGoal);
+    setMealsPerDay(
+      onboardingData.mealPattern === 'ONE_MEAL'
+        ? 1
+        : onboardingData.mealPattern === 'TWO_MEALS'
+        ? 2
+        : onboardingData.mealPattern === 'FOUR_OR_MORE_MEALS'
+          ? 4
+          : 3,
     );
-
-    setCarbsPercentage(nextCarbsPercentage);
-    setProteinPercentage(nextProteinPercentage);
-    setFatPercentage(nextFatPercentage);
+    setAllergies(onboardingData.allergies);
+    setDiseases(onboardingData.diseases);
     setSelectedDietStyle(onboardingData.dietStyles?.[0] ?? null);
+
+    const nextGoalCalories = onboardingData.constraints?.maxCaloriesPerMeal
+      ? onboardingData.constraints.maxCaloriesPerMeal *
+        (onboardingData.mealPattern === 'TWO_MEALS'
+          ? 2
+          : onboardingData.mealPattern === 'FOUR_MEALS'
+            ? 4
+            : onboardingData.mealPattern === 'FIVE_MEALS'
+              ? 5
+              : 3)
+      : calculatedTDEE || defaultOnboardingDraft.goalCalories;
+    setGoalCalories(nextGoalCalories);
+
+    if (onboardingData.dietStyles?.includes('LOW_CARB')) {
+      setCarbsPercentage(5);
+      setProteinPercentage(25);
+      setFatPercentage(70);
+    }
 
     saveOnboardingDraft({
       gender: onboardingData.gender,
@@ -120,14 +196,31 @@ export default function OnboardingFlow({ fallbackStep }: OnboardingFlowProps) {
       weight: onboardingData.weight,
       height: onboardingData.height,
       activityLevel: onboardingData.activityLevel,
-      tdee: onboardingData.tdee,
-      goalCalories: onboardingData.goalCalories,
-      goalCarbs: onboardingData.goalCarbs,
-      goalProtein: onboardingData.goalProtein,
-      goalFat: onboardingData.goalFat,
+      tdee: calculatedTDEE || draft.tdee,
+      goalCalories: nextGoalCalories,
+      goalCarbs: onboardingData.dietStyles?.includes('LOW_CARB')
+        ? Math.round((nextGoalCalories * 0.05) / 4)
+        : draft.goalCarbs,
+      goalProtein: onboardingData.dietStyles?.includes('LOW_CARB')
+        ? Math.round((nextGoalCalories * 0.25) / 4)
+        : draft.goalProtein,
+      goalFat: onboardingData.dietStyles?.includes('LOW_CARB')
+        ? Math.round((nextGoalCalories * 0.7) / 9)
+        : draft.goalFat,
       dietStyles: onboardingData.dietStyles ?? [],
+      waterGoal: onboardingData.waterIntakeGoal,
+      mealsPerDay:
+        onboardingData.mealPattern === 'ONE_MEAL'
+          ? 1
+          : onboardingData.mealPattern === 'TWO_MEALS'
+          ? 2
+          : onboardingData.mealPattern === 'FOUR_OR_MORE_MEALS'
+            ? 4
+            : 3,
+      allergies: onboardingData.allergies,
+      diseases: onboardingData.diseases,
     });
-  }, [onboardingData]);
+  }, [calculatedTDEE, draft.diseases, draft.goalCarbs, draft.goalFat, draft.goalProtein, draft.tdee, onboardingData]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -145,7 +238,10 @@ export default function OnboardingFlow({ fallbackStep }: OnboardingFlowProps) {
       goalProtein: proteinGrams,
       goalFat: fatGrams,
       dietStyles: selectedDietStyle ? [selectedDietStyle] : [],
+      waterGoal,
+      mealsPerDay,
       allergies,
+      diseases,
     });
   }, [
     activityLevel,
@@ -154,17 +250,23 @@ export default function OnboardingFlow({ fallbackStep }: OnboardingFlowProps) {
     calculatedTDEE,
     carbsGrams,
     draft.age,
+    draft.diseases,
     draft.height,
+    draft.mealsPerDay,
     draft.tdee,
+    draft.waterGoal,
     draft.weight,
     fatGrams,
     gender,
     goalCalories,
     height,
+    mealsPerDay,
     proteinGrams,
     selectedDietStyle,
     step,
+    waterGoal,
     weight,
+    diseases,
   ]);
 
   useEffect(() => {
@@ -199,8 +301,7 @@ export default function OnboardingFlow({ fallbackStep }: OnboardingFlowProps) {
   };
 
   const handleComplete = async () => {
-    const onboardingPayload = {
-      userId,
+    const localProfile = {
       gender,
       age: Number(age),
       weight: Number(weight),
@@ -212,28 +313,40 @@ export default function OnboardingFlow({ fallbackStep }: OnboardingFlowProps) {
       goalProtein: proteinGrams,
       goalFat: fatGrams,
       dietStyles: selectedDietStyle ? [selectedDietStyle] : [],
+      waterGoal,
+      mealsPerDay,
       allergies,
+      diseases,
+    };
+
+    const onboardingPayload = {
+      userId,
+      data: {
+        age: localProfile.age,
+        gender: localProfile.gender,
+        height: localProfile.height,
+        weight: localProfile.weight,
+        activityLevel: localProfile.activityLevel,
+        mealPattern: getMealPattern(localProfile.mealsPerDay),
+        allergies: localProfile.allergies,
+        diseases: localProfile.diseases,
+        dietStyles: localProfile.dietStyles,
+        waterIntakeGoal: localProfile.waterGoal,
+        constraints: {
+          lowSodium: false,
+          lowSugar: false,
+          maxCaloriesPerMeal: Math.max(1, Math.round(localProfile.goalCalories / localProfile.mealsPerDay)),
+        },
+      },
     };
 
     try {
-      await saveOnboardingMutation.mutateAsync({
-        userId: onboardingPayload.userId,
-        gender: onboardingPayload.gender,
-        age: onboardingPayload.age,
-        weight: onboardingPayload.weight,
-        height: onboardingPayload.height,
-        activityLevel: onboardingPayload.activityLevel,
-        goalCalories: onboardingPayload.goalCalories,
-        goalCarbs: onboardingPayload.goalCarbs,
-        goalProtein: onboardingPayload.goalProtein,
-        goalFat: onboardingPayload.goalFat,
-        dietStyles: onboardingPayload.dietStyles,
-      });
+      await saveOnboardingMutation.mutateAsync(onboardingPayload);
     } catch {
       // Preserve the current onboarding UX even if the API is temporarily unavailable.
     }
 
-    completeOnboarding(onboardingPayload);
+    completeOnboarding(localProfile);
     navigate(ROUTES.HOME, { replace: true });
   };
 
@@ -310,18 +423,16 @@ export default function OnboardingFlow({ fallbackStep }: OnboardingFlowProps) {
         </div>
       ) : null}
 
-      {step > 0 && step < 7 ? (
+      {step > 0 && step < 9 ? (
         <div key={`step-shell-${step}`} className={`min-h-screen p-6 pt-12 pb-24 ${transitionClass}`}>
           <div className="max-w-md mx-auto">
             <div className="mb-8">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-semibold text-green-600">{`Step ${step} of 6`}</span>
-                <span className="text-sm text-gray-500">
-                  {step === 1 ? '서비스 소개' : step === 2 ? '성별 선택' : step === 3 ? '체중, 신장, 나이 입력' : step === 4 ? '활동량 선택' : step === 5 ? '목표 설정' : '알러지 정보'}
-                </span>
+                <span className="text-sm font-semibold text-green-600">{`Step ${step} of 8`}</span>
+                <span className="text-sm text-gray-500">{getProgressLabel(step)}</span>
               </div>
               <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                <div className="h-full bg-gradient-to-r from-green-500 to-emerald-600" style={{ width: `${(step / 6) * 100}%` }} />
+                <div className="h-full bg-gradient-to-r from-green-500 to-emerald-600" style={{ width: `${(step / 8) * 100}%` }} />
               </div>
             </div>
 
@@ -451,6 +562,71 @@ export default function OnboardingFlow({ fallbackStep }: OnboardingFlowProps) {
 
             {step === 5 ? (
               <>
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">생활 습관을<br />알려주세요</h2>
+                <p className="text-sm text-gray-600 mb-8">일상에 맞는 추천을 위해 참고할게요</p>
+                <div className="mb-6 p-5 bg-gradient-to-br from-cyan-50 to-sky-50 rounded-2xl border border-cyan-100">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-11 h-11 rounded-2xl bg-cyan-100 flex items-center justify-center">
+                      <Droplet className="w-5 h-5 text-cyan-600" />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-gray-900">하루 물 섭취 목표</p>
+                      <p className="text-xs text-gray-500">권장 수분량을 먼저 정해둘게요</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-sm text-gray-600">목표 수분량</span>
+                    <span className="number-md text-cyan-600">{waterGoal.toFixed(1)}L</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="1"
+                    max="4"
+                    step="0.1"
+                    value={waterGoal}
+                    onChange={(e) => setWaterGoal(parseFloat(e.target.value))}
+                    className="onboarding-slider w-full h-2 rounded-lg appearance-none cursor-pointer"
+                    style={{
+                      background: `linear-gradient(to right, #06b6d4 0%, #06b6d4 ${((waterGoal - 1) / 3) * 100}%, #e5e7eb ${((waterGoal - 1) / 3) * 100}%, #e5e7eb 100%)`,
+                    }}
+                  />
+                </div>
+                <div className="mb-8 p-5 bg-gradient-to-br from-amber-50 to-yellow-50 rounded-2xl border border-amber-100">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-11 h-11 rounded-2xl bg-amber-100 flex items-center justify-center">
+                      <Target className="w-5 h-5 text-amber-600" />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-gray-900">하루 식사 횟수</p>
+                      <p className="text-xs text-gray-500">현재 습관에 맞게 설정하세요</p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-4 gap-2">
+                    {[1, 2, 3, 4].map((count) => (
+                      <button
+                        key={count}
+                        type="button"
+                        onClick={() => setMealsPerDay(count)}
+                        className={`min-touch rounded-xl border-2 px-3 py-3 text-sm font-semibold transition-all ${
+                          mealsPerDay === count
+                            ? 'border-green-500 bg-green-50 text-green-700'
+                            : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
+                        }`}
+                      >
+                        <span className="text-xs leading-none whitespace-nowrap">
+                          {count === 4 ? '4끼 이상' : `${count}끼`}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <button onClick={() => goToStep(6)} className="btn-primary w-full min-touch flex items-center justify-center gap-2">다음<ChevronRight className="w-5 h-5" /></button>
+                <button onClick={() => goToStep(4)} className="mt-3 text-sm text-gray-400 hover:text-gray-600 transition-colors flex items-center justify-center gap-1 w-full py-2"><ChevronRight className="w-3 h-3 rotate-180" />이전으로</button>
+              </>
+            ) : null}
+
+            {step === 6 ? (
+              <>
                 <h2 className="text-2xl font-bold text-gray-900 mb-2">영양 목표를<br />설정하세요</h2>
                 <p className="text-sm text-gray-600 mb-8">계산된 TDEE를 기반으로 목표를 설정합니다</p>
                 <div className="mb-6 p-5 bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl border border-green-100">
@@ -477,26 +653,26 @@ export default function OnboardingFlow({ fallbackStep }: OnboardingFlowProps) {
                   </div>
                   <div className="mb-6">
                     <div className="flex items-center justify-between mb-3"><label className="text-sm font-medium text-gray-700">탄수화물</label><div className="flex items-center gap-2"><span className="number-sm text-secondary-600">{carbsPercentage}%</span><span className="text-xs text-gray-500">({carbsGrams}g)</span></div></div>
-                    <input type="range" min="20" max="70" value={carbsPercentage} onChange={(e) => handleCarbsChange(parseInt(e.target.value, 10))} className="w-full h-2 rounded-lg appearance-none cursor-pointer" style={{ background: `linear-gradient(to right, #f97316 0%, #f97316 ${((carbsPercentage - 20) / 50) * 100}%, #e5e7eb ${((carbsPercentage - 20) / 50) * 100}%, #e5e7eb 100%)` }} />
+                    <input type="range" min="20" max="70" value={carbsPercentage} onChange={(e) => handleCarbsChange(parseInt(e.target.value, 10))} className="onboarding-slider w-full h-2 rounded-lg appearance-none cursor-pointer" style={{ background: `linear-gradient(to right, #f97316 0%, #f97316 ${((carbsPercentage - 20) / 50) * 100}%, #e5e7eb ${((carbsPercentage - 20) / 50) * 100}%, #e5e7eb 100%)` }} />
                   </div>
                   <div className="mb-6">
                     <div className="flex items-center justify-between mb-3"><label className="text-sm font-medium text-gray-700">단백질</label><div className="flex items-center gap-2"><span className="number-sm text-accent-600">{proteinPercentage}%</span><span className="text-xs text-gray-500">({proteinGrams}g)</span></div></div>
-                    <input type="range" min="10" max="50" value={proteinPercentage} onChange={(e) => handleProteinChange(parseInt(e.target.value, 10))} className="w-full h-2 rounded-lg appearance-none cursor-pointer" style={{ background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${((proteinPercentage - 10) / 40) * 100}%, #e5e7eb ${((proteinPercentage - 10) / 40) * 100}%, #e5e7eb 100%)` }} />
+                    <input type="range" min="10" max="50" value={proteinPercentage} onChange={(e) => handleProteinChange(parseInt(e.target.value, 10))} className="onboarding-slider w-full h-2 rounded-lg appearance-none cursor-pointer" style={{ background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${((proteinPercentage - 10) / 40) * 100}%, #e5e7eb ${((proteinPercentage - 10) / 40) * 100}%, #e5e7eb 100%)` }} />
                   </div>
                   <div className="mb-6">
                     <div className="flex items-center justify-between mb-3"><label className="text-sm font-medium text-gray-700">지방</label><div className="flex items-center gap-2"><span className="number-sm text-yellow-600">{fatPercentage}%</span><span className="text-xs text-gray-500">({fatGrams}g)</span></div></div>
-                    <input type="range" min="15" max="50" value={fatPercentage} onChange={(e) => handleFatChange(parseInt(e.target.value, 10))} className="w-full h-2 rounded-lg appearance-none cursor-pointer" style={{ background: `linear-gradient(to right, #eab308 0%, #eab308 ${((fatPercentage - 15) / 35) * 100}%, #e5e7eb ${((fatPercentage - 15) / 35) * 100}%, #e5e7eb 100%)` }} />
+                    <input type="range" min="15" max="50" value={fatPercentage} onChange={(e) => handleFatChange(parseInt(e.target.value, 10))} className="onboarding-slider w-full h-2 rounded-lg appearance-none cursor-pointer" style={{ background: `linear-gradient(to right, #eab308 0%, #eab308 ${((fatPercentage - 15) / 35) * 100}%, #e5e7eb ${((fatPercentage - 15) / 35) * 100}%, #e5e7eb 100%)` }} />
                   </div>
                   <div className="p-4 bg-gray-50 rounded-xl border border-gray-200"><div className="flex items-center justify-between"><span className="text-sm text-gray-600">총 합계</span><span className={`number-sm ${carbsPercentage + proteinPercentage + fatPercentage === 100 ? 'text-green-600' : 'text-red-600'}`}>{carbsPercentage + proteinPercentage + fatPercentage}%</span></div></div>
                 </div>
                 <div className="text-center">
-                  <button onClick={() => goToStep(6)} className="btn-primary w-full min-touch flex items-center justify-center gap-2" disabled={carbsPercentage + proteinPercentage + fatPercentage !== 100}>다음<ChevronRight className="w-5 h-5" /></button>
-                  <button onClick={() => goToStep(4)} className="mt-3 text-sm text-gray-400 hover:text-gray-600 transition-colors flex items-center justify-center gap-1 w-full py-2"><ChevronRight className="w-3 h-3 rotate-180" />이전으로</button>
+                  <button onClick={() => goToStep(7)} className="btn-primary w-full min-touch flex items-center justify-center gap-2" disabled={carbsPercentage + proteinPercentage + fatPercentage !== 100}>다음<ChevronRight className="w-5 h-5" /></button>
+                  <button onClick={() => goToStep(5)} className="mt-3 text-sm text-gray-400 hover:text-gray-600 transition-colors flex items-center justify-center gap-1 w-full py-2"><ChevronRight className="w-3 h-3 rotate-180" />이전으로</button>
                 </div>
               </>
             ) : null}
 
-            {step === 6 ? (
+            {step === 7 ? (
               <>
                 <h2 className="text-2xl font-bold text-gray-900 mb-2">알러지 정보를<br />선택하세요</h2>
                 <p className="text-sm text-gray-600 mb-8">안전한 식단 관리를 위해 알려주세요 (선택사항)</p>
@@ -518,8 +694,53 @@ export default function OnboardingFlow({ fallbackStep }: OnboardingFlowProps) {
                   {allergies.length > 0 ? <div className="mt-4 p-4 bg-amber-50 rounded-xl border border-amber-200"><p className="text-xs font-medium text-amber-900 mb-1">선택된 알러지</p><p className="text-sm text-amber-700">{allergies.join(', ')}</p></div> : <p className="mt-4 text-xs text-gray-500 text-center">알러지가 없다면 바로 다음으로 진행하세요</p>}
                 </div>
                 <div className="text-center">
-                  <button onClick={() => goToStep(7)} className="btn-primary w-full min-touch flex items-center justify-center gap-2">다음<ChevronRight className="w-5 h-5" /></button>
-                  <button onClick={() => goToStep(5)} className="mt-3 text-sm text-gray-400 hover:text-gray-600 transition-colors flex items-center justify-center gap-1 w-full py-2"><ChevronRight className="w-3 h-3 rotate-180" />이전으로</button>
+                  <button onClick={() => goToStep(8)} className="btn-primary w-full min-touch flex items-center justify-center gap-2">다음<ChevronRight className="w-5 h-5" /></button>
+                  <button onClick={() => goToStep(6)} className="mt-3 text-sm text-gray-400 hover:text-gray-600 transition-colors flex items-center justify-center gap-1 w-full py-2"><ChevronRight className="w-3 h-3 rotate-180" />이전으로</button>
+                </div>
+              </>
+            ) : null}
+
+            {step === 8 ? (
+              <>
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">질환 정보를<br />입력하세요</h2>
+                <p className="text-sm text-gray-600 mb-8">건강한 식단을 위한 참고 정보입니다 (선택사항)</p>
+                <div className="mb-8">
+                  <label className="input-label mb-4">질환을 모두 선택하세요</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {diseaseOptions.map((disease) => {
+                      const isSelected = diseases.includes(disease.value);
+                      const Icon = disease.icon;
+                      return (
+                        <button
+                          key={disease.value}
+                          type="button"
+                          onClick={() =>
+                            setDiseases((prev) =>
+                              isSelected ? prev.filter((value) => value !== disease.value) : [...prev, disease.value],
+                            )
+                          }
+                          className={`min-touch p-4 rounded-xl border-2 text-left transition-all ${
+                            isSelected ? 'border-green-500 bg-green-50' : 'border-gray-200 bg-white hover:border-gray-300'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <div className={`w-6 h-6 rounded-lg flex items-center justify-center ${isSelected ? 'bg-green-500' : 'bg-gray-200'}`}>
+                                <Icon className={`w-4 h-4 ${isSelected ? 'text-white' : 'text-gray-600'}`} />
+                              </div>
+                              <span className={`text-sm font-medium ${isSelected ? 'text-green-700' : 'text-gray-700'}`}>{disease.label}</span>
+                            </div>
+                            {isSelected ? <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0"><Check className="w-3 h-3 text-white" /></div> : null}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {diseases.length > 0 ? <div className="mt-4 p-4 bg-amber-50 rounded-xl border border-amber-200"><p className="text-xs font-medium text-amber-900 mb-1">선택된 질환</p><p className="text-sm text-amber-700">{diseaseOptions.filter((disease) => diseases.includes(disease.value)).map((disease) => disease.label).join(', ')}</p></div> : <p className="mt-4 text-xs text-gray-500 text-center">질환이 없다면 바로 다음으로 진행하세요</p>}
+                </div>
+                <div className="text-center">
+                  <button onClick={() => goToStep(9)} className="btn-primary w-full min-touch flex items-center justify-center gap-2">다음<ChevronRight className="w-5 h-5" /></button>
+                  <button onClick={() => goToStep(7)} className="mt-3 text-sm text-gray-400 hover:text-gray-600 transition-colors flex items-center justify-center gap-1 w-full py-2"><ChevronRight className="w-3 h-3 rotate-180" />이전으로</button>
                 </div>
               </>
             ) : null}
@@ -527,11 +748,11 @@ export default function OnboardingFlow({ fallbackStep }: OnboardingFlowProps) {
         </div>
       ) : null}
 
-      {step === 7 ? (
-        <div key="step-7" className={`min-h-screen flex flex-col items-center justify-center bg-white p-6 ${transitionClass}`}>
+      {step === 9 ? (
+        <div key="step-9" className={`min-h-screen flex flex-col items-center justify-center bg-white p-6 ${transitionClass}`}>
           <div className="flex-1 flex flex-col items-center justify-center w-full max-w-md">
             <div className="mb-8 relative">
-              <div className="absolute inset-0 bg-green-100 rounded-full blur-3xl opacity-40 scale-150" />
+              <div className="absolute inset-0 bg-green-100 rounded-full blur-3xl opacity-40 scale-150 animate-pulse" />
               <div className="relative w-24 h-24 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center shadow-lg">
                 <Check className="w-12 h-12 text-white" strokeWidth={3} />
               </div>
@@ -545,7 +766,7 @@ export default function OnboardingFlow({ fallbackStep }: OnboardingFlowProps) {
                 시작하기
                 <ChevronRight className="w-5 h-5" />
               </button>
-              <button onClick={() => goToStep(6)} className="w-full min-touch py-3.5 px-6 text-gray-600 hover:text-gray-900 transition-colors text-sm font-medium">
+              <button onClick={() => goToStep(8)} className="w-full min-touch py-3.5 px-6 text-gray-600 hover:text-gray-900 transition-colors text-sm font-medium">
                 <div className="flex items-center justify-center gap-1"><ChevronRight className="w-3 h-3 rotate-180" />이전으로</div>
               </button>
             </div>

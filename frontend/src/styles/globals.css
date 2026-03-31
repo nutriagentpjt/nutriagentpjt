@@ -408,4 +408,26 @@ html {
     font-size: 0.75rem;
     color: #6b7280;
   }
+
+  .onboarding-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 9999px;
+    background: #ffffff;
+    border: 2px solid #ffffff;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.18);
+    cursor: pointer;
+  }
+
+  .onboarding-slider::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    border-radius: 9999px;
+    background: #ffffff;
+    border: 2px solid #ffffff;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.18);
+    cursor: pointer;
+  }
 }
