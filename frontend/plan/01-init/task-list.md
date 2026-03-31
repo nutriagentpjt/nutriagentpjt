@@ -377,13 +377,13 @@
 
 ### 12.1 페이지
 
-- [ ] `pages/MyPage/MyPage.tsx`
-  - [ ] 프로필 정보 표시
+- [x] `pages/MyPage/MyPage.tsx`
+  - [x] 프로필 정보 표시
   - [ ] 목표 설정 수정 버튼 → 온보딩 플로우
-  - [ ] 설정 메뉴
-    - [ ] 알림 설정
-    - [ ] 추천 설정 → SettingsPage
-    - [ ] 로그아웃
+  - [x] 설정 메뉴
+    - [x] 알림 설정
+    - [x] 개인 설정 → SettingsPage
+    - [x] 로그아웃
 
 ---
 
@@ -391,21 +391,21 @@
 
 ### 13.1 테스트
 
-- [ ] Vitest 설정
-- [ ] React Testing Library 설정
-- [ ] 주요 컴포넌트 단위 테스트
-- [ ] 주요 훅 테스트
+- [x] Vitest 설정
+- [x] React Testing Library 설정
+- [x] 주요 컴포넌트 단위 테스트
+- [x] 주요 훅 테스트
 
 ### 13.2 성능 최적화
 
-- [ ] React.lazy 코드 스플리팅
+- [x] React.lazy 코드 스플리팅
 - [ ] 이미지 최적화 (WebP, lazy loading)
-- [ ] 번들 사이즈 분석
+- [x] 번들 사이즈 분석
 - [ ] Lighthouse 성능 점검
 
 ### 13.3 접근성
 
-- [ ] ARIA 레이블 추가
+- [x] ARIA 레이블 추가
 - [ ] 키보드 네비게이션 점검
 - [ ] 색상 대비 점검 (WCAG AA)
 - [ ] 스크린 리더 테스트
