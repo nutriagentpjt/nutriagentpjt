@@ -1,4 +1,4 @@
-﻿import { AlertCircle, ChevronRight, Loader2, Search, X } from 'lucide-react';
+import { AlertCircle, ChevronRight, Loader2, Search, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ImagePreview, ImageSourceModal } from '@/components/camera';
@@ -282,4 +282,3 @@ export default function ImageUploadPage() {
     </>
   );
 }
-
