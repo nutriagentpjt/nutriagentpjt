@@ -70,6 +70,5 @@ export interface OnboardingResponse extends OnboardingRequest {
 }
 
 export interface SaveOnboardingInput {
-  userId: number;
   data: OnboardingRequest;
 }

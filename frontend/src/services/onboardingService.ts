@@ -7,15 +7,10 @@ export const onboardingService = {
     return response.data;
   },
 
-  getOnboarding: async (userId: number): Promise<OnboardingResponse> => {
-    const response = await api.get<OnboardingResponse>('/onboarding', {
-      params: { userId },
-    });
+  getOnboarding: async (): Promise<OnboardingResponse> => {
+    const response = await api.get<OnboardingResponse>('/onboarding');
     return response.data;
   },
 
-  deleteOnboarding: (userId: number) =>
-    api.delete('/onboarding', {
-      params: { userId },
-    }),
+  deleteOnboarding: () => api.delete('/onboarding'),
 };

@@ -4,7 +4,6 @@ import { recommendationService } from '@/services';
 import type { MealType } from '@/types';
 
 interface UseRecommendationsParams {
-  userId: number;
   mealType: MealType;
   date: string;
   limit?: number;
@@ -12,15 +11,14 @@ interface UseRecommendationsParams {
 }
 
 export function useRecommendations({
-  userId,
   mealType,
   date,
   limit,
   enabled = true,
 }: UseRecommendationsParams) {
   return useQuery({
-    queryKey: queryKeys.recommendations.list(userId, mealType, date, limit),
-    queryFn: () => recommendationService.getRecommendations(userId, mealType, date, limit),
-    enabled: enabled && Boolean(userId) && Boolean(mealType) && Boolean(date),
+    queryKey: queryKeys.recommendations.list(mealType, date, limit),
+    queryFn: () => recommendationService.getRecommendations(mealType, date, limit),
+    enabled: enabled && Boolean(mealType) && Boolean(date),
   });
 }

@@ -6,7 +6,6 @@ import { AddFoodModal } from '@/components/food';
 import { ROUTES } from '@/constants/routes';
 import { useRecommendations } from '@/hooks';
 import HomePage from '@/pages/HomePage';
-import { useAuthStore } from '@/store/authStore';
 import type { Food } from '@/types';
 
 interface RecommendedFoodPayload {
@@ -20,14 +19,12 @@ interface RecommendedFoodPayload {
 
 export default function RecommendationPage() {
   const navigate = useNavigate();
-  const userId = useAuthStore((state) => state.userId) ?? 1;
   const [favoriteIds, setFavoriteIds] = useState<Set<number>>(new Set());
   const [selectedFoodForModal, setSelectedFoodForModal] = useState<Food | null>(null);
   const currentDate = new Date().toISOString().split('T')[0] ?? '';
   const mealType = 'lunch';
 
   const { data, isLoading, error } = useRecommendations({
-    userId,
     mealType,
     date: currentDate,
     limit: 8,

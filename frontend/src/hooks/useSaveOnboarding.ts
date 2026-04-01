@@ -8,8 +8,8 @@ export function useSaveOnboarding() {
 
   return useMutation({
     mutationFn: ({ data }: SaveOnboardingInput) => onboardingService.saveOnboarding(data),
-    onSuccess: (data, variables) => {
-      queryClient.setQueryData(queryKeys.onboarding.byUser(variables.userId), data);
+    onSuccess: (data) => {
+      queryClient.setQueryData(queryKeys.onboarding.current(), data);
     },
   });
 }

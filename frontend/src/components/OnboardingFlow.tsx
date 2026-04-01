@@ -12,7 +12,6 @@ import {
   Target,
   TrendingUp,
 } from 'lucide-react';
-import { useAuthStore } from '@/store/authStore';
 import { ROUTES } from '@/constants/routes';
 import { useOnboarding, useSaveOnboarding } from '@/hooks';
 import { calculateBMR, calculateTDEE } from '@/utils/tdeeCalculator';
@@ -113,7 +112,6 @@ interface OnboardingFlowProps {
 export default function OnboardingFlow({ fallbackStep }: OnboardingFlowProps) {
   const navigate = useNavigate();
   const location = useLocation();
-  const userId = useAuthStore((state) => state.userId) ?? 1;
   const draft = loadOnboardingDraft();
   const hasHydratedFromServerRef = useRef(false);
 
@@ -145,10 +143,7 @@ export default function OnboardingFlow({ fallbackStep }: OnboardingFlowProps) {
   const hasLocalDraft =
     typeof window !== 'undefined' && Boolean(window.localStorage.getItem(ONBOARDING_DRAFT_KEY));
 
-  const { data: onboardingData } = useOnboarding({
-    userId,
-    enabled: !hasLocalDraft,
-  });
+  const { data: onboardingData } = useOnboarding({ enabled: !hasLocalDraft });
   const saveOnboardingMutation = useSaveOnboarding();
 
   const calculatedTDEE = useMemo(() => {
@@ -335,7 +330,6 @@ export default function OnboardingFlow({ fallbackStep }: OnboardingFlowProps) {
     };
 
     const onboardingPayload = {
-      userId,
       data: {
         age: localProfile.age,
         gender: localProfile.gender,

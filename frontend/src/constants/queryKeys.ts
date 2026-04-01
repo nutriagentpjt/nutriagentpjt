@@ -14,13 +14,13 @@ export const queryKeys = {
   },
   recommendations: {
     all: ['recommendations'] as const,
-    list: (userId: number, mealType: MealType, date: string, limit?: number) =>
-      ['recommendations', 'list', userId, mealType, date, limit ?? 'default'] as const,
-    settings: (userId: number) => ['recommendations', 'settings', userId] as const,
+    list: (mealType: MealType, date: string, limit?: number) =>
+      ['recommendations', 'list', mealType, date, limit ?? 'default'] as const,
+    settings: () => ['recommendations', 'settings'] as const,
   },
   onboarding: {
     all: ['onboarding'] as const,
-    byUser: (userId: number) => ['onboarding', 'byUser', userId] as const,
+    current: () => ['onboarding', 'current'] as const,
   },
   goals: {
     byUser: (userId: number) => ['goals', 'byUser', userId] as const,

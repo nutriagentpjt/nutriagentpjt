@@ -4,27 +4,23 @@ import { recommendationService } from '@/services';
 import type { RecommendationSettings } from '@/types';
 
 interface UseRecommendationSettingsParams {
-  userId: number;
   enabled?: boolean;
 }
 
-export function useRecommendationSettings({
-  userId,
-  enabled = true,
-}: UseRecommendationSettingsParams) {
+export function useRecommendationSettings({ enabled = true }: UseRecommendationSettingsParams = {}) {
   const queryClient = useQueryClient();
 
   const query = useQuery({
-    queryKey: queryKeys.recommendations.settings(userId),
-    queryFn: () => recommendationService.getSettings(userId),
-    enabled: enabled && Boolean(userId),
+    queryKey: queryKeys.recommendations.settings(),
+    queryFn: () => recommendationService.getSettings(),
+    enabled,
   });
 
   const saveMutation = useMutation({
     mutationFn: (data: RecommendationSettings) => recommendationService.saveSettings(data),
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: queryKeys.recommendations.settings(userId),
+        queryKey: queryKeys.recommendations.settings(),
       });
     },
   });
