@@ -78,3 +78,4 @@ docker-compose.ubuntu.yml
 # Claude Code - Session state
 .claude/.last-session
 .claude/session-log.txt
+.docs/
