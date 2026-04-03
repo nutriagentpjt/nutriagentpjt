@@ -42,6 +42,10 @@ public class NutritionTarget {
     private Double bmr;       // 기초대사량 (kcal)
     private Double tdee;      // 총 일일 에너지 소비량 (kcal)
 
+    // 수동 설정 여부 (true: 사용자가 수동 설정, false: 자동 계산)
+    @Column(nullable = false)
+    private Boolean manualOverride = false;
+
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 

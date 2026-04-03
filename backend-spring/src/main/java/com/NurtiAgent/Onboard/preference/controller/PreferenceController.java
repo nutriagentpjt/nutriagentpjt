@@ -2,6 +2,7 @@ package com.NurtiAgent.Onboard.preference.controller;
 
 import com.NurtiAgent.Onboard.preference.dto.AddFoodRequest;
 import com.NurtiAgent.Onboard.preference.dto.PreferenceResponse;
+import com.NurtiAgent.Onboard.preference.dto.PreferenceUpdateRequest;
 import com.NurtiAgent.Onboard.preference.dto.RemoveFoodRequest;
 import com.NurtiAgent.Onboard.preference.service.PreferenceService;
 import jakarta.servlet.http.HttpSession;
@@ -52,6 +53,19 @@ public class PreferenceController {
         }
 
         PreferenceResponse response = preferenceService.getPreferences(guestId);
+        return ResponseEntity.ok(response);
+    }
+
+    @PutMapping
+    public ResponseEntity<PreferenceResponse> updatePreferences(
+            HttpSession session,
+            @Valid @RequestBody PreferenceUpdateRequest request) {
+        String guestId = (String) session.getAttribute("GUEST_ID");
+        if (guestId == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        PreferenceResponse response = preferenceService.updatePreferences(guestId, request);
         return ResponseEntity.ok(response);
     }
 }

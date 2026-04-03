@@ -20,13 +20,9 @@ public class FoodResponse {
     private Double sodium;
     private Double sugars;
     private Double fiber;
-    private Double cholesterol;
 
     @JsonProperty("saturated_fat")
     private Double saturatedFat;
-
-    @JsonProperty("trans_fat")
-    private Double transFat;
 
     private Integer variants; // 동일 이름 음식의 변종 개수
 }

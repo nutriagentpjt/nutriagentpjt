@@ -3,6 +3,7 @@ package com.NurtiAgent.Onboard.preference.service;
 import com.NurtiAgent.Onboard.common.enums.FoodType;
 import com.NurtiAgent.Onboard.preference.dto.AddFoodRequest;
 import com.NurtiAgent.Onboard.preference.dto.PreferenceResponse;
+import com.NurtiAgent.Onboard.preference.dto.PreferenceUpdateRequest;
 import com.NurtiAgent.Onboard.preference.dto.RemoveFoodRequest;
 import com.NurtiAgent.Onboard.profile.entity.DietaryPreference;
 import com.NurtiAgent.Onboard.profile.repository.DietaryPreferenceRepository;
@@ -120,6 +121,57 @@ public class PreferenceService {
         DietaryPreference preference = dietaryPreferenceRepository.findByUser(user)
                 .orElseThrow(() -> new RuntimeException("식단 설정을 찾을 수 없습니다"));
 
+        return buildPreferenceResponse(preference);
+    }
+
+    @Transactional
+    public PreferenceResponse updatePreferences(String guestId, PreferenceUpdateRequest request) {
+        User user = userRepository.findByGuestId(guestId)
+                .orElseThrow(() -> new RuntimeException("인증 실패 (세션 없음)"));
+
+        DietaryPreference preference = dietaryPreferenceRepository.findByUser(user)
+                .orElseThrow(() -> new RuntimeException("식단 설정을 찾을 수 없습니다"));
+
+        // 부분 업데이트: 전달된 필드만 업데이트
+        if (request.getMealPattern() != null) {
+            preference.setMealPattern(request.getMealPattern());
+        }
+
+        if (request.getAllergies() != null) {
+            // 전체 교체 방식
+            preference.setAllergies(request.getAllergies());
+        }
+
+        if (request.getDietStyles() != null) {
+            // 전체 교체 방식
+            preference.setDietStyles(request.getDietStyles());
+        }
+
+        if (request.getWaterIntakeGoal() != null) {
+            preference.setWaterIntakeGoal(request.getWaterIntakeGoal());
+        }
+
+        if (request.getConstraints() != null) {
+            // 제약 조건 업데이트
+            DietaryPreference.DietaryConstraints constraints = preference.getConstraints();
+            if (constraints == null) {
+                constraints = new DietaryPreference.DietaryConstraints();
+            }
+
+            if (request.getConstraints().getLowSodium() != null) {
+                constraints.setLowSodium(request.getConstraints().getLowSodium());
+            }
+            if (request.getConstraints().getLowSugar() != null) {
+                constraints.setLowSugar(request.getConstraints().getLowSugar());
+            }
+            if (request.getConstraints().getMaxCaloriesPerMeal() != null) {
+                constraints.setMaxCaloriesPerMeal(request.getConstraints().getMaxCaloriesPerMeal());
+            }
+
+            preference.setConstraints(constraints);
+        }
+
+        dietaryPreferenceRepository.save(preference);
         return buildPreferenceResponse(preference);
     }
 

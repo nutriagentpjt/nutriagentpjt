@@ -22,5 +22,6 @@ public class NutritionTargetResponse {
         private Double protein;
         private Double carbs;
         private Double fat;
+        private Boolean manualOverride;  // 수동 설정 여부
     }
 }

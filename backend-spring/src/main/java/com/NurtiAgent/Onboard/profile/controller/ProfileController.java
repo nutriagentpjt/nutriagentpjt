@@ -63,4 +63,17 @@ public class ProfileController {
         NutritionTargetResponse response = profileService.getNutritionTargets(guestId);
         return ResponseEntity.ok(response);
     }
+
+    @PatchMapping("/profiles/targets")
+    public ResponseEntity<NutritionTargetResponse> updateNutritionTargets(
+            HttpSession session,
+            @Valid @RequestBody NutritionTargetUpdateRequest request) {
+        String guestId = (String) session.getAttribute("GUEST_ID");
+        if (guestId == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        NutritionTargetResponse response = profileService.updateNutritionTargets(guestId, request);
+        return ResponseEntity.ok(response);
+    }
 }
