@@ -39,5 +39,5 @@ services:
 
 networks:
   nutriagent-net:
-    name: nutriagentpjt_default
+    name: nutriagent-net
     external: true
