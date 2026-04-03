@@ -48,65 +48,8 @@ export default function StatsPage() {
     }
   }, []);
 
-  // 지난 10일 동안의 더미 데이터 생성
-  const generateDummyDataForPastDays = () => {
-    const dummyData: { [key: string]: Meal[] } = {};
-    const today = new Date();
-
-    for (let i = 1; i <= 10; i++) {
-      const pastDate = new Date(today);
-      pastDate.setDate(pastDate.getDate() - i);
-      const dateKey = pastDate.toISOString().split('T')[0];
-
-      // 이미 데이터가 있으면 스킵
-      if (mealsByDate[dateKey]) continue;
-
-      // 랜덤 식단 생성 (하루 3-5끼)
-      const mealCount = 3 + Math.floor(Math.random() * 3);
-      const meals: Meal[] = [];
-
-      const foodOptions = [
-        { name: "닭가슴살 샐러드", calories: 350, protein: 35, carbs: 30, fat: 10 },
-        { name: "연어 덮밥", calories: 520, protein: 28, carbs: 55, fat: 18 },
-        { name: "그릭 요거트", calories: 150, protein: 15, carbs: 12, fat: 5 },
-        { name: "현미밥", calories: 300, protein: 6, carbs: 65, fat: 2 },
-        { name: "베리 스무디", calories: 220, protein: 8, carbs: 42, fat: 4 },
-        { name: "에그 샌드위치", calories: 380, protein: 20, carbs: 35, fat: 16 },
-        { name: "참치 샐러드", calories: 280, protein: 30, carbs: 15, fat: 12 },
-        { name: "고구마", calories: 180, protein: 3, carbs: 40, fat: 1 },
-        { name: "프로틴 쉐이크", calories: 160, protein: 30, carbs: 8, fat: 2 },
-        { name: "닭가슴살", calories: 165, protein: 31, carbs: 0, fat: 4 },
-      ];
-
-      for (let j = 0; j < mealCount; j++) {
-        const food = foodOptions[Math.floor(Math.random() * foodOptions.length)];
-        const variance = 0.8 + Math.random() * 0.4; // 80-120% 변동
-
-        meals.push({
-          id: Date.now() + j + i * 1000,
-          name: food.name,
-          calories: Math.round(food.calories * variance),
-          time: `${8 + j * 3}:${Math.floor(Math.random() * 6) * 10}`,
-          protein: Math.round(food.protein * variance),
-          carbs: Math.round(food.carbs * variance),
-          fat: Math.round(food.fat * variance),
-        });
-      }
-
-      dummyData[dateKey] = meals;
-    }
-
-    return dummyData;
-  };
-
-  // 실제 데이터와 더미 데이터 병합
-  const getAllMeals = () => {
-    const dummyData = generateDummyDataForPastDays();
-    return { ...dummyData, ...mealsByDate };
-  };
-
   // 이전 날짜의 몸무게 가져오기
-  const getPreviousWeight = (dateKey: string): number => {
+  const getPreviousWeight = (dateKey: string): number | undefined => {
     const date = new Date(dateKey);
     for (let i = 1; i <= 30; i++) { // 최대 30일 전까지 검색
       const prevDate = new Date(date);
@@ -116,41 +59,33 @@ export default function StatsPage() {
         return healthData[prevKey].weight!;
       }
     }
-    // 기본값: 칼로리 기반 시뮬레이션
-    return 72.0;
+    return undefined;
+  };
+
+  const getPreviousWater = (dateKey: string): number | undefined => {
+    const date = new Date(dateKey);
+    for (let i = 1; i <= 30; i++) {
+      const prevDate = new Date(date);
+      prevDate.setDate(date.getDate() - i);
+      const prevKey = prevDate.toISOString().split('T')[0];
+      if (healthData[prevKey]?.water !== undefined) {
+        return healthData[prevKey].water!;
+      }
+    }
+    return undefined;
   };
 
   // 날짜별 데이터 집계
   const aggregateDataByDate = (dateKey: string): DayData => {
-    const allMeals = getAllMeals();
-    const meals = allMeals[dateKey] || [];
+    const meals = mealsByDate[dateKey] || [];
 
     const totalCalories = meals.reduce((sum, meal) => sum + meal.calories, 0);
     const totalProtein = meals.reduce((sum, meal) => sum + meal.protein, 0);
     const totalCarbs = meals.reduce((sum, meal) => sum + meal.carbs, 0);
     const totalFat = meals.reduce((sum, meal) => sum + meal.fat, 0);
 
-    // 실제 건강 데이터 사용 또는 시뮬레이션
-    let weight: number;
-    let water: number;
-
-    if (healthData[dateKey]?.weight !== undefined) {
-      // 사용자가 입력한 실제 몸무게
-      weight = healthData[dateKey].weight!;
-    } else {
-      // 이전 날짜의 몸무게를 가져오거나 시뮬레이션
-      const prevWeight = getPreviousWeight(dateKey);
-      const weightVariation = (totalCalories - 1800) / 1000; // 칼로리에 따른 변동
-      weight = prevWeight + weightVariation + (Math.random() * 0.4 - 0.2);
-    }
-
-    if (healthData[dateKey]?.water !== undefined) {
-      // 사용자가 입력한 실제 물 섭취량
-      water = healthData[dateKey].water!;
-    } else {
-      // 시뮬레이션
-      water = 1.8 + Math.random() * 0.8; // 1.8-2.6L
-    }
+    const weight = healthData[dateKey]?.weight ?? getPreviousWeight(dateKey) ?? 0;
+    const water = healthData[dateKey]?.water ?? getPreviousWater(dateKey) ?? 0;
 
     return {
       date: dateKey,
