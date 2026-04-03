@@ -18,3 +18,6 @@ export * from './sessionService';
 
 // recommendation
 export * from './recommendationService';
+
+// ai agent
+export * from './aiAgentService';

@@ -19,3 +19,4 @@ export { useMealSummary } from './useMealSummary';
 export { useProfile } from './useProfile';
 export { useNutritionTargets } from './useNutritionTargets';
 export { usePreferences } from './usePreferences';
+export { useAIAgentChat } from './useAIAgentChat';

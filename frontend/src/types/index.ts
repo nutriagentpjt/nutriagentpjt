@@ -46,3 +46,10 @@ export type {
 } from './recommendation';
 
 export type { ApiError } from './api';
+export type {
+  AIAgentChatRequest,
+  AIAgentChatResponse,
+  AIAgentConversation,
+  AIAgentMessage,
+  AIAgentMessageRole,
+} from './aiAgent';
