@@ -29,12 +29,10 @@ export const foodService = {
   },
 
   async getFoodById(id: number | string): Promise<Food> {
-    const response = await api.get<Food>(`/foods/${id}`);
-    return normalizeFood(response.data);
+    throw new Error(`GET /foods/${id} is not supported by the current backend. Use /foods/search instead.`);
   },
 
   async getAllFoods(): Promise<Food[]> {
-    const response = await api.get<Food[]>('/foods');
-    return response.data.map((food) => normalizeFood(food));
+    throw new Error('GET /foods is not supported by the current backend. Use /foods/search instead.');
   },
 };

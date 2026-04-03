@@ -12,6 +12,9 @@ export * from './mealService';
 
 // onboarding
 export * from './onboardingService';
+export * from './profileService';
+export * from './preferenceService';
+export * from './sessionService';
 
 // recommendation
 export * from './recommendationService';

@@ -56,7 +56,6 @@ export const activityOptions: Array<{
   { value: 'LIGHTLY_ACTIVE', label: '가벼운 활동', description: '주 1-3회 가볍게 운동해요' },
   { value: 'MODERATELY_ACTIVE', label: '보통 활동', description: '주 3-5회 규칙적으로 운동해요' },
   { value: 'VERY_ACTIVE', label: '높은 활동', description: '주 6-7회 강도 있게 운동해요' },
-  { value: 'EXTRA_ACTIVE', label: '매우 높은 활동', description: '운동량이 아주 많거나 육체노동이 있어요' },
 ];
 
 function normalizeGender(gender?: string): Gender {
@@ -76,10 +75,9 @@ function normalizeActivityLevel(activityLevel?: string): ActivityLevel {
       return 'MODERATELY_ACTIVE';
     case 'active':
     case 'VERY_ACTIVE':
-      return 'VERY_ACTIVE';
     case 'very_active':
     case 'EXTRA_ACTIVE':
-      return 'EXTRA_ACTIVE';
+      return 'VERY_ACTIVE';
     default:
       return defaultOnboardingDraft.activityLevel;
   }

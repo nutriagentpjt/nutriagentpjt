@@ -3,26 +3,37 @@ export type ActivityLevel =
   | 'SEDENTARY'
   | 'LIGHTLY_ACTIVE'
   | 'MODERATELY_ACTIVE'
-  | 'VERY_ACTIVE'
-  | 'EXTRA_ACTIVE';
+  | 'VERY_ACTIVE';
 export type MealPattern =
-  | 'ONE_MEAL'
   | 'TWO_MEALS'
   | 'THREE_MEALS'
-  | 'FOUR_OR_MORE_MEALS';
+  | 'INTERMITTENT_FASTING'
+  | 'MULTIPLE_SMALL_MEALS';
 export type DietStyle =
-  | 'LEAN_MASS_UP'
-  | 'CLEAN_BULK'
-  | 'DIRTY_BULK'
-  | 'CUTTING'
-  | 'LOW_CARB';
+  | 'VEGAN'
+  | 'VEGETARIAN'
+  | 'KETO'
+  | 'LOW_CARB'
+  | 'LOW_FAT'
+  | 'HIGH_PROTEIN'
+  | 'MEDITERRANEAN'
+  | 'PALEO'
+  | 'GLUTEN_FREE'
+  | 'NONE';
 export type Disease =
+  | 'NONE'
+  | 'ALLERGY'
   | 'DIABETES'
   | 'HYPERTENSION'
   | 'HYPERLIPIDEMIA'
   | 'HEART_DISEASE'
+  | 'GOUT'
+  | 'KIDNEY_DISEASE'
   | 'LIVER_DISEASE'
-  | 'OBESITY';
+  | 'THYROID_DISEASE'
+  | 'DIGESTIVE_DISORDER'
+  | 'ANEMIA'
+  | 'OSTEOPOROSIS';
 
 export interface UserProfile {
   gender: Gender;

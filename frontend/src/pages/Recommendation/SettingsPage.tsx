@@ -1,13 +1,20 @@
 import { Activity, ChevronLeft, ChevronRight, Droplet, HeartPulse, Shield } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { Disease } from '@/types/onboarding';
 import AllergiesSettings from '@/components/profile/PersonalSettingsAllergies';
 import DietSettings from '@/components/profile/PersonalSettingsDiet';
 import DiseasesSettings from '@/components/profile/PersonalSettingsDiseases';
 import LifestyleSettings from '@/components/profile/PersonalSettingsLifestyle';
-import { loadStoredProfile, saveStoredProfile, type StoredProfile } from '@/components/profile/shared';
+import {
+  buildOnboardingPayload,
+  loadStoredProfile,
+  mergeBackendProfile,
+  saveStoredProfile,
+  type StoredProfile,
+} from '@/components/profile/shared';
 import { ROUTES } from '@/constants/routes';
+import { usePreferences, useProfile, useSaveOnboarding } from '@/hooks';
 
 type SettingsView = 'menu' | 'lifestyle' | 'allergies' | 'diseases' | 'diet';
 
@@ -15,11 +22,44 @@ export default function SettingsPage() {
   const navigate = useNavigate();
   const [profile, setProfile] = useState<StoredProfile>(() => loadStoredProfile());
   const [currentView, setCurrentView] = useState<SettingsView>('menu');
+  const { data: backendProfile, updateProfileAsync } = useProfile();
+  const { data: preferences } = usePreferences();
+  const saveOnboardingMutation = useSaveOnboarding();
 
   const handleProfileUpdate = (updates: Partial<StoredProfile>) => {
     const nextProfile = { ...profile, ...updates };
     setProfile(nextProfile);
     saveStoredProfile(nextProfile);
+  };
+
+  useEffect(() => {
+    if (!backendProfile && !preferences) {
+      return;
+    }
+
+    setProfile((currentProfile) => {
+      const nextProfile = mergeBackendProfile({
+        currentProfile,
+        profile: backendProfile,
+        preferences,
+      });
+
+      saveStoredProfile(nextProfile);
+      return nextProfile;
+    });
+  }, [backendProfile, preferences]);
+
+  const syncOnboardingPreferences = async (updates: Partial<StoredProfile>) => {
+    const nextProfile = { ...profile, ...updates };
+    handleProfileUpdate(updates);
+
+    try {
+      await saveOnboardingMutation.mutateAsync({
+        data: buildOnboardingPayload(nextProfile),
+      });
+    } catch {
+      // Keep local preferences usable even if backend sync fails temporarily.
+    }
   };
 
   const handleBack = () => {
@@ -136,8 +176,8 @@ export default function SettingsPage() {
           <LifestyleSettings
             initialWaterGoal={profile.waterGoal ?? 2}
             initialMealsPerDay={profile.mealsPerDay ?? 3}
-            onSave={({ waterGoal, mealsPerDay }) => {
-              handleProfileUpdate({ waterGoal, mealsPerDay });
+            onSave={async ({ waterGoal, mealsPerDay }) => {
+              await syncOnboardingPreferences({ waterGoal, mealsPerDay });
               setCurrentView('menu');
             }}
           />
@@ -146,8 +186,8 @@ export default function SettingsPage() {
         {currentView === 'allergies' ? (
           <AllergiesSettings
             initialAllergies={profile.allergies ?? []}
-            onSave={({ allergies }) => {
-              handleProfileUpdate({ allergies });
+            onSave={async ({ allergies }) => {
+              await syncOnboardingPreferences({ allergies });
               setCurrentView('menu');
             }}
           />
@@ -156,8 +196,15 @@ export default function SettingsPage() {
         {currentView === 'diseases' ? (
           <DiseasesSettings
             initialDiseases={(profile.diseases ?? []) as Disease[]}
-            onSave={({ diseases }) => {
+            onSave={async ({ diseases }) => {
               handleProfileUpdate({ diseases });
+
+              try {
+                await updateProfileAsync({ diseases });
+              } catch {
+                // Preserve the current UI even if profile sync fails.
+              }
+
               setCurrentView('menu');
             }}
           />
@@ -168,8 +215,8 @@ export default function SettingsPage() {
             initialLowSodium={profile.lowSodium ?? false}
             initialLowSugar={profile.lowSugar ?? false}
             initialMaxCaloriesPerMeal={profile.maxCaloriesPerMeal ?? 600}
-            onSave={({ lowSodium, lowSugar, maxCaloriesPerMeal }) => {
-              handleProfileUpdate({ lowSodium, lowSugar, maxCaloriesPerMeal });
+            onSave={async ({ lowSodium, lowSugar, maxCaloriesPerMeal }) => {
+              await syncOnboardingPreferences({ lowSodium, lowSugar, maxCaloriesPerMeal });
               setCurrentView('menu');
             }}
           />

@@ -45,7 +45,7 @@ const diseaseOptions = [
   { icon: Droplet, label: '고지혈증', value: 'HYPERLIPIDEMIA' as const },
   { icon: HeartPulse, label: '심장질환', value: 'HEART_DISEASE' as const },
   { icon: Shield, label: '간질환', value: 'LIVER_DISEASE' as const },
-  { icon: TrendingUp, label: '비만', value: 'OBESITY' as const },
+  { icon: TrendingUp, label: '신장 질환', value: 'KIDNEY_DISEASE' as const },
 ] as const;
 
 const getRouteForStep = (step: number) => {
@@ -81,11 +81,11 @@ const getProgressLabel = (step: number) => {
 
 const getMealsPerDayFromPattern = (mealPattern: MealPattern): number => {
   switch (mealPattern) {
-    case 'ONE_MEAL':
-      return 1;
     case 'TWO_MEALS':
       return 2;
-    case 'FOUR_OR_MORE_MEALS':
+    case 'INTERMITTENT_FASTING':
+      return 1;
+    case 'MULTIPLE_SMALL_MEALS':
       return 4;
     default:
       return 3;
@@ -95,15 +95,22 @@ const getMealsPerDayFromPattern = (mealPattern: MealPattern): number => {
 const getMealPattern = (mealsPerDay: number): MealPattern => {
   switch (mealsPerDay) {
     case 1:
-      return 'ONE_MEAL';
+      return 'INTERMITTENT_FASTING';
     case 2:
       return 'TWO_MEALS';
     case 4:
-      return 'FOUR_OR_MORE_MEALS';
+      return 'MULTIPLE_SMALL_MEALS';
     default:
       return 'THREE_MEALS';
   }
 };
+
+const mealPatternOptions = [
+  { value: 2, label: '2끼' },
+  { value: 3, label: '3끼' },
+  { value: 1, label: '간헐적 단식' },
+  { value: 4, label: '소량 다회' },
+] as const;
 
 interface OnboardingFlowProps {
   fallbackStep: number;
@@ -186,7 +193,7 @@ export default function OnboardingFlow({ fallbackStep }: OnboardingFlowProps) {
       : calculatedTDEE || defaultOnboardingDraft.goalCalories;
     setGoalCalories(nextGoalCalories);
 
-    if (onboardingData.dietStyles?.includes('LOW_CARB')) {
+    if (onboardingData.dietStyles?.includes('KETO') || onboardingData.dietStyles?.includes('LOW_CARB')) {
       setCarbsPercentage(5);
       setProteinPercentage(25);
       setFatPercentage(70);
@@ -200,13 +207,13 @@ export default function OnboardingFlow({ fallbackStep }: OnboardingFlowProps) {
       activityLevel: onboardingData.activityLevel,
       tdee: calculatedTDEE || draft.tdee,
       goalCalories: nextGoalCalories,
-      goalCarbs: onboardingData.dietStyles?.includes('LOW_CARB')
+      goalCarbs: onboardingData.dietStyles?.includes('KETO') || onboardingData.dietStyles?.includes('LOW_CARB')
         ? Math.round((nextGoalCalories * 0.05) / 4)
         : draft.goalCarbs,
-      goalProtein: onboardingData.dietStyles?.includes('LOW_CARB')
+      goalProtein: onboardingData.dietStyles?.includes('KETO') || onboardingData.dietStyles?.includes('LOW_CARB')
         ? Math.round((nextGoalCalories * 0.25) / 4)
         : draft.goalProtein,
-      goalFat: onboardingData.dietStyles?.includes('LOW_CARB')
+      goalFat: onboardingData.dietStyles?.includes('KETO') || onboardingData.dietStyles?.includes('LOW_CARB')
         ? Math.round((nextGoalCalories * 0.7) / 9)
         : draft.goalFat,
       dietStyles: onboardingData.dietStyles ?? [],
@@ -611,20 +618,18 @@ export default function OnboardingFlow({ fallbackStep }: OnboardingFlowProps) {
                     </div>
                   </div>
                   <div className="grid grid-cols-4 gap-2">
-                    {[1, 2, 3, 4].map((count) => (
+                    {mealPatternOptions.map((option) => (
                       <button
-                        key={count}
+                        key={option.value}
                         type="button"
-                        onClick={() => setMealsPerDay(count)}
+                        onClick={() => setMealsPerDay(option.value)}
                         className={`min-touch rounded-xl border-2 px-3 py-3 text-sm font-semibold transition-all ${
-                          mealsPerDay === count
+                          mealsPerDay === option.value
                             ? 'border-green-500 bg-green-50 text-green-700'
                             : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
                         }`}
                       >
-                        <span className="text-xs leading-none whitespace-nowrap">
-                          {count === 4 ? '4끼 이상' : `${count}끼`}
-                        </span>
+                        <span className="text-xs leading-none whitespace-nowrap">{option.label}</span>
                       </button>
                     ))}
                   </div>
@@ -653,12 +658,12 @@ export default function OnboardingFlow({ fallbackStep }: OnboardingFlowProps) {
                   <div className="mb-6">
                     <p className="text-xs text-gray-500 mb-3">대표적인 식이요법 방식</p>
                     <div className="grid grid-cols-2 gap-2 mb-1">
-                      <button type="button" onClick={() => applyDietStylePreset('LEAN_MASS_UP', 45, 30, 25)} className={`px-3 py-2.5 bg-white border-2 rounded-xl text-xs font-medium text-gray-700 active:scale-95 transition-all ${selectedDietStyle === 'LEAN_MASS_UP' ? 'border-green-500 bg-green-50 text-green-700' : 'border-gray-200 hover:border-green-400 hover:bg-green-50'}`}><div className="font-semibold text-sm mb-0.5">린매스업</div><div className="text-[10px] text-gray-500">근육 증가 + 지방 최소</div></button>
-                      <button type="button" onClick={() => applyDietStylePreset('CLEAN_BULK', 50, 25, 25)} className={`px-3 py-2.5 bg-white border-2 rounded-xl text-xs font-medium text-gray-700 active:scale-95 transition-all ${selectedDietStyle === 'CLEAN_BULK' ? 'border-green-500 bg-green-50 text-green-700' : 'border-gray-200 hover:border-green-400 hover:bg-green-50'}`}><div className="font-semibold text-sm mb-0.5">클린 벌크</div><div className="text-[10px] text-gray-500">균형 잡힌 체중 증가</div></button>
-                      <button type="button" onClick={() => applyDietStylePreset('DIRTY_BULK', 45, 20, 35)} className={`px-3 py-2.5 bg-white border-2 rounded-xl text-xs font-medium text-gray-700 active:scale-95 transition-all ${selectedDietStyle === 'DIRTY_BULK' ? 'border-green-500 bg-green-50 text-green-700' : 'border-gray-200 hover:border-green-400 hover:bg-green-50'}`}><div className="font-semibold text-sm mb-0.5">더티 벌크</div><div className="text-[10px] text-gray-500">빠른 체중 증가 (지방 포함)</div></button>
-                      <button type="button" onClick={() => applyDietStylePreset('CUTTING', 40, 35, 25)} className={`px-3 py-2.5 bg-white border-2 rounded-xl text-xs font-medium text-gray-700 active:scale-95 transition-all ${selectedDietStyle === 'CUTTING' ? 'border-green-500 bg-green-50 text-green-700' : 'border-gray-200 hover:border-green-400 hover:bg-green-50'}`}><div className="font-semibold text-sm mb-0.5">컷팅</div><div className="text-[10px] text-gray-500">체지방 감소 + 근육 유지</div></button>
+                      <button type="button" onClick={() => applyDietStylePreset('HIGH_PROTEIN', 45, 30, 25)} className={`px-3 py-2.5 bg-white border-2 rounded-xl text-xs font-medium text-gray-700 active:scale-95 transition-all ${selectedDietStyle === 'HIGH_PROTEIN' ? 'border-green-500 bg-green-50 text-green-700' : 'border-gray-200 hover:border-green-400 hover:bg-green-50'}`}><div className="font-semibold text-sm mb-0.5">린매스업</div><div className="text-[10px] text-gray-500">근육 증가 + 지방 최소</div></button>
+                      <button type="button" onClick={() => applyDietStylePreset('MEDITERRANEAN', 50, 25, 25)} className={`px-3 py-2.5 bg-white border-2 rounded-xl text-xs font-medium text-gray-700 active:scale-95 transition-all ${selectedDietStyle === 'MEDITERRANEAN' ? 'border-green-500 bg-green-50 text-green-700' : 'border-gray-200 hover:border-green-400 hover:bg-green-50'}`}><div className="font-semibold text-sm mb-0.5">클린 벌크</div><div className="text-[10px] text-gray-500">균형 잡힌 체중 증가</div></button>
+                      <button type="button" onClick={() => applyDietStylePreset('NONE', 45, 20, 35)} className={`px-3 py-2.5 bg-white border-2 rounded-xl text-xs font-medium text-gray-700 active:scale-95 transition-all ${selectedDietStyle === 'NONE' ? 'border-green-500 bg-green-50 text-green-700' : 'border-gray-200 hover:border-green-400 hover:bg-green-50'}`}><div className="font-semibold text-sm mb-0.5">더티 벌크</div><div className="text-[10px] text-gray-500">빠른 체중 증가 (지방 포함)</div></button>
+                      <button type="button" onClick={() => applyDietStylePreset('LOW_FAT', 40, 35, 25)} className={`px-3 py-2.5 bg-white border-2 rounded-xl text-xs font-medium text-gray-700 active:scale-95 transition-all ${selectedDietStyle === 'LOW_FAT' ? 'border-green-500 bg-green-50 text-green-700' : 'border-gray-200 hover:border-green-400 hover:bg-green-50'}`}><div className="font-semibold text-sm mb-0.5">컷팅</div><div className="text-[10px] text-gray-500">체지방 감소 + 근육 유지</div></button>
                     </div>
-                    <button type="button" onClick={() => applyDietStylePreset('LOW_CARB', 5, 25, 70)} className={`w-full px-3 py-2.5 bg-white border-2 rounded-xl text-xs font-medium text-gray-700 active:scale-95 transition-all ${selectedDietStyle === 'LOW_CARB' ? 'border-green-500 bg-green-50 text-green-700' : 'border-gray-200 hover:border-green-400 hover:bg-green-50'}`}><div className="font-semibold text-sm mb-0.5">저탄고지 (LCHF/키토)</div><div className="text-[10px] text-gray-500">지방 기반 에너지 식단</div></button>
+                    <button type="button" onClick={() => applyDietStylePreset('KETO', 5, 25, 70)} className={`w-full px-3 py-2.5 bg-white border-2 rounded-xl text-xs font-medium text-gray-700 active:scale-95 transition-all ${selectedDietStyle === 'KETO' ? 'border-green-500 bg-green-50 text-green-700' : 'border-gray-200 hover:border-green-400 hover:bg-green-50'}`}><div className="font-semibold text-sm mb-0.5">저탄고지 (LCHF/키토)</div><div className="text-[10px] text-gray-500">지방 기반 에너지 식단</div></button>
                   </div>
                   <div className="mb-6">
                     <div className="flex items-center justify-between mb-3"><label className="text-sm font-medium text-gray-700">탄수화물</label><div className="flex items-center gap-2"><span className="number-sm text-secondary-600">{carbsPercentage}%</span><span className="text-xs text-gray-500">({carbsGrams}g)</span></div></div>

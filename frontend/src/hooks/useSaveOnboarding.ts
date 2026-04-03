@@ -10,6 +10,9 @@ export function useSaveOnboarding() {
     mutationFn: ({ data }: SaveOnboardingInput) => onboardingService.saveOnboarding(data),
     onSuccess: (data) => {
       queryClient.setQueryData(queryKeys.onboarding.current(), data);
+      queryClient.invalidateQueries({ queryKey: queryKeys.profile.current() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.preferences.current() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.goals.current() });
     },
   });
 }

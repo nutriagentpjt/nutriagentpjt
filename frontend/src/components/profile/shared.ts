@@ -1,4 +1,16 @@
-import type { ActivityLevel, Disease, Gender, UserProfile } from '@/types/onboarding';
+import type {
+  ActivityLevel,
+  Disease,
+  Gender,
+  MealPattern,
+  OnboardingRequest,
+  UserProfile,
+} from '@/types/onboarding';
+import type {
+  NutritionTargetResponse,
+  PreferenceResponse,
+  ProfileResponse,
+} from '@/types/profile';
 
 export const USER_PROFILE_STORAGE_KEY = 'userProfile';
 
@@ -35,7 +47,6 @@ export const activityLabelMap: Record<ActivityLevel, string> = {
   LIGHTLY_ACTIVE: '가벼운 활동',
   MODERATELY_ACTIVE: '보통 활동',
   VERY_ACTIVE: '높은 활동',
-  EXTRA_ACTIVE: '매우 높은 활동',
 };
 
 export const allergyOptions = [
@@ -56,7 +67,7 @@ export const diseaseOptions = [
   { label: '고지혈증', value: 'HYPERLIPIDEMIA' as const },
   { label: '심장질환', value: 'HEART_DISEASE' as const },
   { label: '간질환', value: 'LIVER_DISEASE' as const },
-  { label: '비만', value: 'OBESITY' as const },
+  { label: '신장 질환', value: 'KIDNEY_DISEASE' as const },
 ] satisfies Array<{ label: string; value: Disease }>;
 
 function normalizeGender(gender?: string): Gender {
@@ -76,10 +87,9 @@ function normalizeActivityLevel(activityLevel?: string): ActivityLevel {
       return 'MODERATELY_ACTIVE';
     case 'active':
     case 'VERY_ACTIVE':
-      return 'VERY_ACTIVE';
     case 'very_active':
     case 'EXTRA_ACTIVE':
-      return 'EXTRA_ACTIVE';
+      return 'VERY_ACTIVE';
     default:
       return defaultProfile.activityLevel;
   }
@@ -115,4 +125,92 @@ export function loadStoredProfile(): StoredProfile {
 
 export function saveStoredProfile(profile: StoredProfile) {
   window.localStorage.setItem(USER_PROFILE_STORAGE_KEY, JSON.stringify(profile));
+}
+
+export function getMealPatternFromMealsPerDay(mealsPerDay?: number): MealPattern {
+  switch (mealsPerDay) {
+    case 2:
+      return 'TWO_MEALS';
+    case 4:
+      return 'MULTIPLE_SMALL_MEALS';
+    case 1:
+      return 'INTERMITTENT_FASTING';
+    default:
+      return 'THREE_MEALS';
+  }
+}
+
+export function getMealsPerDayFromMealPattern(mealPattern?: MealPattern | null): number {
+  switch (mealPattern) {
+    case 'TWO_MEALS':
+      return 2;
+    case 'INTERMITTENT_FASTING':
+      return 1;
+    case 'MULTIPLE_SMALL_MEALS':
+      return 4;
+    default:
+      return 3;
+  }
+}
+
+export function mergeBackendProfile({
+  currentProfile,
+  profile,
+  preferences,
+  nutritionTargets,
+}: {
+  currentProfile: StoredProfile;
+  profile?: ProfileResponse | null;
+  preferences?: PreferenceResponse | null;
+  nutritionTargets?: NutritionTargetResponse | null;
+}): StoredProfile {
+  return {
+    ...currentProfile,
+    age: profile?.age ?? currentProfile.age,
+    gender: profile?.gender ?? currentProfile.gender,
+    height: profile?.height ?? currentProfile.height,
+    weight: profile?.weight ?? currentProfile.weight,
+    activityLevel: profile?.activityLevel ?? currentProfile.activityLevel,
+    diseases: profile?.diseases ?? currentProfile.diseases,
+    dietStyles: preferences?.dietStyles ?? profile?.dietStyles ?? currentProfile.dietStyles,
+    allergies: preferences?.allergies ?? profile?.allergies ?? currentProfile.allergies,
+    waterGoal: preferences?.waterIntakeGoal ?? profile?.waterIntakeGoal ?? currentProfile.waterGoal,
+    mealsPerDay: getMealsPerDayFromMealPattern(preferences?.mealPattern ?? profile?.mealPattern),
+    lowSodium:
+      preferences?.constraints?.lowSodium ??
+      profile?.constraints?.lowSodium ??
+      currentProfile.lowSodium,
+    lowSugar:
+      preferences?.constraints?.lowSugar ??
+      profile?.constraints?.lowSugar ??
+      currentProfile.lowSugar,
+    maxCaloriesPerMeal:
+      preferences?.constraints?.maxCaloriesPerMeal ??
+      profile?.constraints?.maxCaloriesPerMeal ??
+      currentProfile.maxCaloriesPerMeal,
+    goalCalories: nutritionTargets?.target.calories ?? currentProfile.goalCalories,
+    goalProtein: nutritionTargets?.target.protein ?? currentProfile.goalProtein,
+    goalCarbs: nutritionTargets?.target.carbs ?? currentProfile.goalCarbs,
+    goalFat: nutritionTargets?.target.fat ?? currentProfile.goalFat,
+  };
+}
+
+export function buildOnboardingPayload(profile: StoredProfile): OnboardingRequest {
+  return {
+    age: profile.age ?? defaultProfile.age,
+    gender: profile.gender ?? defaultProfile.gender,
+    height: profile.height ?? defaultProfile.height,
+    weight: profile.weight ?? defaultProfile.weight,
+    activityLevel: profile.activityLevel ?? defaultProfile.activityLevel,
+    mealPattern: getMealPatternFromMealsPerDay(profile.mealsPerDay),
+    allergies: profile.allergies ?? [],
+    diseases: profile.diseases ?? [],
+    dietStyles: profile.dietStyles ?? [],
+    waterIntakeGoal: profile.waterGoal ?? defaultProfile.waterGoal ?? 2,
+    constraints: {
+      lowSodium: profile.lowSodium ?? false,
+      lowSugar: profile.lowSugar ?? false,
+      maxCaloriesPerMeal: profile.maxCaloriesPerMeal ?? defaultProfile.maxCaloriesPerMeal ?? 600,
+    },
+  };
 }

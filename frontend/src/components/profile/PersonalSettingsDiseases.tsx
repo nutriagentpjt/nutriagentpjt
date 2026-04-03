@@ -8,8 +8,8 @@ const diseaseIcons = {
   HYPERTENSION: Heart,
   HYPERLIPIDEMIA: Droplet,
   HEART_DISEASE: HeartPulse,
-  LIVER_DISEASE: Shield,
-  OBESITY: TrendingUp,
+  LIVER_DISEASE: TrendingUp,
+  KIDNEY_DISEASE: Shield,
 } as const;
 
 interface DiseasesSettingsProps {

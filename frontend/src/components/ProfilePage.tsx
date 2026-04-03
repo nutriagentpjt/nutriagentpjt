@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Activity,
   Apple,
@@ -18,11 +18,15 @@ import { ROUTES } from '@/constants/routes';
 import NotificationSettings from '@/components/profile/NotificationSettings';
 import {
   activityLabelMap,
+  buildOnboardingPayload,
   defaultProfile,
   loadStoredProfile,
+  mergeBackendProfile,
   saveStoredProfile,
   type StoredProfile,
 } from '@/components/profile/shared';
+import { useNutritionTargets, useProfile, useSaveOnboarding } from '@/hooks';
+import { GUEST_ID_STORAGE_KEY } from '@/services/sessionService';
 
 export default function ProfilePage() {
   const navigate = useNavigate();
@@ -40,6 +44,9 @@ export default function ProfilePage() {
   const [editCarbsPercentage, setEditCarbsPercentage] = useState(50);
   const [editProteinPercentage, setEditProteinPercentage] = useState(25);
   const [editFatPercentage, setEditFatPercentage] = useState(25);
+  const { data: backendProfile, updateProfileAsync } = useProfile();
+  const { data: nutritionTargets } = useNutritionTargets();
+  const saveOnboardingMutation = useSaveOnboarding();
 
   const userName = '사용자';
   const profileImageUrl = null;
@@ -65,7 +72,24 @@ export default function ProfilePage() {
   const bmi = Number.parseFloat(calculateBMI);
   const bmiStatus = getBMIStatus(bmi);
 
-  const handleSaveProfile = () => {
+  useEffect(() => {
+    if (!backendProfile && !nutritionTargets) {
+      return;
+    }
+
+    setProfile((currentProfile) => {
+      const nextProfile = mergeBackendProfile({
+        currentProfile,
+        profile: backendProfile,
+        nutritionTargets,
+      });
+
+      saveStoredProfile(nextProfile);
+      return nextProfile;
+    });
+  }, [backendProfile, nutritionTargets]);
+
+  const handleSaveProfile = async () => {
     const nextProfile: StoredProfile = {
       ...profile,
       weight: Number.parseFloat(editWeight) || profile.weight,
@@ -73,7 +97,27 @@ export default function ProfilePage() {
       age: Number.parseFloat(editAge) || profile.age,
       activityLevel: editActivityLevel,
     };
-    persistProfile(nextProfile);
+
+    try {
+      const updatedProfile = await updateProfileAsync({
+        age: nextProfile.age,
+        gender: nextProfile.gender,
+        height: nextProfile.height,
+        weight: nextProfile.weight,
+        activityLevel: nextProfile.activityLevel,
+      });
+
+      persistProfile(
+        mergeBackendProfile({
+          currentProfile: nextProfile,
+          profile: updatedProfile,
+          nutritionTargets,
+        }),
+      );
+    } catch {
+      persistProfile(nextProfile);
+    }
+
     setShowEditProfile(false);
   };
 
@@ -97,19 +141,30 @@ export default function ProfilePage() {
     setShowEditGoals(true);
   };
 
-  const handleSaveGoals = () => {
+  const handleSaveGoals = async () => {
     const goalCalories = editGoalCalories || 2000;
     const goalCarbs = Math.round((goalCalories * (editCarbsPercentage / 100)) / 4);
     const goalProtein = Math.round((goalCalories * (editProteinPercentage / 100)) / 4);
     const goalFat = Math.round((goalCalories * (editFatPercentage / 100)) / 9);
 
-    persistProfile({
+    const nextProfile = {
       ...profile,
       goalCalories,
       goalCarbs,
       goalProtein,
       goalFat,
-    });
+    };
+
+    persistProfile(nextProfile);
+
+    try {
+      await saveOnboardingMutation.mutateAsync({
+        data: buildOnboardingPayload(nextProfile),
+      });
+    } catch {
+      // Keep the current local goals UX even if the backend target sync is unavailable.
+    }
+
     setShowEditGoals(false);
   };
 
@@ -119,6 +174,7 @@ export default function ProfilePage() {
       window.localStorage.removeItem('userProfile');
       window.localStorage.removeItem('onboardingDraft');
       window.localStorage.removeItem('onboardingCurrentStep');
+      window.localStorage.removeItem(GUEST_ID_STORAGE_KEY);
       navigate(ROUTES.ONBOARDING_WELCOME, { replace: true });
     }
   };
@@ -363,7 +419,6 @@ export default function ProfilePage() {
                   <option value="LIGHTLY_ACTIVE">가벼운 활동</option>
                   <option value="MODERATELY_ACTIVE">보통 활동</option>
                   <option value="VERY_ACTIVE">높은 활동</option>
-                  <option value="EXTRA_ACTIVE">매우 높은 활동</option>
                 </select>
               </div>
             </div>

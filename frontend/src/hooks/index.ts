@@ -15,3 +15,6 @@ export { useSubmitFeedback } from './useSubmitFeedback';
 export { useOnboarding } from './useOnboarding';
 export { useSaveOnboarding } from './useSaveOnboarding';
 export { useMealSummary } from './useMealSummary';
+export { useProfile } from './useProfile';
+export { useNutritionTargets } from './useNutritionTargets';
+export { usePreferences } from './usePreferences';

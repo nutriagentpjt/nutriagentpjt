@@ -9,7 +9,17 @@ interface UseOnboardingParams {
 export function useOnboarding({ enabled = true }: UseOnboardingParams = {}) {
   return useQuery({
     queryKey: queryKeys.onboarding.current(),
-    queryFn: () => onboardingService.getOnboarding(),
+    queryFn: async () => {
+      try {
+        return await onboardingService.getOnboarding();
+      } catch (error) {
+        if (typeof error === 'object' && error && 'status' in error && error.status === 404) {
+          return null;
+        }
+
+        throw error;
+      }
+    },
     enabled,
   });
 }

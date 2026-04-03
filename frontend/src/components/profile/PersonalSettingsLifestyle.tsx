@@ -14,6 +14,12 @@ export default function LifestyleSettings({
 }: LifestyleSettingsProps) {
   const [waterGoal, setWaterGoal] = useState(initialWaterGoal);
   const [mealsPerDay, setMealsPerDay] = useState(initialMealsPerDay);
+  const mealPatternOptions = [
+    { value: 2, label: '2끼' },
+    { value: 3, label: '3끼' },
+    { value: 1, label: '간헐적 단식' },
+    { value: 4, label: '소량 다회' },
+  ] as const;
 
   return (
     <>
@@ -45,18 +51,18 @@ export default function LifestyleSettings({
         <div className="mb-6">
           <label className="input-label">일일 끼니 횟수</label>
           <div className="grid grid-cols-4 gap-2">
-            {[1, 2, 3, 4].map((meals) => (
+            {mealPatternOptions.map((option) => (
               <button
-                key={meals}
-                onClick={() => setMealsPerDay(meals)}
+                key={option.value}
+                onClick={() => setMealsPerDay(option.value)}
                 className={`min-touch rounded-xl border-2 px-2 py-4 text-sm transition-all ${
-                  mealsPerDay === meals
+                  mealsPerDay === option.value
                     ? 'border-green-500 bg-green-50 font-semibold text-green-700'
                     : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
                 }`}
-                aria-label={`${meals}회 선택`}
+                aria-label={`${option.label} 선택`}
               >
-                {meals === 4 ? '4회 이상' : `${meals}회`}
+                <span className="whitespace-nowrap text-xs leading-none">{option.label}</span>
               </button>
             ))}
           </div>

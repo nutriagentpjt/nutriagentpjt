@@ -11,6 +11,6 @@ describe('tdeeCalculator', () => {
 
   it('calculates TDEE from activity level multiplier', () => {
     expect(calculateTDEE(1600, 'MODERATELY_ACTIVE')).toBe(2480);
-    expect(calculateTDEE(1600, 'EXTRA_ACTIVE')).toBe(3040);
+    expect(calculateTDEE(1600, 'VERY_ACTIVE')).toBe(2760);
   });
 });

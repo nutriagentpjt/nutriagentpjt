@@ -26,6 +26,16 @@ export type {
 } from './onboarding';
 
 export type {
+  AddPreferenceFoodRequest,
+  FoodPreferenceType,
+  NutritionTargetResponse,
+  PreferenceResponse,
+  ProfileResponse,
+  ProfileUpdateRequest,
+  RemovePreferenceFoodRequest,
+} from './profile';
+
+export type {
   NutritionGap,
   Recommendation,
   RecommendationEventRequest,

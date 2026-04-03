@@ -1,6 +1,5 @@
-import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
+import axios, { AxiosError } from 'axios';
 import type { ApiError } from '@/types';
-import { getAccessToken, removeAccessToken } from '@/utils/auth';
 
 const apiClient = axios.create({
   baseURL: `${import.meta.env.VITE_API_URL}/api`,
@@ -11,18 +10,7 @@ const apiClient = axios.create({
   },
 });
 
-apiClient.interceptors.request.use(
-  (config: InternalAxiosRequestConfig) => {
-    const token = getAccessToken();
-
-    if (token && config.headers) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-
-    return config;
-  },
-  (error: AxiosError) => Promise.reject(error),
-);
+apiClient.interceptors.request.use((config) => config, (error: AxiosError) => Promise.reject(error));
 
 apiClient.interceptors.response.use(
   (response) => response,
@@ -38,7 +26,6 @@ apiClient.interceptors.response.use(
 
       switch (error.response.status) {
         case 401:
-          removeAccessToken();
           apiError.message = 'Unauthorized';
           break;
         case 403:

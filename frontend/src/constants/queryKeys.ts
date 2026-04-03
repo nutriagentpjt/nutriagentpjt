@@ -22,7 +22,17 @@ export const queryKeys = {
     all: ['onboarding'] as const,
     current: () => ['onboarding', 'current'] as const,
   },
+  profile: {
+    all: ['profile'] as const,
+    current: () => ['profile', 'current'] as const,
+  },
+  preferences: {
+    all: ['preferences'] as const,
+    current: () => ['preferences', 'current'] as const,
+  },
   goals: {
+    all: ['goals'] as const,
+    current: () => ['goals', 'current'] as const,
     byUser: (userId: number) => ['goals', 'byUser', userId] as const,
   },
 } as const;

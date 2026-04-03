@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { QueryProvider } from './QueryProvider';
+import { SessionBootstrap } from './SessionBootstrap';
 import { Toast } from '@/components/common';
 
 interface AppProvidersProps {
@@ -9,8 +10,10 @@ interface AppProvidersProps {
 export function AppProviders({ children }: AppProvidersProps) {
   return (
     <QueryProvider>
-      {children}
-      <Toast />
+      <SessionBootstrap>
+        {children}
+        <Toast />
+      </SessionBootstrap>
     </QueryProvider>
   );
 }
