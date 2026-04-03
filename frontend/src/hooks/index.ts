@@ -1,4 +1,5 @@
 export { useFoodSearch } from './useFoodSearch';
+export { useFoodAutocomplete } from './useFoodAutocomplete';
 export { useDebounce } from './useDebounce';
 export { useMeals } from './useMeals';
 export { useAddMeal } from './useAddMeal';

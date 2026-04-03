@@ -4,6 +4,7 @@ export const queryKeys = {
   foods: {
     all: ['foods'] as const,
     search: (keyword: string) => ['foods', 'search', keyword] as const,
+    autocomplete: (keyword: string, limit = 6) => ['foods', 'autocomplete', keyword, limit] as const,
     detail: (id: number | string) => ['foods', 'detail', id] as const,
   },
   meals: {

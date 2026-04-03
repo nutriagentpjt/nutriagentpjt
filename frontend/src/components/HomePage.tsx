@@ -8,7 +8,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { ImageSourceModal } from "@/components/camera";
 import { AddFoodModal } from "@/components/food";
 import AIRecommendations from "@/components/recommendation/AIRecommendations";
-import { useMealSummary } from "@/hooks";
+import { useFoodAutocomplete, useFoodSearch, useMealSummary } from "@/hooks";
 import type { RecommendationCardItem } from "@/components/recommendation";
 import type { Food } from "@/types";
 import { ROUTES } from "@/constants/routes";
@@ -75,92 +75,43 @@ export default function HomePage() {
   const [editingWeight, setEditingWeight] = useState("");
   const [editingWater, setEditingWater] = useState("");
 
-  // 더미 데이터 생성 함수
-  const generateDummyMeals = () => {
-    const dummyData: { [key: string]: any[] } = {};
-    const today = new Date();
+  const sanitizeLegacyMeals = (rawMealsByDate: { [key: string]: any[] }) => {
+    const dates = Object.keys(rawMealsByDate);
+    const allMeals = dates.flatMap((dateKey) => rawMealsByDate[dateKey] ?? []);
 
-    const foodOptions = [
-      { name: "닭가슴살 샐러드", calories: 350, protein: 35, carbs: 30, fat: 10 },
-      { name: "연어 덮밥", calories: 520, protein: 28, carbs: 55, fat: 18 },
-      { name: "그릭 요거트", calories: 150, protein: 15, carbs: 12, fat: 5 },
-      { name: "현미밥", calories: 300, protein: 6, carbs: 65, fat: 2 },
-      { name: "베리 스무디", calories: 220, protein: 8, carbs: 42, fat: 4 },
-      { name: "에그 샌드위치", calories: 380, protein: 20, carbs: 35, fat: 16 },
-      { name: "참치 샐러드", calories: 280, protein: 30, carbs: 15, fat: 12 },
-      { name: "고구마", calories: 180, protein: 3, carbs: 40, fat: 1 },
-      { name: "프로틴 쉐이크", calories: 160, protein: 30, carbs: 8, fat: 2 },
-      { name: "닭가슴살", calories: 165, protein: 31, carbs: 0, fat: 4 },
-      { name: "베리 오트밀", calories: 320, protein: 12, carbs: 45, fat: 8 },
-      { name: "그릭요거트 & 아몬드", calories: 180, protein: 15, carbs: 12, fat: 9 },
-      { name: "사과 & 땅콩버터", calories: 200, protein: 4, carbs: 30, fat: 8 },
-      { name: "연어 퀴노아 볼", calories: 300, protein: 25, carbs: 25, fat: 10 },
-      { name: "아보카도 토스트", calories: 280, protein: 10, carbs: 35, fat: 12 },
-      { name: "참치 샌드위치", calories: 380, protein: 28, carbs: 42, fat: 10 },
-    ];
-
-    for (let i = 0; i <= 10; i++) {
-      const pastDate = new Date(today);
-      pastDate.setDate(pastDate.getDate() - i);
-      const dateKey = pastDate.toISOString().split('T')[0];
-
-      // 랜덤 식단 생성 (하루 3-5끼)
-      const mealCount = 3 + Math.floor(Math.random() * 3);
-      const meals: any[] = [];
-
-      const usedIndices = new Set<number>();
-
-      for (let j = 0; j < mealCount; j++) {
-        let foodIndex;
-        do {
-          foodIndex = Math.floor(Math.random() * foodOptions.length);
-        } while (usedIndices.has(foodIndex));
-        usedIndices.add(foodIndex);
-
-        const food = foodOptions[foodIndex];
-        const variance = 0.8 + Math.random() * 0.4; // 80-120% 변동
-
-        const hour = 8 + j * 3;
-        const minute = Math.floor(Math.random() * 6) * 10;
-
-        meals.push({
-          id: Date.now() + j + i * 1000 + Math.random() * 1000,
-          name: food.name,
-          calories: Math.round(food.calories * variance),
-          time: `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`,
-          protein: Math.round(food.protein * variance),
-          carbs: Math.round(food.carbs * variance),
-          fat: Math.round(food.fat * variance),
-        });
-      }
-
-      // 시간순 정렬
-      meals.sort((a, b) => a.time.localeCompare(b.time));
-
-      dummyData[dateKey] = meals;
+    if (allMeals.length === 0) {
+      return rawMealsByDate;
     }
 
-    return dummyData;
+    const legacyMealCount = allMeals.filter((meal) => meal.amount == null && meal.mealType == null).length;
+    const looksLikeLegacySeed =
+      dates.length >= 5 && legacyMealCount / allMeals.length >= 0.8;
+
+    if (!looksLikeLegacySeed) {
+      return rawMealsByDate;
+    }
+
+    const cleanedEntries = Object.entries(rawMealsByDate)
+      .map(([dateKey, mealsForDate]) => [
+        dateKey,
+        (mealsForDate ?? []).filter((meal) => meal.amount != null || meal.mealType != null),
+      ] as const)
+      .filter(([, mealsForDate]) => mealsForDate.length > 0);
+
+    return Object.fromEntries(cleanedEntries);
   };
 
-  // 기본 식단 데이터 (동적 생성)
-  const defaultMealsByDate = generateDummyMeals();
-
-  // localStorage에서 데이터 로드 및 더미 데이터 병합
+  // localStorage에서 실제 저장된 식단만 로드
   const [mealsByDate, setMealsByDate] = useState<{ [key: string]: any[] }>(() => {
     try {
       const saved = localStorage.getItem('nutriagent_meals_v2');
-      const dummyData = generateDummyMeals();
-
       if (saved) {
-        const savedData = JSON.parse(saved);
-        // 더미 데이터와 저장된 데이터를 병합 (저장된 데이터가 우선)
-        return { ...dummyData, ...savedData };
+        return sanitizeLegacyMeals(JSON.parse(saved));
       }
-      return dummyData;
+      return {};
     } catch (error) {
       console.error('Failed to load meals from localStorage:', error);
-      return generateDummyMeals();
+      return {};
     }
   });
 
@@ -354,37 +305,20 @@ export default function HomePage() {
 
   const caloriesGoal = 2000;
   const percentage = Math.round((caloriesConsumed / caloriesGoal) * 100);
+  const activeSearchKeyword = (analyzedFood || searchQuery).trim();
+  const {
+    data: searchedFoods = [],
+    error: searchError,
+  } = useFoodSearch(activeSearchKeyword, activeSearchKeyword.length > 0);
+  const { data: foodAutocompleteSuggestions = [] } = useFoodAutocomplete(
+    searchQuery,
+    !analyzedFood && searchQuery.trim().length > 0,
+  );
 
   const macros = [
     { name: "단백질", current: totalProtein, goal: 150, unit: "g", color: "#10b981" },
     { name: "탄수화물", current: totalCarbs, goal: 250, unit: "g", color: "#3b82f6" },
     { name: "지방", current: totalFat, goal: 65, unit: "g", color: "#f59e0b" },
-  ];
-
-  // 검색 결과 데이터 (영양소 정보 포함)
-  const searchResults = [
-    { id: 1, food: "닭가슴살", brand: "하림", calories: 110, protein: 23, carbs: 0, fat: 2 },
-    { id: 2, food: "닭가슴살", brand: "한끼통살", calories: 120, protein: 25, carbs: 1, fat: 2 },
-    { id: 3, food: "닭가슴살", brand: "허닭", calories: 115, protein: 24, carbs: 0, fat: 2 },
-    { id: 4, food: "닭가슴살", brand: "곰곰", calories: 105, protein: 22, carbs: 0, fat: 1 },
-  ];
-
-  // 김치찌개 검색 결과 (영양소 정보 포함)
-  const kimchiJjigaeResults = [
-    { id: 5, food: "김치찌개", brand: "CJ 백설", calories: 250, protein: 15, carbs: 20, fat: 12 },
-    { id: 6, food: "김치찌개", brand: "풀무원", calories: 230, protein: 14, carbs: 18, fat: 11 },
-    { id: 7, food: "김치찌개", brand: "동원", calories: 270, protein: 16, carbs: 22, fat: 13 },
-    { id: 8, food: "김치찌개", brand: "종가집", calories: 260, protein: 15, carbs: 21, fat: 12 },
-  ];
-
-  // 자동완성 데이터베이스 (추후 실제 DB로 대체 가능)
-  const autocompleteDatabase = [
-    "닭가슴살", "김치찌개", "된장찌개", "삼겹살", "쌀밥", "현미밥",
-    "고구마", "달걀", "바나나", "사과", "오렌지", "샐러드",
-    "아보카도", "연어", "참치", "두부", "요거트", "그릭요거트",
-    "프로틴바", "프로틴쉐이크", "오트밀", "퀴노아", "닭다리", "닭안심",
-    "소고기", "돼지고기", "새우", "오징어", "고등어", "브로콜리",
-    "시금치", "토마토", "양파", "마늘", "감자", "단호박"
   ];
 
   useEffect(() => {
@@ -439,28 +373,17 @@ export default function HomePage() {
       }
     };
   }, [location.pathname, location.state, navigate]);
-  // 자동완성 검색 함수 (추후 DB API로 대체 가능)
-  const searchAutocomplete = (query: string): string[] => {
-    if (query.length < 2) return [];
-
-    const lowerQuery = query.toLowerCase();
-    return autocompleteDatabase
-      .filter(item => item.toLowerCase().includes(lowerQuery))
-      .slice(0, 5); // 최대 5개까지만 표시
-  };
-
   // 검색어 변경 시 자동완성 업데이트
   useEffect(() => {
-    if (searchQuery.length >= 2 && !analyzedFood) {
-      const results = searchAutocomplete(searchQuery);
-      setAutocompleteResults(results);
-      setShowAutocomplete(results.length > 0);
+    if (searchQuery.trim().length > 0 && !analyzedFood) {
+      setAutocompleteResults(foodAutocompleteSuggestions);
+      setShowAutocomplete(foodAutocompleteSuggestions.length > 0);
       setShowRecentSearches(false);
     } else {
       setShowAutocomplete(false);
       setAutocompleteResults([]);
     }
-  }, [searchQuery, analyzedFood]);
+  }, [searchQuery, analyzedFood, foodAutocompleteSuggestions]);
 
   // 외부 클릭 시 자동완성 닫기
   useEffect(() => {
@@ -501,20 +424,8 @@ export default function HomePage() {
   const handleRecentSearchSelect = (query: string) => {
     setSearchQuery(query);
     setShowRecentSearches(false);
-    try {
-      setLastSearchQuery(query);
-      addRecentSearch(query);
-      const result = searchFoodService(query);
-      if (result.total === 0) {
-        setShowNoResultsWarning(true);
-      }
-    } catch (error) {
-      if (error instanceof Error && error.message.includes("504")) {
-        setShowTimeoutErrorModal(true);
-      } else {
-        setShowServerErrorModal(true);
-      }
-    }
+    setLastSearchQuery(query);
+    addRecentSearch(query);
   };
 
   const handleSearchFocus = () => {
@@ -530,55 +441,22 @@ export default function HomePage() {
     setSearchQuery(item);
     setShowAutocomplete(false);
     setShowRecentSearches(false);
-    // 자동으로 검색 실행
-    try {
-      setLastSearchQuery(item);
-      addRecentSearch(item);
-      const result = searchFoodService(item);
-      if (result.total === 0) {
-        setShowNoResultsWarning(true);
-      }
-    } catch (error) {
-      if (error instanceof Error && error.message.includes("504")) {
-        setShowTimeoutErrorModal(true);
-      } else {
-        setShowServerErrorModal(true);
-      }
-    }
+    setLastSearchQuery(item);
+    addRecentSearch(item);
   };
 
-  // Food Service - 데이터베이스에서 음식 검색
-  const searchFoodService = (query: string) => {
-    // Database 연결 실패 시뮬레이션 (특정 검색어로 테스트 가능)
-    // 예: "error" 또는 "에러" 검색 시 500 에러 발생
-    if (query.toLowerCase().includes("error") || query.toLowerCase().includes("에러")) {
-      throw new Error("500 Internal Server Error: Database connection failed");
-    }
-
-    // Database 쿼리 타임아웃 시뮬레이션 (특정 검색어로 테스트 가능)
-    // 예: "timeout" 또는 "타임아웃" 검색 시 504 에러 발생
-    if (query.toLowerCase().includes("timeout") || query.toLowerCase().includes("타임아웃")) {
-      throw new Error("504 Gateway Timeout: Database query exceeded 3 seconds");
-    }
-
-    if (analyzedFood === "김치찌개") {
-      return { foods: kimchiJjigaeResults, total: kimchiJjigaeResults.length };
-    }
-    if (query.toLowerCase().includes("닭가슴살") || query.toLowerCase().includes("닭")) {
-      return { foods: searchResults, total: searchResults.length };
-    }
-    // 검색 결과가 없을 때
-    return { foods: [], total: 0 };
-  };
-
-  // 검색 결과
-  let searchResult = { foods: [], total: 0 };
-  try {
-    searchResult = searchFoodService(analyzedFood || searchQuery);
-  } catch (error) {
-    // 에러 발생 시 빈 결과 반환 (UI에서 모달로 처리)
-  }
-  const filteredResults = searchResult.foods;
+  const filteredResults = searchedFoods.map((food) => ({
+    id: food.id,
+    food: food.name,
+    brand: food.brand ?? "일반식품",
+    calories: food.calories,
+    protein: food.protein,
+    carbs: food.carbs,
+    fat: food.fat,
+    servingSize: Number(food.servingSize) || 100,
+    servingUnit: food.servingUnit ?? "g",
+    weight: food.weight ?? (typeof food.servingSize === "number" ? food.servingSize : 100),
+  }));
   const showSearchResults = searchQuery.trim() !== "" || analyzedFood !== null;
 
   const toggleFavoriteFood = (food: { id: number; name: string; calories: number; protein: number; carbs: number; fat: number }, source: string = 'search') => {
@@ -774,21 +652,8 @@ export default function HomePage() {
     if (searchQuery.trim() === "") {
       setShowEmptySearchWarning(true);
     } else {
-      try {
-        // Food Service를 통해 검색 결과 확인
-        setLastSearchQuery(searchQuery);
-        const result = searchFoodService(searchQuery);
-        if (result.total === 0) {
-          setShowNoResultsWarning(true);
-        }
-      } catch (error) {
-        // 에러 타입에 따라 다른 모달 표시
-        if (error instanceof Error && error.message.includes("504")) {
-          setShowTimeoutErrorModal(true);
-        } else {
-          setShowServerErrorModal(true);
-        }
-      }
+      setLastSearchQuery(searchQuery);
+      addRecentSearch(searchQuery);
     }
   };
 
@@ -812,14 +677,35 @@ export default function HomePage() {
       protein: food.protein,
       carbs: food.carbs,
       fat: food.fat,
-      servingSize: 100,
-      servingUnit: "g",
-      weight: 100,
+      servingSize: food.servingSize ?? 100,
+      servingUnit: food.servingUnit ?? "g",
+      weight: food.weight ?? 100,
     };
 
     setSelectedSearchFood(normalizedFood);
     setShowAddFoodModal(true);
   };
+
+  useEffect(() => {
+    if (!searchError) {
+      return;
+    }
+
+    const message =
+      typeof searchError === "object" &&
+      searchError &&
+      "message" in searchError &&
+      typeof searchError.message === "string"
+        ? searchError.message
+        : "";
+
+    if (message.includes("Timeout")) {
+      setShowTimeoutErrorModal(true);
+      return;
+    }
+
+    setShowServerErrorModal(true);
+  }, [searchError]);
 
   // 커스텀 음식 추가 핸들러
   const handleOpenAddCustomModal = () => {

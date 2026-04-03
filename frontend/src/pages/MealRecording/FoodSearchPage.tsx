@@ -1,50 +1,11 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ImageSourceModal } from '@/components/camera';
 import { AddFoodModal, FoodList, FoodSearchInput } from '@/components/food';
 import { ROUTES } from '@/constants/routes';
-import { useFoodSearch } from '@/hooks';
+import { useFoodAutocomplete, useFoodSearch } from '@/hooks';
 import { useImageUploadStore, useMealStore } from '@/store';
 import type { Food } from '@/types';
-
-const autocompleteDatabase = [
-  '닭가슴살',
-  '김치찌개',
-  '된장찌개',
-  '삼겹살',
-  '쌀밥',
-  '현미밥',
-  '고구마',
-  '달걀',
-  '바나나',
-  '사과',
-  '오렌지',
-  '샐러드',
-  '아보카도',
-  '연어',
-  '참치',
-  '두부',
-  '요거트',
-  '그릭요거트',
-  '프로틴바',
-  '프로틴쉐이크',
-  '오트밀',
-  '퀴노아',
-  '닭다리',
-  '닭안심',
-  '소고기',
-  '돼지고기',
-  '새우',
-  '오징어',
-  '고등어',
-  '브로콜리',
-  '시금치',
-  '토마토',
-  '양파',
-  '마늘',
-  '감자',
-  '단호박',
-];
 
 interface FoodSearchLocationState {
   initialQuery?: string;
@@ -66,6 +27,7 @@ export default function FoodSearchPage() {
   const [activeFood, setActiveFood] = useState<Food | null>(null);
 
   const { data: foods = [], isDebouncing, isLoading } = useFoodSearch(query);
+  const { data: suggestions = [] } = useFoodAutocomplete(query);
 
   useEffect(() => {
     const nextState = location.state as FoodSearchLocationState | null;
@@ -74,18 +36,6 @@ export default function FoodSearchPage() {
       navigate(location.pathname, { replace: true, state: null });
     }
   }, [location.pathname, location.state, navigate]);
-
-  const suggestions = useMemo(() => {
-    if (query.trim().length < 2) {
-      return [];
-    }
-
-    const lowerQuery = query.trim().toLowerCase();
-
-    return autocompleteDatabase
-      .filter((item) => item.toLowerCase().includes(lowerQuery))
-      .slice(0, 5);
-  }, [query]);
 
   const handleToggleFavorite = (id: number | string) => {
     setFavoriteBrands((prev) => {
