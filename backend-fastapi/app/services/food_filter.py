@@ -19,6 +19,10 @@ async def fetch_and_filter_foods(
 
     filtered: list[Food] = []
     for food in all_foods:
+        # 이름이 없는 음식은 제외
+        if not food.name:
+            continue
+
         # 알레르기: 키워드 매칭
         if has_allergy and allergies:
             if _matches_any_keyword(food.name, allergies):
@@ -34,7 +38,9 @@ async def fetch_and_filter_foods(
     return filtered
 
 
-def _matches_any_keyword(food_name: str, keywords: list[str]) -> bool:
+def _matches_any_keyword(food_name: str | None, keywords: list[str]) -> bool:
+    if not food_name:
+        return False
     for keyword in keywords:
         if keyword in food_name:
             return True

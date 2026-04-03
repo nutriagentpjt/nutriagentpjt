@@ -109,7 +109,7 @@ def calculate_daily_targets(
     # 잔여 칼로리를 탄:지 비율로 배분
     carb_ratio, fat_ratio = GOAL_CARB_FAT_RATIO[health_goal]
     remaining_ratio = carb_ratio + fat_ratio
-    remaining_cal = target_calories - protein_cal
+    remaining_cal = max(0, target_calories - protein_cal)
 
     carbs_g = (remaining_cal * carb_ratio / remaining_ratio) / 4
     fat_g = (remaining_cal * fat_ratio / remaining_ratio) / 9

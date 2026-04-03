@@ -2,6 +2,8 @@ import asyncio
 import json
 import logging
 from collections.abc import AsyncGenerator
+from weakref import WeakValueDictionary
+
 import boto3
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -20,6 +22,14 @@ class ConversationEngine:
         self.client = boto3.client("bedrock-runtime", region_name=settings.AWS_REGION)
         self.persona_manager = persona_manager
         self.tool_registry = tool_registry
+        self._session_locks: WeakValueDictionary[int, asyncio.Lock] = WeakValueDictionary()
+
+    def _get_session_lock(self, session_id: int) -> asyncio.Lock:
+        lock = self._session_locks.get(session_id)
+        if lock is None:
+            lock = asyncio.Lock()
+            self._session_locks[session_id] = lock
+        return lock
 
     async def create_session(
         self, guest_id: str, persona_name: str, db: AsyncSession
@@ -103,10 +113,25 @@ class ConversationEngine:
         guest_id: str,
         user_input: str,
         db: AsyncSession,
+        jsessionid: str | None = None,
     ) -> str:
         session = await self.get_session(session_id, guest_id, db)
         persona = self.persona_manager.get(session.persona)
 
+        async with self._get_session_lock(session_id):
+            return await self._chat_locked(
+                session_id, session, persona, user_input, db, jsessionid
+            )
+
+    async def _chat_locked(
+        self,
+        session_id: int,
+        session: ChatSession,
+        persona: PersonaConfig,
+        user_input: str,
+        db: AsyncSession,
+        jsessionid: str | None = None,
+    ) -> str:
         # DB에서 이전 대화 이력 로드
         messages = await self._load_messages(session_id, db)
 
@@ -115,7 +140,7 @@ class ConversationEngine:
         await self._save_message(session_id, "user", user_input, None, None, db)
 
         system_prompt = self._build_system_prompt(persona)
-        context = {"guest_id": session.guest_id, "db": db}
+        context = {"guest_id": session.guest_id, "db": db, "jsessionid": jsessionid or ""}
 
         # Bedrock 호출 + Tool Use 루프
         bedrock_tools = self.tool_registry.get_bedrock_tools()
@@ -185,17 +210,33 @@ class ConversationEngine:
         guest_id: str,
         user_input: str,
         db: AsyncSession,
+        jsessionid: str | None = None,
     ) -> AsyncGenerator[str, None]:
         """SSE 스트리밍 응답"""
         session = await self.get_session(session_id, guest_id, db)
         persona = self.persona_manager.get(session.persona)
 
+        async with self._get_session_lock(session_id):
+            async for chunk in self._chat_stream_locked(
+                session_id, session, persona, user_input, db, jsessionid
+            ):
+                yield chunk
+
+    async def _chat_stream_locked(
+        self,
+        session_id: int,
+        session: ChatSession,
+        persona: PersonaConfig,
+        user_input: str,
+        db: AsyncSession,
+        jsessionid: str | None = None,
+    ) -> AsyncGenerator[str, None]:
         messages = await self._load_messages(session_id, db)
         messages.append({"role": "user", "content": [{"text": user_input}]})
         await self._save_message(session_id, "user", user_input, None, None, db)
 
         system_prompt = self._build_system_prompt(persona)
-        context = {"guest_id": session.guest_id, "db": db}
+        context = {"guest_id": session.guest_id, "db": db, "jsessionid": jsessionid or ""}
         bedrock_tools = self.tool_registry.get_bedrock_tools()
         tool_config = {"tools": bedrock_tools} if bedrock_tools else None
 

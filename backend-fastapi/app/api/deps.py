@@ -15,7 +15,7 @@ async def get_db() -> AsyncGenerator[AsyncSession]:
 async def verify_internal_call(
     x_internal_key: str = Header(..., alias="X-Internal-Key"),
 ) -> None:
-    if x_internal_key != settings.INTERNAL_API_KEY:
+    if not x_internal_key or x_internal_key != settings.INTERNAL_API_KEY:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Invalid internal API key",
