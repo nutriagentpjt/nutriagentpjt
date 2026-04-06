@@ -1,8 +1,10 @@
 import axios, { AxiosError } from 'axios';
 import type { ApiError } from '@/types';
 
+export const apiBaseUrl = import.meta.env.VITE_API_URL as string;
+
 const apiClient = axios.create({
-  baseURL: import.meta.env.DEV ? '/__api_proxy__' : import.meta.env.VITE_API_URL,
+  baseURL: apiBaseUrl,
   timeout: 10000,
   withCredentials: true,
   headers: {

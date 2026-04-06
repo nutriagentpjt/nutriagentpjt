@@ -47,9 +47,17 @@ export type {
 
 export type { ApiError } from './api';
 export type {
+  AIAgentCreateSessionRequest,
   AIAgentChatRequest,
   AIAgentChatResponse,
   AIAgentConversation,
   AIAgentMessage,
   AIAgentMessageRole,
+  AIAgentPersona,
+  AIAgentSession,
 } from './aiAgent';
+
+export type {
+  NutritionTargetUpdateRequest,
+  PreferenceUpdateRequest,
+} from './profile';

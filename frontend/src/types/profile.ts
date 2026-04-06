@@ -42,6 +42,13 @@ export interface NutritionTargetResponse {
   };
 }
 
+export interface NutritionTargetUpdateRequest {
+  calories?: number;
+  protein?: number;
+  carbs?: number;
+  fat?: number;
+}
+
 export interface PreferenceResponse {
   mealPattern: MealPattern | null;
   preferredFoods: string[] | null;
@@ -67,4 +74,12 @@ export interface AddPreferenceFoodRequest {
 export interface RemovePreferenceFoodRequest {
   type: FoodPreferenceType;
   foodName: string;
+}
+
+export interface PreferenceUpdateRequest {
+  mealPattern?: MealPattern;
+  allergies?: string[];
+  dietStyles?: DietStyle[];
+  waterIntakeGoal?: number;
+  constraints?: OnboardingConstraints;
 }

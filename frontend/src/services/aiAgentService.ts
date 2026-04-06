@@ -1,5 +1,13 @@
-import api from './api';
-import type { AIAgentChatRequest, AIAgentChatResponse } from '@/types';
+import api, { apiBaseUrl } from './api';
+import axios from 'axios';
+import type {
+  AIAgentChatRequest,
+  AIAgentChatResponse,
+  AIAgentCreateSessionRequest,
+  AIAgentMessage,
+  AIAgentPersona,
+  AIAgentSession,
+} from '@/types';
 
 const DEFAULT_GREETING =
   '안녕하세요! 영양 AI 어시스턴트입니다. 🥗\n\n식단, 영양소, 운동, 건강 관련하여 궁금하신 점이 있으시면 언제든지 물어보세요!';
@@ -43,6 +51,50 @@ export const aiAgentService = {
     return DEFAULT_GREETING;
   },
 
+  async getPersonas(): Promise<AIAgentPersona[]> {
+    const response = await api.get<Array<{ name: string; displayName: string; description: string }>>('/assistant/personas');
+    return response.data;
+  },
+
+  async getSessions(): Promise<AIAgentSession[]> {
+    const response = await api.get<Array<{ id: number; title?: string | null; persona: string; createdAt?: string; updatedAt?: string }>>('/assistant/sessions');
+    return response.data.map((session) => ({
+      id: String(session.id),
+      title: session.title,
+      persona: session.persona,
+      createdAt: session.createdAt,
+      updatedAt: session.updatedAt,
+    }));
+  },
+
+  async createSession(request: AIAgentCreateSessionRequest): Promise<AIAgentSession> {
+    const response = await api.post<{ id: number; title?: string | null; persona: string; createdAt?: string; updatedAt?: string }>(
+      '/assistant/sessions',
+      request,
+    );
+
+    return {
+      id: String(response.data.id),
+      title: response.data.title,
+      persona: response.data.persona,
+      createdAt: response.data.createdAt,
+      updatedAt: response.data.updatedAt,
+    };
+  },
+
+  async getMessages(threadId: string): Promise<AIAgentMessage[]> {
+    const response = await api.get<Array<{ id: number; role: 'user' | 'assistant'; content: string; createdAt: string }>>(
+      `/assistant/sessions/${threadId}/messages`,
+    );
+
+    return response.data.map((message) => ({
+      id: message.id,
+      role: message.role,
+      content: message.content,
+      timestamp: new Date(message.createdAt),
+    }));
+  },
+
   async sendMessage(request: AIAgentChatRequest): Promise<AIAgentChatResponse> {
     if (shouldUseMockMode()) {
       return new Promise((resolve) => {
@@ -58,7 +110,90 @@ export const aiAgentService = {
       });
     }
 
-    const response = await api.post<AIAgentChatResponse>('/assistant/chat', request);
-    return response.data;
+    try {
+      const response = await api.post<AIAgentChatResponse>('/assistant/chat', request);
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && [404, 501, 502, 503, 504].includes(error.response?.status ?? 0)) {
+        return {
+          threadId: request.threadId,
+          message: {
+            role: 'assistant',
+            content: generateMockResponse(request.message),
+          },
+        };
+      }
+
+      throw error;
+    }
+  },
+
+  async streamMessage(
+    request: Required<Pick<AIAgentChatRequest, 'threadId' | 'message'>>,
+    onChunk: (content: string) => void,
+  ): Promise<AIAgentChatResponse> {
+    if (shouldUseMockMode()) {
+      return this.sendMessage(request);
+    }
+
+    const response = await fetch(`${apiBaseUrl}/assistant/sessions/${request.threadId}/messages/stream`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ message: request.message }),
+    });
+
+    if (!response.ok || !response.body) {
+      const error = new Error('Streaming request failed') as Error & { status?: number };
+      error.status = response.status;
+      throw error;
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let aggregated = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) {
+        break;
+      }
+
+      buffer += decoder.decode(value, { stream: true });
+      const events = buffer.split('\n\n');
+      buffer = events.pop() ?? '';
+
+      for (const event of events) {
+        const dataLine = event
+          .split('\n')
+          .find((line) => line.trimStart().startsWith('data:'));
+
+        if (!dataLine) {
+          continue;
+        }
+
+        const rawPayload = dataLine.replace(/^data:\s*/, '');
+        if (!rawPayload) {
+          continue;
+        }
+
+        const payload = JSON.parse(rawPayload) as { type?: string; text?: string };
+        if (payload.type === 'content' && payload.text) {
+          aggregated += payload.text;
+          onChunk(aggregated);
+        }
+      }
+    }
+
+    return {
+      threadId: request.threadId,
+      message: {
+        role: 'assistant',
+        content: aggregated,
+      },
+    };
   },
 };

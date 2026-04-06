@@ -1,10 +1,24 @@
 export type AIAgentMessageRole = 'user' | 'assistant';
 
 export interface AIAgentMessage {
-  id: number;
+  id: number | string;
   role: AIAgentMessageRole;
   content: string;
   timestamp: Date;
+}
+
+export interface AIAgentPersona {
+  name: string;
+  displayName: string;
+  description: string;
+}
+
+export interface AIAgentSession {
+  id: string;
+  title?: string | null;
+  persona: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface AIAgentConversation {
@@ -12,9 +26,14 @@ export interface AIAgentConversation {
   messages: AIAgentMessage[];
 }
 
+export interface AIAgentCreateSessionRequest {
+  persona?: string;
+}
+
 export interface AIAgentChatRequest {
   message: string;
   threadId?: string;
+  persona?: string;
   messages?: Array<{
     role: AIAgentMessageRole;
     content: string;

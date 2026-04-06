@@ -119,7 +119,12 @@ export default function FoodSearchPage() {
         />
       </div>
 
-      <AddFoodModal food={activeFood} isOpen={showAddFoodModal} onClose={handleCloseModal} />
+      <AddFoodModal
+        food={activeFood}
+        isOpen={showAddFoodModal}
+        onClose={handleCloseModal}
+        redirectTo={ROUTES.HOME}
+      />
       <ImageSourceModal
         isOpen={showImageSourceModal}
         onClose={() => setShowImageSourceModal(false)}

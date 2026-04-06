@@ -7,14 +7,13 @@ import DietSettings from '@/components/profile/PersonalSettingsDiet';
 import DiseasesSettings from '@/components/profile/PersonalSettingsDiseases';
 import LifestyleSettings from '@/components/profile/PersonalSettingsLifestyle';
 import {
-  buildOnboardingPayload,
   loadStoredProfile,
   mergeBackendProfile,
   saveStoredProfile,
   type StoredProfile,
 } from '@/components/profile/shared';
 import { ROUTES } from '@/constants/routes';
-import { usePreferences, useProfile, useSaveOnboarding } from '@/hooks';
+import { usePreferences, useProfile } from '@/hooks';
 
 type SettingsView = 'menu' | 'lifestyle' | 'allergies' | 'diseases' | 'diet';
 
@@ -23,8 +22,7 @@ export default function SettingsPage() {
   const [profile, setProfile] = useState<StoredProfile>(() => loadStoredProfile());
   const [currentView, setCurrentView] = useState<SettingsView>('menu');
   const { data: backendProfile, updateProfileAsync } = useProfile();
-  const { data: preferences } = usePreferences();
-  const saveOnboardingMutation = useSaveOnboarding();
+  const { data: preferences, updatePreferencesAsync } = usePreferences();
 
   const handleProfileUpdate = (updates: Partial<StoredProfile>) => {
     const nextProfile = { ...profile, ...updates };
@@ -49,13 +47,39 @@ export default function SettingsPage() {
     });
   }, [backendProfile, preferences]);
 
-  const syncOnboardingPreferences = async (updates: Partial<StoredProfile>) => {
+  const syncPreferences = async (updates: Partial<StoredProfile>) => {
     const nextProfile = { ...profile, ...updates };
     handleProfileUpdate(updates);
 
     try {
-      await saveOnboardingMutation.mutateAsync({
-        data: buildOnboardingPayload(nextProfile),
+      const updatedPreferences = await updatePreferencesAsync({
+        mealPattern: nextProfile.mealsPerDay
+          ? nextProfile.mealsPerDay === 2
+            ? 'TWO_MEALS'
+            : nextProfile.mealsPerDay === 1
+              ? 'INTERMITTENT_FASTING'
+              : nextProfile.mealsPerDay === 4
+                ? 'MULTIPLE_SMALL_MEALS'
+                : 'THREE_MEALS'
+          : undefined,
+        allergies: nextProfile.allergies ?? [],
+        dietStyles: nextProfile.dietStyles ?? [],
+        waterIntakeGoal: nextProfile.waterGoal ?? 2,
+        constraints: {
+          lowSodium: nextProfile.lowSodium ?? false,
+          lowSugar: nextProfile.lowSugar ?? false,
+          maxCaloriesPerMeal: nextProfile.maxCaloriesPerMeal ?? 600,
+        },
+      });
+
+      setProfile((currentProfile) => {
+        const merged = mergeBackendProfile({
+          currentProfile,
+          profile: backendProfile,
+          preferences: updatedPreferences,
+        });
+        saveStoredProfile(merged);
+        return merged;
       });
     } catch {
       // Keep local preferences usable even if backend sync fails temporarily.
@@ -177,7 +201,7 @@ export default function SettingsPage() {
             initialWaterGoal={profile.waterGoal ?? 2}
             initialMealsPerDay={profile.mealsPerDay ?? 3}
             onSave={async ({ waterGoal, mealsPerDay }) => {
-              await syncOnboardingPreferences({ waterGoal, mealsPerDay });
+              await syncPreferences({ waterGoal, mealsPerDay });
               setCurrentView('menu');
             }}
           />
@@ -187,7 +211,7 @@ export default function SettingsPage() {
           <AllergiesSettings
             initialAllergies={profile.allergies ?? []}
             onSave={async ({ allergies }) => {
-              await syncOnboardingPreferences({ allergies });
+              await syncPreferences({ allergies });
               setCurrentView('menu');
             }}
           />
@@ -216,7 +240,7 @@ export default function SettingsPage() {
             initialLowSugar={profile.lowSugar ?? false}
             initialMaxCaloriesPerMeal={profile.maxCaloriesPerMeal ?? 600}
             onSave={async ({ lowSodium, lowSugar, maxCaloriesPerMeal }) => {
-              await syncOnboardingPreferences({ lowSodium, lowSugar, maxCaloriesPerMeal });
+              await syncPreferences({ lowSodium, lowSugar, maxCaloriesPerMeal });
               setCurrentView('menu');
             }}
           />

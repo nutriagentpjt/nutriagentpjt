@@ -14,11 +14,6 @@ type BackendFoodResponse = {
   variants?: number | null;
 };
 
-type BackendAutocompleteItem = {
-  id: number;
-  name: string;
-};
-
 function normalizeFood(food: Food & { weight?: number; servingSize?: number | string }): Food {
   return {
     ...food,
@@ -53,6 +48,7 @@ export const foodService = {
         fat: food.fat ?? 0,
         sodium: food.sodium ?? undefined,
         fiber: food.fiber ?? undefined,
+        variants: food.variants ?? undefined,
       }),
     );
 
@@ -69,12 +65,25 @@ export const foodService = {
       return [];
     }
 
-    const response = await api.get<BackendAutocompleteItem[]>('/foods/autocomplete', {
-      params: { query: normalizedQuery, limit },
+    const response = await api.get<BackendFoodResponse[]>('/foods/search', {
+      params: { query: normalizedQuery, limit: 50, offset: 0 },
     });
 
-    const uniqueNames = [...new Set(response.data.map((item) => item.name))];
-    return sortNamesByRelevance(uniqueNames, normalizedQuery).slice(0, limit);
+    const counts = response.data.reduce<Record<string, number>>((accumulator, item) => {
+      accumulator[item.name] = Math.max(accumulator[item.name] ?? 0, item.variants ?? 0);
+      return accumulator;
+    }, {});
+
+    const uniqueNames = [...new Set(response.data.map((item) => item.name))].sort((left, right) => {
+      const countDiff = (counts[right] ?? 0) - (counts[left] ?? 0);
+      if (countDiff !== 0) {
+        return countDiff;
+      }
+
+      return left.localeCompare(right, 'ko');
+    });
+
+    return sortNamesByRelevance(uniqueNames, normalizedQuery, counts).slice(0, limit);
   },
 
   async getFoodById(id: number | string): Promise<Food> {

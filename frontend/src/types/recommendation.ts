@@ -22,9 +22,20 @@ export interface NutritionGap {
   fat: number;
 }
 
+export interface NutritionSummary {
+  calories: number;
+  carbs: number;
+  protein: number;
+  fat: number;
+}
+
 export interface RecommendationResponse {
   setId: string;
+  date?: string;
   mealType: MealType;
+  dailyTarget?: NutritionSummary;
+  mealTarget?: NutritionSummary;
+  consumed?: NutritionSummary;
   recommendations: Recommendation[];
   gap: NutritionGap;
   coachingMessage?: string;

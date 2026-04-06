@@ -1,12 +1,9 @@
 import { defineConfig } from 'vitest/config';
-import { loadEnv } from 'vite';
 import react from '@vitejs/plugin-react-swc';
 import path from 'path';
 
 export default defineConfig(async ({ mode }) => {
-  const env = loadEnv(mode, process.cwd(), '');
   const plugins = [react()];
-  const apiTarget = env.VITE_API_URL || 'http://localhost:8080';
 
   if (mode === 'analyze') {
     const { visualizer } = await import('rollup-plugin-visualizer');
@@ -83,14 +80,6 @@ export default defineConfig(async ({ mode }) => {
     server: {
       port: 3000,
       open: true,
-      proxy: {
-        '/__api_proxy__': {
-          target: apiTarget,
-          changeOrigin: true,
-          secure: false,
-          rewrite: (path) => path.replace(/^\/__api_proxy__/, ''),
-        },
-      },
     },
     test: {
       environment: 'jsdom',

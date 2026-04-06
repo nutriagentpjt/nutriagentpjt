@@ -1,8 +1,9 @@
 import { useState } from 'react';
+import axios from 'axios';
 import { useMutation } from '@tanstack/react-query';
 import { CheckCircle, Sparkles, X } from 'lucide-react';
 import { recommendationService } from '@/services';
-import { useSaveRecommendation, useSubmitFeedback } from '@/hooks';
+import { useRecommendations, useSaveRecommendation, useSubmitFeedback } from '@/hooks';
 import type { MealType } from '@/types';
 import CoachingMessage from './CoachingMessage';
 import RecommendationCard, { type RecommendationCardItem } from './RecommendationCard';
@@ -29,8 +30,6 @@ interface AIRecommendationsProps {
   errorMessage?: string | null;
 }
 
-const DUMMY_SET_ID = 'demo-recommendation-set';
-
 export default function AIRecommendations({
   onClose,
   onSaveFood,
@@ -46,6 +45,13 @@ export default function AIRecommendations({
   const [preferences, setPreferences] = useState<Record<number, 'liked' | 'disliked' | null>>({});
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
+  const shouldFetchRecommendations = recommendations == null;
+  const recommendationQuery = useRecommendations({
+    mealType,
+    date,
+    limit: 6,
+    enabled: shouldFetchRecommendations,
+  });
 
   const saveRecommendationMutation = useSaveRecommendation();
   const feedbackMutation = useSubmitFeedback();
@@ -53,57 +59,6 @@ export default function AIRecommendations({
   const recommendationEventMutation = useMutation({
     mutationFn: recommendationService.recordEvent,
   });
-
-  const recommendedFoods: RecommendationCardItem[] = [
-    {
-      setId: DUMMY_SET_ID,
-      foodId: 1,
-      foodName: '닭가슴살 샐러드',
-      recommendedAmount: 100,
-      score: 95,
-      reasons: ['고단백', '저지방'],
-      nutrients: { calories: 350, protein: 35, carbs: 30, fat: 10 },
-      imageUrl:
-        'https://images.unsplash.com/photo-1761315600943-d8a5bb0c499f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxncmlsbGVkJTIwY2hpY2tlbiUyMGJyZWFzdCUyMHNhbGFkfGVufDF8fHx8MTc3MzU3OTYyNHww&ixlib=rb-4.1.0&q=80&w=1080',
-      category: '고단백 저지방',
-    },
-    {
-      setId: DUMMY_SET_ID,
-      foodId: 2,
-      foodName: '연어 덮밥',
-      recommendedAmount: 120,
-      score: 91,
-      reasons: ['오메가3', '균형 식단'],
-      nutrients: { calories: 520, protein: 28, carbs: 55, fat: 18 },
-      imageUrl:
-        'https://images.unsplash.com/photo-1638502182261-7be714a565ce?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzYWxtb24lMjByaWNlJTIwYm93bHxlbnwxfHx8fDE3NzM1NjkyMzR8MA&ixlib=rb-4.1.0&q=80&w=1080',
-      category: '오메가3 풍부',
-    },
-    {
-      setId: DUMMY_SET_ID,
-      foodId: 3,
-      foodName: '그릭 요거트 & 베리',
-      recommendedAmount: 150,
-      score: 88,
-      reasons: ['간식 추천', '단백질 보강'],
-      nutrients: { calories: 220, protein: 15, carbs: 30, fat: 5 },
-      imageUrl:
-        'https://images.unsplash.com/photo-1618798513386-fedeb5c30d39?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxncmVlayUyMHlvZ3VydCUyMGJlcnJpZXN8ZW58MXx8fHwxNzczNjI2MzQzfDA&ixlib=rb-4.1.0&q=80&w=1080',
-      category: '고단백 간식',
-    },
-    {
-      setId: DUMMY_SET_ID,
-      foodId: 4,
-      foodName: '아보카도 에그 토스트',
-      recommendedAmount: 110,
-      score: 84,
-      reasons: ['건강한 지방', '포만감'],
-      nutrients: { calories: 380, protein: 18, carbs: 35, fat: 20 },
-      imageUrl:
-        'https://images.unsplash.com/photo-1585819531730-06d1aba54ce1?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxhdm9jYWRvJTIwdG9hc3QlMjBlZ2d8ZW58MXx8fHwxNzczNjQ5Mjk5fDA&ixlib=rb-4.1.0&q=80&w=1080',
-      category: '건강한 지방',
-    },
-  ];
 
   const showToastMessage = (message: string) => {
     setToastMessage(message);
@@ -172,7 +127,17 @@ export default function AIRecommendations({
     showToastMessage(favorite ? '즐겨찾기에서 제거되었습니다' : '즐겨찾기에 추가되었습니다');
   };
 
-  const recommendationsToRender = recommendations ?? recommendedFoods;
+  const fetchedRecommendations = recommendationQuery.data?.recommendations;
+  const recommendationsToRender = (recommendations ?? fetchedRecommendations ?? []).slice(0, 6);
+  const mergedCoachingMessage = coachingMessage ?? null;
+  const mergedIsLoading = isLoading || recommendationQuery.isLoading;
+  const mergedErrorMessage =
+    errorMessage ??
+    (axios.isAxiosError(recommendationQuery.error)
+      ? recommendationQuery.error.response?.status === 401
+        ? '세션 정보를 확인한 뒤 다시 시도해주세요.'
+        : '추천 식단을 불러오지 못했습니다.'
+      : null);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
@@ -206,28 +171,28 @@ export default function AIRecommendations({
         </div>
 
         <div className="flex-1 overflow-y-auto bg-gray-50 px-4 py-5">
-          <CoachingMessage message={coachingMessage} />
+          <CoachingMessage message={mergedCoachingMessage} />
 
-          {errorMessage ? (
+          {mergedErrorMessage ? (
             <div className="mb-4 rounded-2xl border border-red-100 bg-red-50 p-4 text-sm text-red-600 shadow-sm">
-              {errorMessage}
+              {mergedErrorMessage}
             </div>
           ) : null}
 
-          {isLoading ? (
+          {mergedIsLoading ? (
             <div className="rounded-2xl border border-gray-200 bg-white p-5 text-center text-sm text-gray-500 shadow-sm">
               추천 식단을 불러오는 중입니다.
             </div>
           ) : null}
 
           <div className="space-y-3 pb-6">
-            {!isLoading && recommendationsToRender.length === 0 ? (
+            {!mergedIsLoading && recommendationsToRender.length === 0 ? (
               <div className="rounded-2xl border border-gray-200 bg-white p-5 text-center text-sm text-gray-500 shadow-sm">
                 추천 가능한 식단이 아직 없습니다.
               </div>
             ) : null}
 
-            {!isLoading
+            {!mergedIsLoading
               ? recommendationsToRender.map((recommendation) => (
                   <RecommendationCard
                     key={recommendation.foodId}

@@ -18,14 +18,13 @@ import { ROUTES } from '@/constants/routes';
 import NotificationSettings from '@/components/profile/NotificationSettings';
 import {
   activityLabelMap,
-  buildOnboardingPayload,
   defaultProfile,
   loadStoredProfile,
   mergeBackendProfile,
   saveStoredProfile,
   type StoredProfile,
 } from '@/components/profile/shared';
-import { useNutritionTargets, useProfile, useSaveOnboarding } from '@/hooks';
+import { useNutritionTargets, useProfile } from '@/hooks';
 import { GUEST_ID_STORAGE_KEY } from '@/services/sessionService';
 
 export default function ProfilePage() {
@@ -45,8 +44,7 @@ export default function ProfilePage() {
   const [editProteinPercentage, setEditProteinPercentage] = useState(25);
   const [editFatPercentage, setEditFatPercentage] = useState(25);
   const { data: backendProfile, updateProfileAsync } = useProfile();
-  const { data: nutritionTargets } = useNutritionTargets();
-  const saveOnboardingMutation = useSaveOnboarding();
+  const { data: nutritionTargets, updateNutritionTargetsAsync } = useNutritionTargets();
 
   const userName = '사용자';
   const profileImageUrl = null;
@@ -158,9 +156,20 @@ export default function ProfilePage() {
     persistProfile(nextProfile);
 
     try {
-      await saveOnboardingMutation.mutateAsync({
-        data: buildOnboardingPayload(nextProfile),
+      const updatedTargets = await updateNutritionTargetsAsync({
+        calories: goalCalories,
+        carbs: goalCarbs,
+        protein: goalProtein,
+        fat: goalFat,
       });
+
+      persistProfile(
+        mergeBackendProfile({
+          currentProfile: nextProfile,
+          profile: backendProfile,
+          nutritionTargets: updatedTargets,
+        }),
+      );
     } catch {
       // Keep the current local goals UX even if the backend target sync is unavailable.
     }

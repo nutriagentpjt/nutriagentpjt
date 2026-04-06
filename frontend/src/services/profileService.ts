@@ -1,5 +1,6 @@
 import api from './api';
 import type {
+  NutritionTargetUpdateRequest,
   NutritionTargetResponse,
   PreferenceResponse,
   ProfileResponse,
@@ -19,6 +20,11 @@ export const profileService = {
 
   async getNutritionTargets(): Promise<NutritionTargetResponse> {
     const response = await api.get<NutritionTargetResponse>('/profiles/targets');
+    return response.data;
+  },
+
+  async updateNutritionTargets(data: NutritionTargetUpdateRequest): Promise<NutritionTargetResponse> {
+    const response = await api.patch<NutritionTargetResponse>('/profiles/targets', data);
     return response.data;
   },
 

@@ -11,6 +11,7 @@ export interface Food {
   sodium?: number;
   servingUnit?: string;
   weight?: number;
+  variants?: number;
 }
 
 export interface FoodSearchResponse {

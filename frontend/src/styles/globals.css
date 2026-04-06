@@ -189,6 +189,18 @@ html {
   font-size: var(--font-size);
 }
 
+@keyframes slide-in-left {
+  from {
+    transform: translateX(-24px);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
 /* Legacy utility classes restored for Figma-based modal parity */
 :root {
   --min-touch-target: 44px;
