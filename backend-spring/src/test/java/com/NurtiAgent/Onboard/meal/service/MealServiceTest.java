@@ -180,7 +180,7 @@ class MealServiceTest {
 
         @Test
         @DisplayName("미래 날짜: IllegalArgumentException 발생")
-        void futurDate_throwsIllegalArgument() {
+        void futureDate_throwsIllegalArgument() {
             when(userRepository.findByGuestId(GUEST_ID)).thenReturn(Optional.of(testUser));
             when(foodService.getFoodByName(any())).thenReturn(chickenFood);
 
