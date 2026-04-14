@@ -1,6 +1,9 @@
 package com.NurtiAgent.Onboard.preference.service;
 
 import com.NurtiAgent.Onboard.common.enums.FoodType;
+import com.NurtiAgent.Onboard.common.exception.DietaryPreferenceNotFoundException;
+import com.NurtiAgent.Onboard.common.exception.DuplicateFoodException;
+import com.NurtiAgent.Onboard.common.exception.UnauthorizedException;
 import com.NurtiAgent.Onboard.preference.dto.AddFoodRequest;
 import com.NurtiAgent.Onboard.preference.dto.PreferenceResponse;
 import com.NurtiAgent.Onboard.preference.dto.PreferenceUpdateRequest;
@@ -26,10 +29,10 @@ public class PreferenceService {
     @Transactional
     public PreferenceResponse addFood(String guestId, AddFoodRequest request) {
         User user = userRepository.findByGuestId(guestId)
-                .orElseThrow(() -> new RuntimeException("인증 실패 (세션 없음)"));
+                .orElseThrow(() -> new UnauthorizedException("인증 실패 (세션 없음)"));
 
         DietaryPreference preference = dietaryPreferenceRepository.findByUser(user)
-                .orElseThrow(() -> new RuntimeException("식단 설정을 찾을 수 없습니다"));
+                .orElseThrow(() -> new DietaryPreferenceNotFoundException("식단 설정을 찾을 수 없습니다"));
 
         if (request.getType() == FoodType.PREFERRED) {
             // 선호 음식 추가
@@ -39,14 +42,14 @@ public class PreferenceService {
 
             // 중복 체크
             if (preference.getPreferredFoods().contains(request.getFoodName())) {
-                throw new IllegalArgumentException("이미 선호 음식에 추가되어 있습니다: " + request.getFoodName());
+                throw new DuplicateFoodException("이미 선호 음식에 추가되어 있습니다: " + request.getFoodName());
             }
 
             // 비선호 음식에 있는지 체크
             if (preference.getDislikedFoods() != null &&
                     preference.getDislikedFoods().stream()
                             .anyMatch(item -> item.getFoodName().equals(request.getFoodName()))) {
-                throw new IllegalArgumentException("비선호 음식에 이미 등록된 음식입니다: " + request.getFoodName());
+                throw new DuplicateFoodException("비선호 음식에 이미 등록된 음식입니다: " + request.getFoodName());
             }
 
             preference.getPreferredFoods().add(request.getFoodName());
@@ -60,13 +63,13 @@ public class PreferenceService {
             // 중복 체크
             if (preference.getDislikedFoods().stream()
                     .anyMatch(item -> item.getFoodName().equals(request.getFoodName()))) {
-                throw new IllegalArgumentException("이미 비선호 음식에 추가되어 있습니다: " + request.getFoodName());
+                throw new DuplicateFoodException("이미 비선호 음식에 추가되어 있습니다: " + request.getFoodName());
             }
 
             // 선호 음식에 있는지 체크
             if (preference.getPreferredFoods() != null &&
                     preference.getPreferredFoods().contains(request.getFoodName())) {
-                throw new IllegalArgumentException("선호 음식에 이미 등록된 음식입니다: " + request.getFoodName());
+                throw new DuplicateFoodException("선호 음식에 이미 등록된 음식입니다: " + request.getFoodName());
             }
 
             preference.getDislikedFoods().add(
@@ -81,10 +84,10 @@ public class PreferenceService {
     @Transactional
     public PreferenceResponse removeFood(String guestId, RemoveFoodRequest request) {
         User user = userRepository.findByGuestId(guestId)
-                .orElseThrow(() -> new RuntimeException("인증 실패 (세션 없음)"));
+                .orElseThrow(() -> new UnauthorizedException("인증 실패 (세션 없음)"));
 
         DietaryPreference preference = dietaryPreferenceRepository.findByUser(user)
-                .orElseThrow(() -> new RuntimeException("식단 설정을 찾을 수 없습니다"));
+                .orElseThrow(() -> new DietaryPreferenceNotFoundException("식단 설정을 찾을 수 없습니다"));
 
         if (request.getType() == FoodType.PREFERRED) {
             // 선호 음식 제거
@@ -116,10 +119,10 @@ public class PreferenceService {
     @Transactional(readOnly = true)
     public PreferenceResponse getPreferences(String guestId) {
         User user = userRepository.findByGuestId(guestId)
-                .orElseThrow(() -> new RuntimeException("인증 실패 (세션 없음)"));
+                .orElseThrow(() -> new UnauthorizedException("인증 실패 (세션 없음)"));
 
         DietaryPreference preference = dietaryPreferenceRepository.findByUser(user)
-                .orElseThrow(() -> new RuntimeException("식단 설정을 찾을 수 없습니다"));
+                .orElseThrow(() -> new DietaryPreferenceNotFoundException("식단 설정을 찾을 수 없습니다"));
 
         return buildPreferenceResponse(preference);
     }
@@ -127,10 +130,10 @@ public class PreferenceService {
     @Transactional
     public PreferenceResponse updatePreferences(String guestId, PreferenceUpdateRequest request) {
         User user = userRepository.findByGuestId(guestId)
-                .orElseThrow(() -> new RuntimeException("인증 실패 (세션 없음)"));
+                .orElseThrow(() -> new UnauthorizedException("인증 실패 (세션 없음)"));
 
         DietaryPreference preference = dietaryPreferenceRepository.findByUser(user)
-                .orElseThrow(() -> new RuntimeException("식단 설정을 찾을 수 없습니다"));
+                .orElseThrow(() -> new DietaryPreferenceNotFoundException("식단 설정을 찾을 수 없습니다"));
 
         // 부분 업데이트: 전달된 필드만 업데이트
         if (request.getMealPattern() != null) {
