@@ -1,5 +1,10 @@
 package com.NurtiAgent.Onboard.common.config;
 
+import com.NurtiAgent.Onboard.common.exception.DietaryPreferenceNotFoundException;
+import com.NurtiAgent.Onboard.common.exception.DuplicateFoodException;
+import com.NurtiAgent.Onboard.common.exception.MealNotFoundException;
+import com.NurtiAgent.Onboard.common.exception.UnauthorizedException;
+import com.NurtiAgent.Onboard.common.exception.UserProfileNotFoundException;
 import com.NurtiAgent.Onboard.food.exception.FoodNotFoundException;
 import com.NurtiAgent.Onboard.food.exception.InvalidSearchQueryException;
 import com.NurtiAgent.Onboard.profile.exception.NutritionTargetNotFoundException;
@@ -15,15 +20,23 @@ import java.util.Map;
 @ControllerAdvice
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler(FoodNotFoundException.class)
-    public ResponseEntity<Map<String, String>> handleFoodNotFound(FoodNotFoundException ex) {
+    @ExceptionHandler(UnauthorizedException.class)
+    public ResponseEntity<Map<String, String>> handleUnauthorized(UnauthorizedException ex) {
+        Map<String, String> error = new HashMap<>();
+        error.put("error", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+    }
+
+    @ExceptionHandler({FoodNotFoundException.class, UserProfileNotFoundException.class,
+            DietaryPreferenceNotFoundException.class, MealNotFoundException.class})
+    public ResponseEntity<Map<String, String>> handleNotFound(RuntimeException ex) {
         Map<String, String> error = new HashMap<>();
         error.put("error", ex.getMessage());
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
     }
 
-    @ExceptionHandler(NutritionTargetNotFoundException.class)
-    public ResponseEntity<Map<String, String>> handleNutritionTargetNotFound(NutritionTargetNotFoundException ex) {
+    @ExceptionHandler({NutritionTargetNotFoundException.class, DuplicateFoodException.class})
+    public ResponseEntity<Map<String, String>> handleConflict(RuntimeException ex) {
         Map<String, String> error = new HashMap<>();
         error.put("error", ex.getMessage());
         return ResponseEntity.status(HttpStatus.CONFLICT).body(error);

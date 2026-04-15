@@ -3,6 +3,7 @@ package com.NurtiAgent.Onboard.preference.service;
 import com.NurtiAgent.Onboard.common.enums.DietStyle;
 import com.NurtiAgent.Onboard.common.enums.FoodType;
 import com.NurtiAgent.Onboard.common.enums.MealPattern;
+import com.NurtiAgent.Onboard.common.exception.DuplicateFoodException;
 import com.NurtiAgent.Onboard.preference.dto.AddFoodRequest;
 import com.NurtiAgent.Onboard.preference.dto.PreferenceResponse;
 import com.NurtiAgent.Onboard.preference.dto.PreferenceUpdateRequest;
@@ -116,8 +117,8 @@ class PreferenceServiceTest {
         }
 
         @Test
-        @DisplayName("이미 선호 음식에 있는 경우: IllegalArgumentException 발생")
-        void duplicatePreferred_throwsIllegalArgument() {
+        @DisplayName("이미 선호 음식에 있는 경우: DuplicateFoodException 발생")
+        void duplicatePreferred_throwsDuplicateFoodException() {
             when(userRepository.findByGuestId(GUEST_ID)).thenReturn(Optional.of(testUser));
             when(dietaryPreferenceRepository.findByUser(testUser)).thenReturn(Optional.of(preference));
 
@@ -125,13 +126,13 @@ class PreferenceServiceTest {
                     .foodName("닭가슴살").type(FoodType.PREFERRED).build();
 
             assertThatThrownBy(() -> preferenceService.addFood(GUEST_ID, request))
-                    .isInstanceOf(IllegalArgumentException.class)
+                    .isInstanceOf(DuplicateFoodException.class)
                     .hasMessageContaining("닭가슴살");
         }
 
         @Test
-        @DisplayName("비선호 음식에 있는 음식을 선호에 추가: IllegalArgumentException 발생")
-        void addToPreferred_alreadyInDisliked_throwsIllegalArgument() {
+        @DisplayName("비선호 음식에 있는 음식을 선호에 추가: DuplicateFoodException 발생")
+        void addToPreferred_alreadyInDisliked_throwsDuplicateFoodException() {
             when(userRepository.findByGuestId(GUEST_ID)).thenReturn(Optional.of(testUser));
             when(dietaryPreferenceRepository.findByUser(testUser)).thenReturn(Optional.of(preference));
 
@@ -140,13 +141,13 @@ class PreferenceServiceTest {
                     .foodName("두부").type(FoodType.PREFERRED).build();
 
             assertThatThrownBy(() -> preferenceService.addFood(GUEST_ID, request))
-                    .isInstanceOf(IllegalArgumentException.class)
+                    .isInstanceOf(DuplicateFoodException.class)
                     .hasMessageContaining("두부");
         }
 
         @Test
-        @DisplayName("선호 음식에 있는 음식을 비선호에 추가: IllegalArgumentException 발생")
-        void addToDisliked_alreadyInPreferred_throwsIllegalArgument() {
+        @DisplayName("선호 음식에 있는 음식을 비선호에 추가: DuplicateFoodException 발생")
+        void addToDisliked_alreadyInPreferred_throwsDuplicateFoodException() {
             when(userRepository.findByGuestId(GUEST_ID)).thenReturn(Optional.of(testUser));
             when(dietaryPreferenceRepository.findByUser(testUser)).thenReturn(Optional.of(preference));
 
@@ -155,13 +156,13 @@ class PreferenceServiceTest {
                     .foodName("닭가슴살").type(FoodType.DISLIKED).build();
 
             assertThatThrownBy(() -> preferenceService.addFood(GUEST_ID, request))
-                    .isInstanceOf(IllegalArgumentException.class)
+                    .isInstanceOf(DuplicateFoodException.class)
                     .hasMessageContaining("닭가슴살");
         }
 
         @Test
-        @DisplayName("이미 비선호 음식에 있는 경우 중복 추가: IllegalArgumentException 발생")
-        void duplicateDisliked_throwsIllegalArgument() {
+        @DisplayName("이미 비선호 음식에 있는 경우 중복 추가: DuplicateFoodException 발생")
+        void duplicateDisliked_throwsDuplicateFoodException() {
             when(userRepository.findByGuestId(GUEST_ID)).thenReturn(Optional.of(testUser));
             when(dietaryPreferenceRepository.findByUser(testUser)).thenReturn(Optional.of(preference));
 
@@ -169,7 +170,7 @@ class PreferenceServiceTest {
                     .foodName("두부").type(FoodType.DISLIKED).build();
 
             assertThatThrownBy(() -> preferenceService.addFood(GUEST_ID, request))
-                    .isInstanceOf(IllegalArgumentException.class);
+                    .isInstanceOf(DuplicateFoodException.class);
         }
 
         @Test

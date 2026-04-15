@@ -1,6 +1,7 @@
 package com.NurtiAgent.Onboard.recommendation.service;
 
 import com.NurtiAgent.Onboard.common.enums.MealType;
+import com.NurtiAgent.Onboard.common.exception.UnauthorizedException;
 import com.NurtiAgent.Onboard.meal.dto.MealSummaryResponse;
 import com.NurtiAgent.Onboard.meal.service.MealService;
 import com.NurtiAgent.Onboard.profile.entity.NutritionTarget;
@@ -46,7 +47,7 @@ public class RecommendationService {
     @Transactional(readOnly = true)
     public RecommendationResponse getRecommendations(String guestId, String date, MealType mealType, Integer limit) {
         User user = userRepository.findByGuestId(guestId)
-                .orElseThrow(() -> new RuntimeException("인증 실패 (세션 없음)"));
+                .orElseThrow(() -> new UnauthorizedException("인증 실패 (세션 없음)"));
 
         NutritionTarget target = nutritionTargetRepository.findByUser(user)
                 .orElseThrow(() -> new NutritionTargetNotFoundException("목표 영양소가 설정되지 않았습니다. 온보딩을 먼저 완료해주세요."));
