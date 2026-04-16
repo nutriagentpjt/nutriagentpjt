@@ -1,5 +1,9 @@
 package com.NurtiAgent.Onboard.profile.service;
 
+import com.NurtiAgent.Onboard.common.exception.DietaryPreferenceNotFoundException;
+import com.NurtiAgent.Onboard.common.exception.UnauthorizedException;
+import com.NurtiAgent.Onboard.common.exception.UserProfileNotFoundException;
+import com.NurtiAgent.Onboard.profile.exception.NutritionTargetNotFoundException;
 import com.NurtiAgent.Onboard.profile.dto.*;
 import com.NurtiAgent.Onboard.profile.entity.DietaryPreference;
 import com.NurtiAgent.Onboard.profile.entity.NutritionTarget;
@@ -30,7 +34,7 @@ public class ProfileService {
     public OnboardingResponse saveOnboarding(String guestId, OnboardingRequest request) {
         // 1. User 조회 또는 생성
         User user = userRepository.findByGuestId(guestId)
-                .orElseThrow(() -> new RuntimeException("인증 실패 (세션 없음)"));
+                .orElseThrow(() -> new UnauthorizedException("인증 실패 (세션 없음)"));
 
         // 2. 선호/비선호 음식 중복 검증
         if (request.getPreferredFoods() != null && request.getDislikedFoods() != null) {
@@ -107,13 +111,13 @@ public class ProfileService {
     @Transactional(readOnly = true)
     public ProfileResponse getProfile(String guestId) {
         User user = userRepository.findByGuestId(guestId)
-                .orElseThrow(() -> new RuntimeException("인증 실패 (세션 없음)"));
+                .orElseThrow(() -> new UnauthorizedException("인증 실패 (세션 없음)"));
 
         UserProfile userProfile = userProfileRepository.findByUser(user)
-                .orElseThrow(() -> new RuntimeException("프로필을 찾을 수 없습니다"));
+                .orElseThrow(() -> new UserProfileNotFoundException("프로필을 찾을 수 없습니다"));
 
         DietaryPreference dietaryPreference = dietaryPreferenceRepository.findByUser(user)
-                .orElseThrow(() -> new RuntimeException("식단 설정을 찾을 수 없습니다"));
+                .orElseThrow(() -> new DietaryPreferenceNotFoundException("식단 설정을 찾을 수 없습니다"));
 
         return buildProfileResponse(user, userProfile, dietaryPreference);
     }
@@ -121,13 +125,13 @@ public class ProfileService {
     @Transactional
     public ProfileResponse updateProfile(String guestId, ProfileUpdateRequest request) {
         User user = userRepository.findByGuestId(guestId)
-                .orElseThrow(() -> new RuntimeException("인증 실패 (세션 없음)"));
+                .orElseThrow(() -> new UnauthorizedException("인증 실패 (세션 없음)"));
 
         UserProfile userProfile = userProfileRepository.findByUser(user)
-                .orElseThrow(() -> new RuntimeException("프로필을 찾을 수 없습니다"));
+                .orElseThrow(() -> new UserProfileNotFoundException("프로필을 찾을 수 없습니다"));
 
         DietaryPreference dietaryPreference = dietaryPreferenceRepository.findByUser(user)
-                .orElseThrow(() -> new RuntimeException("식단 설정을 찾을 수 없습니다"));
+                .orElseThrow(() -> new DietaryPreferenceNotFoundException("식단 설정을 찾을 수 없습니다"));
 
         // 부분 수정 지원
         boolean needsRecalculation = false;
@@ -194,10 +198,10 @@ public class ProfileService {
     @Transactional(readOnly = true)
     public NutritionTargetResponse getNutritionTargets(String guestId) {
         User user = userRepository.findByGuestId(guestId)
-                .orElseThrow(() -> new RuntimeException("인증 실패 (세션 없음)"));
+                .orElseThrow(() -> new UnauthorizedException("인증 실패 (세션 없음)"));
 
         NutritionTarget nutritionTarget = nutritionTargetRepository.findByUser(user)
-                .orElseThrow(() -> new RuntimeException("목표 정보 없음 (온보딩 미완료)"));
+                .orElseThrow(() -> new NutritionTargetNotFoundException("목표 정보 없음 (온보딩 미완료)"));
 
         return NutritionTargetResponse.builder()
                 .target(NutritionTargetResponse.TargetDto.builder()
@@ -213,10 +217,10 @@ public class ProfileService {
     @Transactional
     public NutritionTargetResponse updateNutritionTargets(String guestId, NutritionTargetUpdateRequest request) {
         User user = userRepository.findByGuestId(guestId)
-                .orElseThrow(() -> new RuntimeException("인증 실패 (세션 없음)"));
+                .orElseThrow(() -> new UnauthorizedException("인증 실패 (세션 없음)"));
 
         NutritionTarget nutritionTarget = nutritionTargetRepository.findByUser(user)
-                .orElseThrow(() -> new RuntimeException("목표 정보 없음 (온보딩 미완료)"));
+                .orElseThrow(() -> new NutritionTargetNotFoundException("목표 정보 없음 (온보딩 미완료)"));
 
         // 목표 영양소 수동 업데이트
         nutritionTarget.setCalories(request.getCalories());
