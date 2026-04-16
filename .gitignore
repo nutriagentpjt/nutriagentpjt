@@ -60,6 +60,12 @@ htmlcov/
 *.sqlite
 *.sqlite3
 
+# 대용량 데이터 파일 (git 미포함 — EC2에 별도 업로드)
+*.parquet
+
+# 로컬 테스트 이미지
+test_images/
+
 # OS
 .DS_Store
 Thumbs.db

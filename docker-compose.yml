@@ -1,9 +1,15 @@
 version: '3.8'
 
 services:
+
+  # -------------------------------------------------------
+  # PostgreSQL + pgvector
+  # 반드시 pgvector/pgvector:pg15 이미지를 사용해야 합니다.
+  # 일반 postgres:15 에는 pgvector 확장이 없어 벡터 검색이 동작하지 않습니다.
+  # -------------------------------------------------------
   postgres:
-    image: postgres:15
-    container_name: postgres-dev
+    image: pgvector/pgvector:pg15
+    container_name: nutriagent-postgres
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -13,6 +19,49 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # -------------------------------------------------------
+  # Vision API (FastAPI + DINOv2 + pgvector 검색)
+  # -------------------------------------------------------
+  vision-api:
+    build:
+      context: ./backend-fastapi/vision
+      dockerfile: Dockerfile
+    container_name: nutriagent-vision
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      # postgres 서비스명을 호스트로 사용 (컨테이너 내부 DNS)
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      APP_ENV: ${APP_ENV:-dev}
+      MODEL_DEVICE: ${MODEL_DEVICE:-cpu}
+      MODEL_WEIGHTS_PATH: ${MODEL_WEIGHTS_PATH:-}
+      VISION_WORKERS: ${VISION_WORKERS:-2}
+      DEFAULT_TOP_K: ${DEFAULT_TOP_K:-5}
+      MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-10}
+    ports:
+      - "8000:8000"
+    volumes:
+      # data/ 는 이미지에 포함하지 않고 호스트에서 마운트
+      # - merged_food_db_keyword_avg.csv : git clone 시 자동으로 존재
+      # - pgvector_rows.parquet          : git 미포함, EC2에 별도 업로드 필요
+      - ./backend-fastapi/vision/data:/app/data
+      # 모델 가중치 캐시: 컨테이너 재시작 시 재다운로드 방지
+      - vision_model_cache:/root/.cache/torch
+    restart: unless-stopped
+    # Dockerfile의 HEALTHCHECK(/health/ready)와 연동
+    # Spring 등 vision-api에 의존하는 서비스는 아래처럼 사용:
+    #   depends_on:
+    #     vision-api:
+    #       condition: service_healthy
 
 volumes:
   postgres_data:
+  vision_model_cache:
