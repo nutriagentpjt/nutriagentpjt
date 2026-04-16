@@ -43,8 +43,8 @@ CREATE TABLE IF NOT EXISTS image_embeddings (
     relative_path TEXT NOT NULL,
     original_relative_path TEXT NOT NULL,
     model_name TEXT NOT NULL,
-    -- embedding_dim 컬럼 제거: vector(768) 타입이 차원을 이미 강제하므로 중복
-    embedding vector(768) NOT NULL,
+    -- 🔥 embedding_dim 컬럼 제거: vector(1536) 타입이 차원을 이미 강제하므로 중복 (DINOv3+CLIP 하이브리드 적용)
+    embedding vector(1536) NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
     CONSTRAINT image_embeddings_class_name_norm_ck
