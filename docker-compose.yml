@@ -1,18 +1,43 @@
 version: '3.8'
 
 services:
-  postgres:
-    image: postgres:15
-    container_name: postgres-dev
+  fastapi:
+    build:
+      context: ./backend-fastapi
+    container_name: nutriagent-fastapi
     environment:
+      POSTGRES_SERVER: nutriagent-postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY}
+      SPRING_BASE_URL: http://nutriagent-spring:8080
     ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - "8000:8000"
+    networks:
+      - nutriagent-net
     restart: unless-stopped
 
-volumes:
-  postgres_data:
+  spring:
+    build:
+      context: ./backend-spring
+    container_name: nutriagent-spring
+    environment:
+      DB_URL: jdbc:postgresql://nutriagent-postgres:5432/${POSTGRES_DB}
+      DB_USERNAME: ${POSTGRES_USER}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      FASTAPI_BASE_URL: http://nutriagent-fastapi:8000
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY}
+    ports:
+      - "8080:8080"
+    depends_on:
+      - fastapi
+    networks:
+      - nutriagent-net
+    restart: unless-stopped
+
+networks:
+  nutriagent-net:
+    name: nutriagent-net
+    external: true

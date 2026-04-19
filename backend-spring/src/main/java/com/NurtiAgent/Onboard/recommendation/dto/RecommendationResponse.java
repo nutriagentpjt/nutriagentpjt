@@ -17,19 +17,11 @@ public class RecommendationResponse {
     private String setId;
     private String date;
     private MealType mealType;
-    private SummaryDto summary;
-    private NutritionGapDto gap;
+    private NutritionDto dailyTarget;
+    private NutritionDto mealTarget;
+    private NutritionDto consumed;
+    private NutritionDto gap;
     private List<FoodRecommendationDto> recommendations;
-    private String coachText;
-
-    @Data
-    @NoArgsConstructor
-    @AllArgsConstructor
-    @Builder
-    public static class SummaryDto {
-        private NutritionDto consumed;
-        private NutritionDto target;
-    }
 
     @Data
     @NoArgsConstructor
@@ -46,25 +38,26 @@ public class RecommendationResponse {
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
-    public static class NutritionGapDto {
-        private Double calories;
-        private Double protein;
-        private Double carbs;
-        private Double fat;
+    public static class FoodRecommendationDto {
+        private Integer foodId;
+        private String foodName;
+        private Double score;
+        private ScoreBreakdownDto scoreBreakdown;
+        private Double recommendedAmountG;
+        private Double amountRatio;
+        private NutritionDto nutrientsPerServing;
+        private List<String> reasonTags;
     }
 
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
-    public static class FoodRecommendationDto {
-        private String foodName;
-        private Double recommendedAmount;
-        private Double calories;
-        private Double protein;
-        private Double carbs;
-        private Double fat;
-        private Double score;
-        private List<String> reasons;
+    public static class ScoreBreakdownDto {
+        private Double gapMatch;
+        private Double goalAlignment;
+        private Double diseaseCompliance;
+        private Double preference;
+        private Double feedback;
     }
 }

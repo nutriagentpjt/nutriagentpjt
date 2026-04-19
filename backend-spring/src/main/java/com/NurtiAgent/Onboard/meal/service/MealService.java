@@ -1,5 +1,7 @@
 package com.NurtiAgent.Onboard.meal.service;
 
+import com.NurtiAgent.Onboard.common.exception.MealNotFoundException;
+import com.NurtiAgent.Onboard.common.exception.UnauthorizedException;
 import com.NurtiAgent.Onboard.meal.dto.*;
 import com.NurtiAgent.Onboard.meal.entity.Meal;
 import com.NurtiAgent.Onboard.meal.repository.MealRepository;
@@ -32,7 +34,7 @@ public class MealService {
     public MealResponse createMeal(String guestId, MealRequest request) {
         // 1. 사용자 조회
         User user = userRepository.findByGuestId(guestId)
-                .orElseThrow(() -> new RuntimeException("인증 실패 (세션 없음)"));
+                .orElseThrow(() -> new UnauthorizedException("인증 실패 (세션 없음)"));
 
         // 2. 음식 정보 조회 (FastAPI)
         FoodResponse food = foodService.getFoodByName(request.getFoodName());
@@ -91,7 +93,7 @@ public class MealService {
     public MealListResponse getMealsByDate(String guestId, String dateStr) {
         // 1. 사용자 조회
         User user = userRepository.findByGuestId(guestId)
-                .orElseThrow(() -> new RuntimeException("인증 실패 (세션 없음)"));
+                .orElseThrow(() -> new UnauthorizedException("인증 실패 (세션 없음)"));
 
         // 2. 날짜 파싱
         LocalDate date = LocalDate.parse(dateStr);
@@ -169,11 +171,11 @@ public class MealService {
     public MealResponse updateMeal(String guestId, Long mealId, MealUpdateRequest request) {
         // 1. 사용자 조회
         User user = userRepository.findByGuestId(guestId)
-                .orElseThrow(() -> new RuntimeException("인증 실패 (세션 없음)"));
+                .orElseThrow(() -> new UnauthorizedException("인증 실패 (세션 없음)"));
 
         // 2. Meal 조회 및 권한 확인
         Meal meal = mealRepository.findByIdAndUser(mealId, user)
-                .orElseThrow(() -> new RuntimeException("수정할 기록을 찾을 수 없습니다"));
+                .orElseThrow(() -> new MealNotFoundException("수정할 기록을 찾을 수 없습니다"));
 
         // 3. 부분 수정 (Partial Update)
         boolean needsRecalculation = false;
@@ -234,11 +236,11 @@ public class MealService {
     public MealDeleteResponse deleteMeal(String guestId, Long mealId) {
         // 1. 사용자 조회
         User user = userRepository.findByGuestId(guestId)
-                .orElseThrow(() -> new RuntimeException("인증 실패 (세션 없음)"));
+                .orElseThrow(() -> new UnauthorizedException("인증 실패 (세션 없음)"));
 
         // 2. Meal 조회 및 권한 확인
         Meal meal = mealRepository.findByIdAndUser(mealId, user)
-                .orElseThrow(() -> new RuntimeException("삭제할 기록을 찾을 수 없습니다"));
+                .orElseThrow(() -> new MealNotFoundException("삭제할 기록을 찾을 수 없습니다"));
 
         // 3. 삭제
         mealRepository.delete(meal);
@@ -251,42 +253,39 @@ public class MealService {
 
     @Transactional(readOnly = true)
     public MealSummaryResponse getMealSummary(String guestId, String dateStr) {
-        // 1. 사용자 조회
         User user = userRepository.findByGuestId(guestId)
-                .orElseThrow(() -> new RuntimeException("인증 실패 (세션 없음)"));
+                .orElseThrow(() -> new UnauthorizedException("인증 실패 (세션 없음)"));
 
-        // 2. 날짜 파싱
         LocalDate date = LocalDate.parse(dateStr);
-
-        // 3. 해당 날짜의 식단 기록 조회
         List<Meal> meals = mealRepository.findByUserAndDate(user, date);
 
-        // 4. 영양소 합계 계산
-        double totalCalories = meals.stream()
-                .mapToDouble(Meal::getCalories)
-                .sum();
-        double totalProtein = meals.stream()
-                .filter(m -> m.getProtein() != null)
-                .mapToDouble(Meal::getProtein)
-                .sum();
-        double totalCarbs = meals.stream()
-                .filter(m -> m.getCarbs() != null)
-                .mapToDouble(Meal::getCarbs)
-                .sum();
-        double totalFat = meals.stream()
-                .filter(m -> m.getFat() != null)
-                .mapToDouble(Meal::getFat)
-                .sum();
+        return buildSummary(meals);
+    }
 
-        MealSummaryResponse.ConsumedNutrition consumed = MealSummaryResponse.ConsumedNutrition.builder()
-                .calories(totalCalories)
-                .protein(totalProtein)
-                .carbs(totalCarbs)
-                .fat(totalFat)
-                .build();
+    @Transactional(readOnly = true)
+    public MealSummaryResponse getMealSummaryByMealType(String guestId, String dateStr, com.NurtiAgent.Onboard.common.enums.MealType mealType) {
+        User user = userRepository.findByGuestId(guestId)
+                .orElseThrow(() -> new UnauthorizedException("인증 실패 (세션 없음)"));
+
+        LocalDate date = LocalDate.parse(dateStr);
+        List<Meal> meals = mealRepository.findByUserAndDateAndMealType(user, date, mealType);
+
+        return buildSummary(meals);
+    }
+
+    private MealSummaryResponse buildSummary(List<Meal> meals) {
+        double totalCalories = meals.stream().mapToDouble(Meal::getCalories).sum();
+        double totalProtein = meals.stream().filter(m -> m.getProtein() != null).mapToDouble(Meal::getProtein).sum();
+        double totalCarbs = meals.stream().filter(m -> m.getCarbs() != null).mapToDouble(Meal::getCarbs).sum();
+        double totalFat = meals.stream().filter(m -> m.getFat() != null).mapToDouble(Meal::getFat).sum();
 
         return MealSummaryResponse.builder()
-                .consumed(consumed)
+                .consumed(MealSummaryResponse.ConsumedNutrition.builder()
+                        .calories(totalCalories)
+                        .protein(totalProtein)
+                        .carbs(totalCarbs)
+                        .fat(totalFat)
+                        .build())
                 .build();
     }
 
