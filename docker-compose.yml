@@ -13,8 +13,8 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       INTERNAL_API_KEY: ${INTERNAL_API_KEY}
       SPRING_BASE_URL: http://nutriagent-spring:8080
-    ports:
-      - "8000:8000"
+    expose:
+      - "8000"
     networks:
       - nutriagent-net
     restart: unless-stopped

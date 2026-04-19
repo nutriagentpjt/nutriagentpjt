@@ -43,6 +43,7 @@ public class NutritionTarget {
     private Double tdee;      // 총 일일 에너지 소비량 (kcal)
 
     // 수동 설정 여부 (true: 사용자가 수동 설정, false: 자동 계산)
+    @Builder.Default
     @Column(nullable = false)
     private Boolean manualOverride = false;
 
