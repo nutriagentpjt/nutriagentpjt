@@ -5,6 +5,7 @@ from collections.abc import AsyncGenerator
 from weakref import WeakValueDictionary
 
 import boto3
+from botocore.exceptions import ClientError
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -12,14 +13,37 @@ from app.chatbot.persona.base import PersonaConfig
 from app.chatbot.persona.manager import PersonaManager
 from app.chatbot.tools.registry import ToolRegistry
 from app.core.config import settings
+from app.core.database import async_session as make_session
 from app.models.chat import ChatMessage, ChatSession
 
 logger = logging.getLogger(__name__)
 
+_THROTTLE_RETRIES = 5
+_THROTTLE_BASE_DELAY = 2.0
+
+
+async def _bedrock_call_with_backoff(fn, *args, **kwargs):
+    """Throttling 시 exponential backoff으로 재시도"""
+    delay = _THROTTLE_BASE_DELAY
+    for attempt in range(_THROTTLE_RETRIES):
+        try:
+            return await asyncio.to_thread(fn, *args, **kwargs)
+        except ClientError as e:
+            if e.response["Error"]["Code"] != "ThrottlingException" or attempt == _THROTTLE_RETRIES - 1:
+                raise
+            logger.warning("Bedrock throttled, retry %d/%d in %.1fs", attempt + 1, _THROTTLE_RETRIES, delay)
+            await asyncio.sleep(delay)
+            delay *= 2
+
 
 class ConversationEngine:
     def __init__(self, persona_manager: PersonaManager, tool_registry: ToolRegistry) -> None:
-        self.client = boto3.client("bedrock-runtime", region_name=settings.AWS_REGION)
+        self.client = boto3.client(
+            "bedrock-runtime",
+            region_name=settings.AWS_REGION,
+            aws_access_key_id=settings.AWS_ACCESS_KEY_ID or None,
+            aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY or None,
+        )
         self.persona_manager = persona_manager
         self.tool_registry = tool_registry
         self._session_locks: WeakValueDictionary[int, asyncio.Lock] = WeakValueDictionary()
@@ -98,6 +122,7 @@ class ConversationEngine:
             tool_results=tool_results,
         )
         db.add(msg)
+        await db.flush()  # autoflush=False이므로 명시적 flush (INSERT 오류를 즉시 감지)
 
     def _extract_text(self, message: dict) -> str:
         """assistant 메시지에서 텍스트 블록만 추출"""
@@ -156,7 +181,7 @@ class ConversationEngine:
             if tool_config:
                 kwargs["toolConfig"] = tool_config
 
-            response = await asyncio.to_thread(self.client.converse, **kwargs)
+            response = await _bedrock_call_with_backoff(self.client.converse, **kwargs)
 
             assistant_msg = response["output"]["message"]
             messages.append(assistant_msg)
@@ -183,7 +208,10 @@ class ConversationEngine:
                 tool_use = block["toolUse"]
                 tool = self.tool_registry.get(tool_use["name"])
                 try:
-                    result = await tool.execute(tool_use["input"], context)
+                    async with make_session() as tool_db:
+                        tool_context = {**context, "db": tool_db}
+                        result = await tool.execute(tool_use["input"], tool_context)
+                        await tool_db.commit()
                     tool_results.append({
                         "toolResult": {
                             "toolUseId": tool_use["toolUseId"],
@@ -203,6 +231,9 @@ class ConversationEngine:
             # tool 결과를 user 메시지로 전송
             messages.append({"role": "user", "content": tool_results})
             await self._save_message(session_id, "user", None, None, tool_results, db)
+
+            # Bedrock rate limit 방지 대기
+            await asyncio.sleep(1)
 
     async def chat_stream(
         self,
@@ -250,7 +281,7 @@ class ConversationEngine:
             if tool_config:
                 kwargs["toolConfig"] = tool_config
 
-            response = await asyncio.to_thread(self.client.converse_stream, **kwargs)
+            response = await _bedrock_call_with_backoff(self.client.converse_stream, **kwargs)
 
             # 스트리밍 응답 처리
             full_text = ""
@@ -311,13 +342,16 @@ class ConversationEngine:
                 session_id, "assistant", full_text or None, tool_call_blocks, None, db
             )
 
-            # tool 실행
+            # tool 실행 (독립 세션으로 메인 트랜잭션과 분리)
             tool_results = []
             for block in tool_call_blocks:
                 tool_use = block["toolUse"]
                 tool = self.tool_registry.get(tool_use["name"])
                 try:
-                    result = await tool.execute(tool_use["input"], context)
+                    async with make_session() as tool_db:
+                        tool_context = {**context, "db": tool_db}
+                        result = await tool.execute(tool_use["input"], tool_context)
+                        await tool_db.commit()
                     tool_results.append({
                         "toolResult": {
                             "toolUseId": tool_use["toolUseId"],
@@ -336,6 +370,9 @@ class ConversationEngine:
 
             messages.append({"role": "user", "content": tool_results})
             await self._save_message(session_id, "user", None, None, tool_results, db)
+
+            # Bedrock rate limit 방지 대기
+            await asyncio.sleep(1)
 
             # tool 결과 반영 후 다시 스트리밍 (루프 계속)
 
