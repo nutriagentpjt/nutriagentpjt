@@ -1,11 +1,11 @@
 import json
 
-from fastapi import APIRouter, Depends, Header, HTTPException
+from fastapi import APIRouter, Cookie, Depends, Header, HTTPException
 from fastapi.responses import StreamingResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_db
+from app.api.deps import get_db, verify_internal_call
 from app.chatbot.dependencies import get_engine
 from app.chatbot.engine import ConversationEngine
 from app.chatbot.schemas import (
@@ -18,7 +18,11 @@ from app.chatbot.schemas import (
 )
 from app.models.chat import ChatMessage
 
-router = APIRouter(prefix="/api/v1/chat", tags=["chatbot"])
+router = APIRouter(
+    prefix="/api/v1/chat",
+    tags=["chatbot"],
+    dependencies=[Depends(verify_internal_call)],
+)
 
 
 @router.get("/personas", response_model=list[PersonaResponse])
@@ -104,12 +108,15 @@ async def send_message(
     session_id: int,
     req: ChatMessageRequest,
     x_guest_id: str = Header(..., alias="X-Guest-Id"),
+    jsessionid: str | None = Cookie(None, alias="JSESSIONID"),
     db: AsyncSession = Depends(get_db),
     engine: ConversationEngine = Depends(get_engine),
 ):
     """메시지 전송 (일반 응답)"""
     try:
-        response_text = await engine.chat(session_id, x_guest_id, req.message, db)
+        response_text = await engine.chat(
+            session_id, x_guest_id, req.message, db, jsessionid=jsessionid
+        )
     except ValueError:
         raise HTTPException(status_code=404, detail="Session not found")
     except PermissionError:
@@ -122,6 +129,7 @@ async def send_message_stream(
     session_id: int,
     req: ChatMessageRequest,
     x_guest_id: str = Header(..., alias="X-Guest-Id"),
+    jsessionid: str | None = Cookie(None, alias="JSESSIONID"),
     db: AsyncSession = Depends(get_db),
     engine: ConversationEngine = Depends(get_engine),
 ):
@@ -134,8 +142,13 @@ async def send_message_stream(
         raise HTTPException(status_code=403, detail="Access denied")
 
     async def event_generator():
-        async for chunk in engine.chat_stream(session_id, x_guest_id, req.message, db):
-            yield f"data: {json.dumps({'type': 'content', 'text': chunk}, ensure_ascii=False)}\n\n"
-        yield f"data: {json.dumps({'type': 'done'})}\n\n"
+        try:
+            async for chunk in engine.chat_stream(
+                session_id, x_guest_id, req.message, db, jsessionid=jsessionid
+            ):
+                yield f"data: {json.dumps({'type': 'content', 'text': chunk}, ensure_ascii=False)}\n\n"
+            yield f"data: {json.dumps({'type': 'done'})}\n\n"
+        except Exception as e:
+            yield f"data: {json.dumps({'type': 'error', 'message': str(e)}, ensure_ascii=False)}\n\n"
 
     return StreamingResponse(event_generator(), media_type="text/event-stream")
