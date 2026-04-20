@@ -2,6 +2,7 @@ package com.NurtiAgent.Onboard.chat.controller;
 
 import com.NurtiAgent.Onboard.common.annotation.GuestId;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
@@ -120,7 +121,8 @@ public class ChatProxyController {
     public ResponseEntity<String> sendMessage(
             @GuestId String guestId,
             @PathVariable Long sessionId,
-            @RequestBody Map<String, Object> body) {
+            @RequestBody Map<String, Object> body,
+            HttpServletRequest servletRequest) {
 
         String url = UriComponentsBuilder
                 .fromUriString(fastapiBaseUrl)
@@ -130,6 +132,7 @@ public class ChatProxyController {
 
         HttpHeaders headers = buildGuestHeaders(guestId);
         headers.setContentType(MediaType.APPLICATION_JSON);
+        forwardSessionCookie(servletRequest, headers);
 
         return proxy(() -> restTemplate.exchange(url, HttpMethod.POST,
                 new HttpEntity<>(body, headers), String.class));
@@ -144,13 +147,16 @@ public class ChatProxyController {
     public ResponseEntity<StreamingResponseBody> streamMessage(
             @GuestId String guestId,
             @PathVariable Long sessionId,
-            @RequestBody Map<String, Object> body) {
+            @RequestBody Map<String, Object> body,
+            HttpServletRequest servletRequest) {
 
         String url = UriComponentsBuilder
                 .fromUriString(fastapiBaseUrl)
                 .path("/api/v1/chat/sessions/{sessionId}/messages/stream")
                 .buildAndExpand(sessionId)
                 .toUriString();
+
+        String sessionId_ = servletRequest.getRequestedSessionId();
 
         StreamingResponseBody stream = outputStream -> {
             try {
@@ -161,6 +167,9 @@ public class ChatProxyController {
                             request.getHeaders().set("X-Guest-Id", guestId);
                             request.getHeaders().set("X-Internal-Key", internalApiKey);
                             request.getHeaders().setContentType(MediaType.APPLICATION_JSON);
+                            if (sessionId_ != null) {
+                                request.getHeaders().set(HttpHeaders.COOKIE, "JSESSIONID=" + sessionId_);
+                            }
                             byte[] json = objectMapper.writeValueAsBytes(body);
                             request.getBody().write(json);
                         },
@@ -225,5 +234,13 @@ public class ChatProxyController {
         headers.set("X-Guest-Id", guestId);
         headers.set("X-Internal-Key", internalApiKey);
         return headers;
+    }
+
+    // 브라우저의 JSESSIONID를 FastAPI로 전달 (FastAPI → Spring tool 콜백용)
+    private void forwardSessionCookie(HttpServletRequest servletRequest, HttpHeaders headers) {
+        String jsessionid = servletRequest.getRequestedSessionId();
+        if (jsessionid != null) {
+            headers.set(HttpHeaders.COOKIE, "JSESSIONID=" + jsessionid);
+        }
     }
 }
