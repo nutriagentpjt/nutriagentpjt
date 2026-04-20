@@ -87,9 +87,11 @@ class ChatProxyControllerTest {
         }
     }
 
+    private static final String SESSION_ID = "test-jsessionid-001";
+
     @BeforeEach
     void setUp() {
-        authSession = new MockHttpSession();
+        authSession = new MockHttpSession(null, SESSION_ID);
         authSession.setAttribute("GUEST_ID", GUEST_ID);
         reset(restTemplate, chatRestTemplate);
     }
@@ -283,13 +285,14 @@ class ChatProxyControllerTest {
         }
 
         @Test
-        @DisplayName("X-Guest-Id 와 X-Internal-Key 헤더가 전달됨")
+        @DisplayName("X-Guest-Id, X-Internal-Key, JSESSIONID 쿠키가 FastAPI로 전달됨")
         void headers_forwarded() throws Exception {
             when(restTemplate.exchange(anyString(), eq(HttpMethod.POST), any(HttpEntity.class), eq(String.class)))
                     .thenReturn(ResponseEntity.ok("{\"id\":10}"));
 
             mockMvc.perform(post("/api/v1/chat/sessions/1/messages")
                             .session(authSession)
+                            .with(req -> { req.setRequestedSessionId(SESSION_ID); return req; })
                             .contentType(MediaType.APPLICATION_JSON)
                             .content("{\"message\":\"안녕\"}"))
                     .andExpect(status().isOk());
@@ -301,6 +304,7 @@ class ChatProxyControllerTest {
             HttpHeaders headers = captor.getValue().getHeaders();
             assertThat(headers.getFirst("X-Guest-Id")).isEqualTo(GUEST_ID);
             assertThat(headers.getFirst("X-Internal-Key")).isEqualTo(INTERNAL_KEY);
+            assertThat(headers.getFirst(HttpHeaders.COOKIE)).contains("JSESSIONID=" + SESSION_ID);
         }
     }
 
@@ -358,7 +362,7 @@ class ChatProxyControllerTest {
         }
 
         @Test
-        @DisplayName("chatRestTemplate.execute 호출 시 X-Guest-Id, X-Internal-Key 헤더 설정됨")
+        @DisplayName("chatRestTemplate.execute 호출 시 X-Guest-Id, X-Internal-Key, JSESSIONID 쿠키 설정됨")
         void headers_setInStreamRequest() throws Exception {
             HttpHeaders[] capturedHeaders = new HttpHeaders[1];
 
@@ -383,6 +387,7 @@ class ChatProxyControllerTest {
 
             MvcResult mvcResult = mockMvc.perform(post("/api/v1/chat/sessions/1/messages/stream")
                             .session(authSession)
+                            .with(req -> { req.setRequestedSessionId(SESSION_ID); return req; })
                             .contentType(MediaType.APPLICATION_JSON)
                             .content("{\"message\":\"안녕\"}"))
                     .andExpect(request().asyncStarted())
@@ -393,6 +398,7 @@ class ChatProxyControllerTest {
             assertThat(capturedHeaders[0]).isNotNull();
             assertThat(capturedHeaders[0].getFirst("X-Guest-Id")).isEqualTo(GUEST_ID);
             assertThat(capturedHeaders[0].getFirst("X-Internal-Key")).isEqualTo(INTERNAL_KEY);
+            assertThat(capturedHeaders[0].getFirst(HttpHeaders.COOKIE)).contains("JSESSIONID=" + SESSION_ID);
         }
 
         @Test
