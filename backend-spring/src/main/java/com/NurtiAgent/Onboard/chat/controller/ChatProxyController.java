@@ -11,6 +11,8 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import org.springframework.web.client.HttpStatusCodeException;
+
 import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
@@ -48,7 +50,8 @@ public class ChatProxyController {
                 .path("/api/v1/chat/personas")
                 .toUriString();
 
-        return restTemplate.exchange(url, HttpMethod.GET, null, String.class);
+        return proxy(() -> restTemplate.exchange(url, HttpMethod.GET,
+                new HttpEntity<>(buildInternalHeaders()), String.class));
     }
 
     // ─────────────────────────────────────────────
@@ -69,8 +72,8 @@ public class ChatProxyController {
         requestBody.put("guest_id", guestId);
 
         HttpHeaders headers = buildJsonHeaders();
-        return restTemplate.exchange(url, HttpMethod.POST,
-                new HttpEntity<>(requestBody, headers), String.class);
+        return proxy(() -> restTemplate.exchange(url, HttpMethod.POST,
+                new HttpEntity<>(requestBody, headers), String.class));
     }
 
     // ─────────────────────────────────────────────
@@ -85,7 +88,8 @@ public class ChatProxyController {
                 .queryParam("guest_id", guestId)
                 .toUriString();
 
-        return restTemplate.exchange(url, HttpMethod.GET, null, String.class);
+        return proxy(() -> restTemplate.exchange(url, HttpMethod.GET,
+                new HttpEntity<>(buildGuestHeaders(guestId)), String.class));
     }
 
     // ─────────────────────────────────────────────
@@ -104,8 +108,8 @@ public class ChatProxyController {
                 .toUriString();
 
         HttpHeaders headers = buildGuestHeaders(guestId);
-        return restTemplate.exchange(url, HttpMethod.GET,
-                new HttpEntity<>(headers), String.class);
+        return proxy(() -> restTemplate.exchange(url, HttpMethod.GET,
+                new HttpEntity<>(headers), String.class));
     }
 
     // ─────────────────────────────────────────────
@@ -127,8 +131,8 @@ public class ChatProxyController {
         HttpHeaders headers = buildGuestHeaders(guestId);
         headers.setContentType(MediaType.APPLICATION_JSON);
 
-        return restTemplate.exchange(url, HttpMethod.POST,
-                new HttpEntity<>(body, headers), String.class);
+        return proxy(() -> restTemplate.exchange(url, HttpMethod.POST,
+                new HttpEntity<>(body, headers), String.class));
     }
 
     // ─────────────────────────────────────────────
@@ -186,8 +190,29 @@ public class ChatProxyController {
     }
 
     // ─────────────────────────────────────────────
+    // FastAPI 4xx/5xx → 원래 status/body 그대로 반환
+    // ─────────────────────────────────────────────
+    private ResponseEntity<String> proxy(java.util.concurrent.Callable<ResponseEntity<String>> call) {
+        try {
+            return call.call();
+        } catch (HttpStatusCodeException e) {
+            return ResponseEntity.status(e.getStatusCode())
+                    .body(e.getResponseBodyAsString());
+        } catch (Exception e) {
+            log.error("FastAPI 호출 오류", e);
+            return ResponseEntity.internalServerError().body("{\"error\":\"upstream 호출 실패\"}");
+        }
+    }
+
+    // ─────────────────────────────────────────────
     // 공통 헤더 빌더
     // ─────────────────────────────────────────────
+    private HttpHeaders buildInternalHeaders() {
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("X-Internal-Key", internalApiKey);
+        return headers;
+    }
+
     private HttpHeaders buildJsonHeaders() {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);

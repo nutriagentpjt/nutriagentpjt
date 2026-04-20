@@ -109,7 +109,7 @@ class ChatProxyControllerTest {
             when(restTemplate.exchange(
                     contains("/api/v1/chat/personas"),
                     eq(HttpMethod.GET),
-                    isNull(),
+                    any(HttpEntity.class),
                     eq(String.class)
             )).thenReturn(ResponseEntity.ok(fastapiResponse));
 
@@ -121,7 +121,7 @@ class ChatProxyControllerTest {
         @Test
         @DisplayName("인증 없이 접근 가능 (세션 불필요)")
         void noSession_stillReturns200() throws Exception {
-            when(restTemplate.exchange(anyString(), eq(HttpMethod.GET), isNull(), eq(String.class)))
+            when(restTemplate.exchange(anyString(), eq(HttpMethod.GET), any(HttpEntity.class), eq(String.class)))
                     .thenReturn(ResponseEntity.ok("[]"));
 
             mockMvc.perform(get("/api/v1/chat/personas"))
@@ -205,14 +205,14 @@ class ChatProxyControllerTest {
         @Test
         @DisplayName("guest_id가 쿼리파라미터로 전달됨")
         void guestId_asQueryParam() throws Exception {
-            when(restTemplate.exchange(anyString(), eq(HttpMethod.GET), isNull(), eq(String.class)))
+            when(restTemplate.exchange(anyString(), eq(HttpMethod.GET), any(HttpEntity.class), eq(String.class)))
                     .thenReturn(ResponseEntity.ok("[]"));
 
             mockMvc.perform(get("/api/v1/chat/sessions").session(authSession))
                     .andExpect(status().isOk());
 
             ArgumentCaptor<String> urlCaptor = ArgumentCaptor.forClass(String.class);
-            verify(restTemplate).exchange(urlCaptor.capture(), eq(HttpMethod.GET), isNull(), eq(String.class));
+            verify(restTemplate).exchange(urlCaptor.capture(), eq(HttpMethod.GET), any(HttpEntity.class), eq(String.class));
 
             assertThat(urlCaptor.getValue()).contains("guest_id=" + GUEST_ID);
         }
