@@ -1,3 +1,5 @@
+import random
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -22,6 +24,13 @@ from app.services.nutrition_calculator import (
 from app.services.reason_tag import generate_reason_tags
 from app.services.scorer import calculate_score
 from app.services.user_profile_loader import UserContext, load_user_context
+
+# 후보 샘플링: 전체 중 최대 이 수만큼만 스코어링
+_CANDIDATE_SAMPLE_SIZE = 300
+# 카테고리 1개가 전체 샘플의 최대 이 비율까지만 차지할 수 있음 (과자류 독점 방지)
+_CATEGORY_MAX_RATIO = 0.15
+# 점수 노이즈 범위 (비슷한 점수 음식 사이 순서 다양화)
+_SCORE_NOISE_RANGE = 3.0
 
 
 async def run_recommendation(req: RecommendRequest, db: AsyncSession) -> RecommendResponse:
@@ -51,10 +60,14 @@ async def run_recommendation(req: RecommendRequest, db: AsyncSession) -> Recomme
     if not candidates:
         return _build_response(req.meal_type, daily, meal_target, [])
 
+    # 2-1. 후보 샘플링: 카테고리 비율 상한 적용 후 랜덤 샘플링
+    if len(candidates) > _CANDIDATE_SAMPLE_SIZE:
+        candidates = _stratified_sample(candidates, _CANDIDATE_SAMPLE_SIZE, _CATEGORY_MAX_RATIO)
+
     # 3. 피드백 일괄 조회
     feedback_map = await _load_feedback_map(db, user.guest_id)
 
-    # 4. 스코어링
+    # 4. 스코어링 (소량 노이즈 추가로 동점 음식 순서 다양화)
     scored: list[tuple[Food, float, object]] = []
     for food in candidates:
         breakdown = calculate_score(
@@ -73,12 +86,13 @@ async def run_recommendation(req: RecommendRequest, db: AsyncSession) -> Recomme
             + breakdown.disease_compliance
             + breakdown.preference
             + breakdown.feedback
+            + random.uniform(-_SCORE_NOISE_RANGE, _SCORE_NOISE_RANGE)
         )
         scored.append((food, total, breakdown))
 
-    # 5. 정렬 → 상위 N개
+    # 5. 정렬 → 카테고리 다양성 적용 후 상위 N개
     scored.sort(key=lambda x: x[1], reverse=True)
-    top_n = scored[: req.top_n]
+    top_n = _apply_category_diversity(scored, req.top_n)
 
     # 6. 추천량 계산 + 사유 생성
     recommendations: list[FoodRecommendation] = []
@@ -107,6 +121,69 @@ async def run_recommendation(req: RecommendRequest, db: AsyncSession) -> Recomme
         )
 
     return _build_response(req.meal_type, daily, meal_target, recommendations)
+
+
+def _stratified_sample(
+    candidates: list, sample_size: int, category_max_ratio: float
+) -> list:
+    """카테고리별 상한선을 적용한 계층적 샘플링.
+    특정 카테고리(과자류 등)가 전체 샘플을 독점하지 못하도록 제한."""
+    from collections import defaultdict
+
+    # 카테고리별로 그룹화 후 셔플
+    groups: dict[str, list] = defaultdict(list)
+    for food in candidates:
+        cat = food.category or "기타"
+        groups[cat].append(food)
+    for group in groups.values():
+        random.shuffle(group)
+
+    max_per_category = max(1, int(sample_size * category_max_ratio))
+    result = []
+
+    # 1패스: 각 카테고리에서 최대 max_per_category개까지
+    remainder: list = []
+    for cat, foods in groups.items():
+        result.extend(foods[:max_per_category])
+        remainder.extend(foods[max_per_category:])
+
+    # 부족하면 나머지에서 랜덤으로 채움
+    if len(result) < sample_size and remainder:
+        random.shuffle(remainder)
+        result.extend(remainder[: sample_size - len(result)])
+
+    # 최종 셔플 후 상위 sample_size 반환
+    random.shuffle(result)
+    return result[:sample_size]
+
+
+def _apply_category_diversity(
+    scored: list[tuple[Food, float, object]], top_n: int
+) -> list[tuple[Food, float, object]]:
+    """같은 카테고리가 연속으로 추천되지 않도록 다양성 보장.
+    카테고리당 최대 2개까지만 허용하고, 나머지는 다른 카테고리에서 채움."""
+    selected: list[tuple[Food, float, object]] = []
+    category_count: dict[str, int] = {}
+    remainder: list[tuple[Food, float, object]] = []
+
+    for item in scored:
+        food = item[0]
+        cat = food.category or "기타"
+        if category_count.get(cat, 0) < 2:
+            selected.append(item)
+            category_count[cat] = category_count.get(cat, 0) + 1
+        else:
+            remainder.append(item)
+        if len(selected) >= top_n:
+            break
+
+    # 부족하면 나머지에서 채움
+    for item in remainder:
+        if len(selected) >= top_n:
+            break
+        selected.append(item)
+
+    return selected
 
 
 def _calculate_amount_ratio(food: Food, gap: NutrientTarget) -> float:

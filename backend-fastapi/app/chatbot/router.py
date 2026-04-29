@@ -142,10 +142,13 @@ async def send_message_stream(
         raise HTTPException(status_code=403, detail="Access denied")
 
     async def event_generator():
-        async for chunk in engine.chat_stream(
-            session_id, x_guest_id, req.message, db, jsessionid=jsessionid
-        ):
-            yield f"data: {json.dumps({'type': 'content', 'text': chunk}, ensure_ascii=False)}\n\n"
-        yield f"data: {json.dumps({'type': 'done'})}\n\n"
+        try:
+            async for chunk in engine.chat_stream(
+                session_id, x_guest_id, req.message, db, jsessionid=jsessionid
+            ):
+                yield f"data: {json.dumps({'type': 'content', 'text': chunk}, ensure_ascii=False)}\n\n"
+            yield f"data: {json.dumps({'type': 'done'})}\n\n"
+        except Exception as e:
+            yield f"data: {json.dumps({'type': 'error', 'message': str(e)}, ensure_ascii=False)}\n\n"
 
     return StreamingResponse(event_generator(), media_type="text/event-stream")
