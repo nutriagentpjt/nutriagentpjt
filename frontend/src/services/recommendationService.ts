@@ -1,5 +1,7 @@
 import api from './api';
 import type {
+  ApiError,
+  ApiMealType,
   MealType,
   NutritionSummary,
   RecommendationEventRequest,
@@ -36,6 +38,19 @@ type BackendRecommendationResponse = {
   recommendations: BackendFoodRecommendation[];
 };
 
+function toApiMealType(mealType: MealType): ApiMealType {
+  switch (mealType) {
+    case 'breakfast':
+      return 'BREAKFAST';
+    case 'lunch':
+      return 'LUNCH';
+    case 'dinner':
+      return 'DINNER';
+    case 'snack':
+      return 'SNACK';
+  }
+}
+
 function normalizeNutritionDto(payload?: BackendNutritionDto | null): NutritionSummary {
   return {
     calories: payload?.calories ?? 0,
@@ -52,7 +67,7 @@ export const recommendationService = {
     limit?: number,
   ): Promise<RecommendationResponse> {
     const response = await api.get<BackendRecommendationResponse>('/recommendations', {
-      params: { mealType, date, limit },
+      params: { mealType: toApiMealType(mealType), date, limit },
     });
 
     return {
@@ -76,7 +91,10 @@ export const recommendationService = {
   },
 
   saveRecommendation: (data: SaveRecommendationRequest) =>
-    api.post('/recommendations/save', data),
+    Promise.reject<ApiError>({
+      message: 'Recommendation save API is not available yet',
+      status: 501,
+    }),
 
   async getSettings(): Promise<RecommendationSettings> {
     const response = await api.get<RecommendationSettings>('/recommendations/settings');
@@ -84,11 +102,20 @@ export const recommendationService = {
   },
 
   saveSettings: (data: RecommendationSettings) =>
-    api.post('/recommendations/settings', data),
+    Promise.reject<ApiError>({
+      message: 'Recommendation settings API is not available yet',
+      status: 501,
+    }),
 
   submitFeedback: (data: RecommendationFeedbackRequest) =>
-    api.post('/recommendations/feedback', data),
+    Promise.reject<ApiError>({
+      message: 'Recommendation feedback API is not available yet',
+      status: 501,
+    }),
 
   recordEvent: (data: RecommendationEventRequest) =>
-    api.post('/recommendations/events', data),
+    Promise.reject<ApiError>({
+      message: 'Recommendation events API is not available yet',
+      status: 501,
+    }),
 };

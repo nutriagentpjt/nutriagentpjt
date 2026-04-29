@@ -31,7 +31,7 @@ export default function FeedbackButtons({
         onClick={onDislike}
         className={`min-touch flex-1 rounded-xl py-3.5 font-semibold transition-all active:scale-[0.97] ${
           preference === 'disliked'
-            ? 'bg-gray-400 text-white shadow-md'
+            ? 'bg-rose-500 text-white shadow-md'
             : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
         }`}
         aria-label="비선호"

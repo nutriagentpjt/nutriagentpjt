@@ -12,7 +12,7 @@ export default function AllergiesSettings({ initialAllergies, onSave }: Allergie
 
   return (
     <>
-      <div className="px-5 py-6 pb-24">
+      <div className="px-5 py-6 pb-36">
         <div className="mb-8 flex items-start gap-2 rounded-xl bg-gray-100 p-3">
           <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0 text-gray-600" />
           <p className="text-xs text-gray-700">식품 알러지가 있는 항목을 선택해주세요</p>
@@ -61,7 +61,7 @@ export default function AllergiesSettings({ initialAllergies, onSave }: Allergie
         ) : null}
       </div>
 
-      <div className="absolute bottom-0 left-0 right-0 border-t border-gray-200 bg-white p-5">
+      <div className="absolute bottom-14 left-0 right-0 border-t border-gray-200 bg-white p-5">
         <button
           onClick={() => onSave({ allergies })}
           className="btn-primary flex w-full min-touch items-center justify-center gap-2"

@@ -8,6 +8,10 @@ interface MacroCardProps {
 
 export function MacroCard({ name, current, goal, unit, color }: MacroCardProps) {
   const percentage = Math.round((current / goal) * 100);
+  const formattedCurrent = new Intl.NumberFormat('ko-KR', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  }).format(current);
 
   // 색상별 그라데이션 정의
   const gradientMap: { [key: string]: string } = {
@@ -22,7 +26,7 @@ export function MacroCard({ name, current, goal, unit, color }: MacroCardProps) 
     <div className="bg-gradient-to-br from-white to-gray-50/50 rounded-xl p-3.5 shadow-sm border border-gray-100/50 hover:shadow-md transition-shadow duration-200">
       <p className="text-[10px] text-gray-500 mb-1.5 uppercase tracking-wide">{name}</p>
       <p className="text-base font-bold text-gray-900 mb-1">
-        {current}
+        {formattedCurrent}
         <span className="text-xs font-normal text-gray-500">/{goal}{unit}</span>
       </p>
       <div className="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">

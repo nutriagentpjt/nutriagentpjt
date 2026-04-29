@@ -13,6 +13,7 @@ import type { RecommendationCardItem } from "@/components/recommendation";
 import type { Food } from "@/types";
 import { ROUTES } from "@/constants/routes";
 import { useImageUploadStore } from "@/store";
+import { getStoredMeals } from "@/utils";
 
 export default function HomePage() {
   const location = useLocation();
@@ -65,6 +66,7 @@ export default function HomePage() {
   const [showCustomFoodWarning, setShowCustomFoodWarning] = useState(false);
   const [showAddFoodModal, setShowAddFoodModal] = useState(false);
   const [selectedSearchFood, setSelectedSearchFood] = useState<Food | null>(null);
+  const [addFoodModalSource, setAddFoodModalSource] = useState<'search' | 'ai' | null>(null);
   const [showAIRecommendations, setShowAIRecommendations] = useState(false);
   const [showRecentFoods, setShowRecentFoods] = useState(false);
   const [showMealEditModal, setShowMealEditModal] = useState(false);
@@ -99,6 +101,21 @@ export default function HomePage() {
       .filter(([, mealsForDate]) => mealsForDate.length > 0);
 
     return Object.fromEntries(cleanedEntries);
+  };
+
+  const syncMealsFromStorage = () => {
+    setMealsByDate(sanitizeLegacyMeals(getStoredMeals()));
+  };
+
+  const resetSearchView = () => {
+    setSearchQuery("");
+    setAnalyzedFood(null);
+    setShowAutocomplete(false);
+    setShowRecentSearches(false);
+    setAutocompleteResults([]);
+    setShowServerErrorModal(false);
+    setShowTimeoutErrorModal(false);
+    searchInputRef.current?.blur();
   };
 
   // localStorage에서 실제 저장된 식단만 로드
@@ -683,6 +700,7 @@ export default function HomePage() {
     };
 
     setSelectedSearchFood(normalizedFood);
+    setAddFoodModalSource('search');
     setShowAddFoodModal(true);
   };
 
@@ -1932,6 +1950,7 @@ export default function HomePage() {
               servingUnit: 'g',
               weight: 100,
             });
+            setAddFoodModalSource('ai');
             setShowAddFoodModal(true);
           }}
           onToggleFavorite={(food) => toggleFavoriteFood(food, 'ai')}
@@ -2163,9 +2182,17 @@ export default function HomePage() {
         food={selectedSearchFood}
         isOpen={showAddFoodModal}
         initialDate={selectedDate}
+        onSaved={() => {
+          syncMealsFromStorage();
+
+          if (addFoodModalSource === 'search') {
+            resetSearchView();
+          }
+        }}
         onClose={() => {
           setShowAddFoodModal(false);
           setSelectedSearchFood(null);
+          setAddFoodModalSource(null);
         }}
       />
     </>

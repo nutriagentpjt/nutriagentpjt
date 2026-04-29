@@ -1,9 +1,16 @@
 export type Gender = 'MALE' | 'FEMALE';
+export type HealthGoal =
+  | 'DIET'
+  | 'BULK_UP'
+  | 'LEAN_MASS_UP'
+  | 'MAINTAIN'
+  | 'GENERAL_HEALTH';
 export type ActivityLevel =
   | 'SEDENTARY'
   | 'LIGHTLY_ACTIVE'
   | 'MODERATELY_ACTIVE'
   | 'VERY_ACTIVE';
+export type ExerciseTime = 'MORNING' | 'AFTERNOON' | 'EVENING' | 'NIGHT';
 export type MealPattern =
   | 'TWO_MEALS'
   | 'THREE_MEALS'
@@ -62,13 +69,23 @@ export interface OnboardingConstraints {
   maxCaloriesPerMeal: number;
 }
 
+export interface OnboardingDislikedFood {
+  foodName: string;
+  reason: string;
+}
+
 export interface OnboardingRequest {
   age: number;
   gender: Gender;
   height: number;
   weight: number;
+  healthGoal: HealthGoal;
   activityLevel: ActivityLevel;
+  exerciseFrequency: number;
+  exerciseTime?: ExerciseTime;
   mealPattern: MealPattern;
+  preferredFoods: string[];
+  dislikedFoods: OnboardingDislikedFood[];
   allergies: string[];
   diseases: Disease[];
   dietStyles: DietStyle[];

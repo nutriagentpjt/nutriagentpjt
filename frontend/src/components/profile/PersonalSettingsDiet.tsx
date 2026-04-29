@@ -20,7 +20,7 @@ export default function DietSettings({
 
   return (
     <>
-      <div className="px-5 py-6 pb-24">
+      <div className="px-5 py-6 pb-36">
         <div className="mb-8 flex items-start gap-2 rounded-xl bg-gray-100 p-3">
           <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0 text-gray-600" />
           <p className="text-xs text-gray-700">더 건강한 식단을 위한 세부 설정입니다</p>
@@ -80,7 +80,7 @@ export default function DietSettings({
         </div>
       </div>
 
-      <div className="absolute bottom-0 left-0 right-0 border-t border-gray-200 bg-white p-5">
+      <div className="absolute bottom-14 left-0 right-0 border-t border-gray-200 bg-white p-5">
         <button
           onClick={() => onSave({ lowSodium, lowSugar, maxCaloriesPerMeal })}
           className="btn-primary flex w-full min-touch items-center justify-center gap-2"

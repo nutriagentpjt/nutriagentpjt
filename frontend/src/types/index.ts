@@ -18,10 +18,12 @@ export type {
   ActivityLevel,
   Disease,
   DietStyle,
+  ExerciseTime,
   MealPattern,
   OnboardingRequest,
   OnboardingResponse,
   SaveOnboardingInput,
+  HealthGoal,
   UserProfile,
 } from './onboarding';
 

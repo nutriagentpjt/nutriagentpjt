@@ -2,7 +2,9 @@ import type {
   ActivityLevel,
   DietStyle,
   Disease,
+  ExerciseTime,
   Gender,
+  HealthGoal,
   MealPattern,
   OnboardingConstraints,
 } from './onboarding';
@@ -13,13 +15,18 @@ export interface ProfileResponse {
   gender: Gender | null;
   height: number | null;
   weight: number | null;
+  healthGoal?: HealthGoal | null;
   activityLevel: ActivityLevel | null;
+  exerciseFrequency?: number | null;
+  exerciseTime?: ExerciseTime | null;
   mealPattern: MealPattern | null;
   allergies: string[] | null;
   diseases: Disease[] | null;
   dietStyles: DietStyle[] | null;
   waterIntakeGoal: number | null;
   constraints: OnboardingConstraints | null;
+  preferredFoods?: string[] | null;
+  dislikedFoods?: string[] | null;
   createdAt?: string | null;
   updatedAt?: string | null;
 }

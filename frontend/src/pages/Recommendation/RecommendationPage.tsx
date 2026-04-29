@@ -1,12 +1,32 @@
 import { useEffect, useMemo, useState } from 'react';
-import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { AIRecommendations, type RecommendationCardItem } from '@/components/recommendation';
 import { AddFoodModal } from '@/components/food';
 import { ROUTES } from '@/constants/routes';
 import { useRecommendations } from '@/hooks';
 import HomePage from '@/pages/HomePage';
-import type { Food } from '@/types';
+import type { ApiError, Food } from '@/types';
+
+function getApiErrorMessage(error: ApiError | null): string | null {
+  if (!error) {
+    return null;
+  }
+
+  if (typeof error.data === 'object' && error.data !== null) {
+    const payload = error.data as { error?: unknown; detail?: unknown; message?: unknown };
+    if (typeof payload.error === 'string' && payload.error.trim()) {
+      return payload.error;
+    }
+    if (typeof payload.detail === 'string' && payload.detail.trim()) {
+      return payload.detail;
+    }
+    if (typeof payload.message === 'string' && payload.message.trim()) {
+      return payload.message;
+    }
+  }
+
+  return null;
+}
 
 interface RecommendedFoodPayload {
   id: number;
@@ -44,17 +64,24 @@ export default function RecommendationPage() {
     }));
   }, [data]);
 
+  const recommendationError = error as ApiError | null;
+  const backendErrorMessage = getApiErrorMessage(recommendationError);
+
   useEffect(() => {
-    if (!error || !axios.isAxiosError(error) || error.response?.status !== 409) {
+    if (!recommendationError || recommendationError.status !== 409) {
       return;
     }
 
     navigate(ROUTES.ONBOARDING_WELCOME, { replace: true });
-  }, [error, navigate]);
+  }, [recommendationError, navigate]);
 
   const errorMessage =
-    axios.isAxiosError(error) && error.response?.status !== 409
-      ? '추천 식단을 불러오지 못해 기본 추천을 표시합니다.'
+    recommendationError && recommendationError.status !== 409
+      ? backendErrorMessage
+        ? backendErrorMessage
+        : recommendationError.status === 404
+        ? '추천 조건이 아직 준비되지 않아 추천 식단을 불러오지 못했습니다.'
+        : '추천 식단을 불러오지 못해 기본 추천을 표시합니다.'
       : null;
 
   const handleToggleFavorite = (food: RecommendedFoodPayload) => {

@@ -25,7 +25,16 @@ import {
   loadOnboardingDraft,
   saveOnboardingDraft,
 } from '@/pages/Onboarding/shared';
-import type { ActivityLevel, DietStyle, Disease, Gender, MealPattern } from '@/types/onboarding';
+import { showToast } from '@/components/common/Toast/Toast';
+import type {
+  ActivityLevel,
+  DietStyle,
+  Disease,
+  ExerciseTime,
+  Gender,
+  HealthGoal,
+  MealPattern,
+} from '@/types/onboarding';
 
 const allergyOptions = [
   { emoji: '🥛', label: '우유 (유제품)', value: '우유' },
@@ -103,6 +112,43 @@ const getMealPattern = (mealsPerDay: number): MealPattern => {
     default:
       return 'THREE_MEALS';
   }
+};
+
+const getExerciseFrequencyFromActivityLevel = (activityLevel: ActivityLevel): number => {
+  switch (activityLevel) {
+    case 'SEDENTARY':
+      return 1;
+    case 'LIGHTLY_ACTIVE':
+      return 2;
+    case 'MODERATELY_ACTIVE':
+      return 4;
+    case 'VERY_ACTIVE':
+      return 6;
+    default:
+      return 3;
+  }
+};
+
+const getExerciseTimeFromActivityLevel = (_activityLevel: ActivityLevel): ExerciseTime => 'EVENING';
+
+const getHealthGoal = (
+  goalCalories: number,
+  calculatedTDEE: number,
+  selectedDietStyle: DietStyle | null,
+): HealthGoal => {
+  if (selectedDietStyle === 'HIGH_PROTEIN') {
+    return 'LEAN_MASS_UP';
+  }
+
+  if (goalCalories <= calculatedTDEE - 100) {
+    return 'DIET';
+  }
+
+  if (goalCalories >= calculatedTDEE + 100) {
+    return 'BULK_UP';
+  }
+
+  return 'MAINTAIN';
 };
 
 const mealPatternOptions = [
@@ -342,8 +388,13 @@ export default function OnboardingFlow({ fallbackStep }: OnboardingFlowProps) {
         gender: localProfile.gender,
         height: localProfile.height,
         weight: localProfile.weight,
+        healthGoal: getHealthGoal(goalCalories, calculatedTDEE, selectedDietStyle),
         activityLevel: localProfile.activityLevel,
+        exerciseFrequency: getExerciseFrequencyFromActivityLevel(localProfile.activityLevel),
+        exerciseTime: getExerciseTimeFromActivityLevel(localProfile.activityLevel),
         mealPattern: getMealPattern(localProfile.mealsPerDay),
+        preferredFoods: [],
+        dislikedFoods: [],
         allergies: localProfile.allergies,
         diseases: localProfile.diseases,
         dietStyles: localProfile.dietStyles,
@@ -359,7 +410,8 @@ export default function OnboardingFlow({ fallbackStep }: OnboardingFlowProps) {
     try {
       await saveOnboardingMutation.mutateAsync(onboardingPayload);
     } catch {
-      // Preserve the current onboarding UX even if the API is temporarily unavailable.
+      showToast.error('온보딩 정보를 서버에 저장하지 못했어요.\n잠시 후 다시 시도해주세요.');
+      return;
     }
 
     completeOnboarding(localProfile);

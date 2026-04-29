@@ -1,5 +1,6 @@
 import api, { apiBaseUrl } from './api';
 import axios from 'axios';
+import { sessionService } from './sessionService';
 import type {
   AIAgentChatRequest,
   AIAgentChatResponse,
@@ -46,52 +47,123 @@ function shouldUseMockMode() {
   return import.meta.env.VITE_AI_AGENT_MODE !== 'api';
 }
 
+function getChatApiBaseUrl() {
+  return import.meta.env.DEV ? '/__api_proxy__' : apiBaseUrl;
+}
+
+function isUnauthorizedError(error: unknown) {
+  if (axios.isAxiosError(error)) {
+    return error.response?.status === 401;
+  }
+
+  if (typeof error === 'object' && error !== null && 'status' in error) {
+    return (error as { status?: number }).status === 401;
+  }
+
+  return false;
+}
+
+async function withSessionRetry<T>(task: () => Promise<T>, canRetry = true): Promise<T> {
+  try {
+    return await task();
+  } catch (error) {
+    if (!canRetry || !isUnauthorizedError(error)) {
+      throw error;
+    }
+
+    await sessionService.ensureSession();
+    return task();
+  }
+}
+
 export const aiAgentService = {
   getInitialGreeting(): string {
     return DEFAULT_GREETING;
   },
 
   async getPersonas(): Promise<AIAgentPersona[]> {
-    const response = await api.get<Array<{ name: string; displayName: string; description: string }>>('/assistant/personas');
-    return response.data;
+    const response = await api.get<Array<{ name: string; display_name?: string; displayName?: string; description: string }>>(
+      '/api/v1/chat/personas',
+    );
+
+    return response.data.map((persona) => ({
+      name: persona.name,
+      displayName: persona.display_name ?? persona.displayName ?? persona.name,
+      description: persona.description,
+    }));
   },
 
   async getSessions(): Promise<AIAgentSession[]> {
-    const response = await api.get<Array<{ id: number; title?: string | null; persona: string; createdAt?: string; updatedAt?: string }>>('/assistant/sessions');
+    await sessionService.ensureSession();
+
+    const response = await withSessionRetry(() =>
+      api.get<
+        Array<{
+          id: number;
+          title?: string | null;
+          persona: string;
+          created_at?: string;
+          updated_at?: string;
+          createdAt?: string;
+          updatedAt?: string;
+        }>
+      >('/api/v1/chat/sessions'),
+    );
+
     return response.data.map((session) => ({
       id: String(session.id),
       title: session.title,
       persona: session.persona,
-      createdAt: session.createdAt,
-      updatedAt: session.updatedAt,
+      createdAt: session.created_at ?? session.createdAt,
+      updatedAt: session.updated_at ?? session.updatedAt,
     }));
   },
 
   async createSession(request: AIAgentCreateSessionRequest): Promise<AIAgentSession> {
-    const response = await api.post<{ id: number; title?: string | null; persona: string; createdAt?: string; updatedAt?: string }>(
-      '/assistant/sessions',
-      request,
+    await sessionService.ensureSession();
+
+    const response = await withSessionRetry(() =>
+      api.post<
+        {
+          id: number;
+          title?: string | null;
+          persona: string;
+          created_at?: string;
+          updated_at?: string;
+          createdAt?: string;
+          updatedAt?: string;
+        }
+      >(
+        '/api/v1/chat/sessions',
+        request,
+      ),
     );
 
     return {
       id: String(response.data.id),
       title: response.data.title,
       persona: response.data.persona,
-      createdAt: response.data.createdAt,
-      updatedAt: response.data.updatedAt,
+      createdAt: response.data.created_at ?? response.data.createdAt,
+      updatedAt: response.data.updated_at ?? response.data.updatedAt,
     };
   },
 
   async getMessages(threadId: string): Promise<AIAgentMessage[]> {
-    const response = await api.get<Array<{ id: number; role: 'user' | 'assistant'; content: string; createdAt: string }>>(
-      `/assistant/sessions/${threadId}/messages`,
+    await sessionService.ensureSession();
+
+    const response = await withSessionRetry(() =>
+      api.get<
+        Array<{ id: number; role: 'user' | 'assistant'; content: string; created_at?: string; createdAt?: string }>
+      >(
+        `/api/v1/chat/sessions/${threadId}/messages`,
+      ),
     );
 
     return response.data.map((message) => ({
       id: message.id,
       role: message.role,
       content: message.content,
-      timestamp: new Date(message.createdAt),
+      timestamp: new Date(message.created_at ?? message.createdAt ?? Date.now()),
     }));
   },
 
@@ -111,8 +183,27 @@ export const aiAgentService = {
     }
 
     try {
-      const response = await api.post<AIAgentChatResponse>('/assistant/chat', request);
-      return response.data;
+      const threadId = request.threadId;
+
+      if (!threadId) {
+        throw new Error('threadId is required for /api/v1/chat messages');
+      }
+
+      await sessionService.ensureSession();
+
+      const response = await withSessionRetry(() =>
+        api.post<{ response: string }>(`/api/v1/chat/sessions/${threadId}/messages`, {
+          message: request.message,
+        }),
+      );
+
+      return {
+        threadId,
+        message: {
+          role: 'assistant',
+          content: response.data.response,
+        },
+      };
     } catch (error) {
       if (axios.isAxiosError(error) && [404, 501, 502, 503, 504].includes(error.response?.status ?? 0)) {
         return {
@@ -131,12 +222,15 @@ export const aiAgentService = {
   async streamMessage(
     request: Required<Pick<AIAgentChatRequest, 'threadId' | 'message'>>,
     onChunk: (content: string) => void,
+    canRetry = true,
   ): Promise<AIAgentChatResponse> {
     if (shouldUseMockMode()) {
       return this.sendMessage(request);
     }
 
-    const response = await fetch(`${apiBaseUrl}/assistant/sessions/${request.threadId}/messages/stream`, {
+    await sessionService.ensureSession();
+
+    const response = await fetch(`${getChatApiBaseUrl()}/api/v1/chat/sessions/${request.threadId}/messages/stream`, {
       method: 'POST',
       credentials: 'include',
       headers: {
@@ -144,6 +238,11 @@ export const aiAgentService = {
       },
       body: JSON.stringify({ message: request.message }),
     });
+
+    if (response.status === 401 && canRetry) {
+      await sessionService.ensureSession();
+      return this.streamMessage(request, onChunk, false);
+    }
 
     if (!response.ok || !response.body) {
       const error = new Error('Streaming request failed') as Error & { status?: number };
@@ -180,10 +279,14 @@ export const aiAgentService = {
           continue;
         }
 
-        const payload = JSON.parse(rawPayload) as { type?: string; text?: string };
+        const payload = JSON.parse(rawPayload) as { type?: string; text?: string; message?: string };
         if (payload.type === 'content' && payload.text) {
           aggregated += payload.text;
           onChunk(aggregated);
+        }
+        if (payload.type === 'error') {
+          const error = new Error(payload.message || 'Streaming response failed');
+          throw error;
         }
       }
     }

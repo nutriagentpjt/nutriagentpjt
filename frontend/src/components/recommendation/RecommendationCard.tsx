@@ -9,6 +9,7 @@ export interface RecommendationCardItem extends Recommendation {
 
 interface RecommendationCardProps {
   recommendation: RecommendationCardItem;
+  className?: string;
   isFavorite?: boolean;
   preference?: 'liked' | 'disliked' | null;
   onToggleFavorite?: (recommendation: RecommendationCardItem) => void;
@@ -19,6 +20,7 @@ interface RecommendationCardProps {
 
 export default function RecommendationCard({
   recommendation,
+  className = '',
   isFavorite = false,
   preference = null,
   onToggleFavorite,
@@ -32,14 +34,16 @@ export default function RecommendationCard({
     }
 
     if (preference === 'disliked') {
-      return 'border-2 border-gray-300 bg-gray-50/50 opacity-75';
+      return 'border-2 border-rose-300 bg-rose-50/80 shadow-[0_10px_24px_rgba(244,63,94,0.08)]';
     }
 
-    return 'border border-gray-200 bg-white';
+    return 'border-2 border-transparent bg-white';
   };
 
   return (
-    <div className={`rounded-2xl p-5 shadow-sm transition-all duration-300 ${getCardStyle()}`}>
+    <div
+      className={`rounded-2xl p-5 shadow-sm transition-[background-color,border-color,box-shadow,opacity,transform] duration-500 ease-out ${getCardStyle()} ${className}`}
+    >
       <div className="mb-3.5 flex items-start justify-between">
         <div className="mr-2 flex-1">
           <h3 className="text-lg font-bold text-gray-900">{recommendation.foodName}</h3>

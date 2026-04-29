@@ -1,10 +1,12 @@
 import axios, { AxiosError } from 'axios';
 import type { ApiError } from '@/types';
+import { GUEST_ID_STORAGE_KEY } from './sessionService';
 
 export const apiBaseUrl = import.meta.env.VITE_API_URL as string;
+const apiProxyBaseUrl = '/__api_proxy__';
 
 const apiClient = axios.create({
-  baseURL: apiBaseUrl,
+  baseURL: import.meta.env.DEV ? apiProxyBaseUrl : apiBaseUrl,
   timeout: 10000,
   withCredentials: true,
   headers: {
@@ -12,7 +14,19 @@ const apiClient = axios.create({
   },
 });
 
-apiClient.interceptors.request.use((config) => config, (error: AxiosError) => Promise.reject(error));
+apiClient.interceptors.request.use(
+  (config) => {
+    if (typeof window !== 'undefined') {
+      const guestId = window.localStorage.getItem(GUEST_ID_STORAGE_KEY);
+      if (guestId) {
+        config.headers.set('X-Guest-Id', guestId);
+      }
+    }
+
+    return config;
+  },
+  (error: AxiosError) => Promise.reject(error),
+);
 
 apiClient.interceptors.response.use(
   (response) => response,

@@ -80,6 +80,14 @@ export default defineConfig(async ({ mode }) => {
     server: {
       port: 3000,
       open: true,
+      proxy: {
+        '/__api_proxy__': {
+          target: process.env.VITE_API_URL || 'http://13.220.247.35',
+          changeOrigin: true,
+          secure: false,
+          rewrite: (path) => path.replace(/^\/__api_proxy__/, ''),
+        },
+      },
     },
     test: {
       environment: 'jsdom',

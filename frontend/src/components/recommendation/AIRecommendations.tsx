@@ -1,10 +1,8 @@
 import { useState } from 'react';
-import axios from 'axios';
-import { useMutation } from '@tanstack/react-query';
 import { CheckCircle, Sparkles, X } from 'lucide-react';
-import { recommendationService } from '@/services';
-import { useRecommendations, useSaveRecommendation, useSubmitFeedback } from '@/hooks';
-import type { MealType } from '@/types';
+import { showToast } from '@/components/common';
+import { usePreferences, useRecommendations } from '@/hooks';
+import type { ApiError, MealType } from '@/types';
 import CoachingMessage from './CoachingMessage';
 import RecommendationCard, { type RecommendationCardItem } from './RecommendationCard';
 
@@ -30,6 +28,27 @@ interface AIRecommendationsProps {
   errorMessage?: string | null;
 }
 
+function getApiErrorMessage(error: ApiError | null): string | null {
+  if (!error) {
+    return null;
+  }
+
+  if (typeof error.data === 'object' && error.data !== null) {
+    const payload = error.data as { error?: unknown; detail?: unknown; message?: unknown };
+    if (typeof payload.error === 'string' && payload.error.trim()) {
+      return payload.error;
+    }
+    if (typeof payload.detail === 'string' && payload.detail.trim()) {
+      return payload.detail;
+    }
+    if (typeof payload.message === 'string' && payload.message.trim()) {
+      return payload.message;
+    }
+  }
+
+  return null;
+}
+
 export default function AIRecommendations({
   onClose,
   onSaveFood,
@@ -42,9 +61,19 @@ export default function AIRecommendations({
   isLoading = false,
   errorMessage = null,
 }: AIRecommendationsProps) {
-  const [preferences, setPreferences] = useState<Record<number, 'liked' | 'disliked' | null>>({});
-  const [showToast, setShowToast] = useState(false);
+  const [preferenceOverrides, setPreferenceOverrides] = useState<
+    Record<number, 'liked' | 'disliked' | null>
+  >({});
+  const [hiddenRecommendationIds, setHiddenRecommendationIds] = useState<number[]>([]);
+  const [highlightedDislikedIds, setHighlightedDislikedIds] = useState<number[]>([]);
+  const [dismissingRecommendationIds, setDismissingRecommendationIds] = useState<number[]>([]);
+  const [showInlineToast, setShowInlineToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
+  const {
+    data: savedPreferences,
+    addFoodAsync,
+    removeFoodAsync,
+  } = usePreferences();
   const shouldFetchRecommendations = recommendations == null;
   const recommendationQuery = useRecommendations({
     mealType,
@@ -53,62 +82,113 @@ export default function AIRecommendations({
     enabled: shouldFetchRecommendations,
   });
 
-  const saveRecommendationMutation = useSaveRecommendation();
-  const feedbackMutation = useSubmitFeedback();
-
-  const recommendationEventMutation = useMutation({
-    mutationFn: recommendationService.recordEvent,
-  });
-
   const showToastMessage = (message: string) => {
     setToastMessage(message);
-    setShowToast(true);
-    window.setTimeout(() => setShowToast(false), 3000);
+    setShowInlineToast(true);
+    window.setTimeout(() => setShowInlineToast(false), 3000);
+  };
+
+  const preferredFoods = savedPreferences?.preferredFoods ?? [];
+  const dislikedFoods = savedPreferences?.dislikedFoods ?? [];
+
+  const getCurrentPreference = (recommendation: RecommendationCardItem): 'liked' | 'disliked' | null => {
+    const localOverride = preferenceOverrides[recommendation.foodId];
+    if (localOverride !== undefined) {
+      return localOverride;
+    }
+
+    if (preferredFoods.includes(recommendation.foodName)) {
+      return 'liked';
+    }
+
+    if (dislikedFoods.some((food) => food.foodName === recommendation.foodName)) {
+      return 'disliked';
+    }
+
+    return null;
   };
 
   const handleFeedback = async (
     recommendation: RecommendationCardItem,
     feedback: 'liked' | 'disliked',
   ) => {
-    const nextFeedback = preferences[recommendation.foodId] === feedback ? null : feedback;
+    const currentPreference = getCurrentPreference(recommendation);
+    const nextFeedback = currentPreference === feedback ? null : feedback;
 
-    setPreferences((prev) => ({
+    setPreferenceOverrides((prev) => ({
       ...prev,
       [recommendation.foodId]: nextFeedback,
     }));
 
-    if (nextFeedback) {
-      feedbackMutation.mutate({
-        setId: recommendation.setId,
-        foodId: recommendation.foodId,
-        feedback: nextFeedback,
-        mealType,
-        date,
-      });
+    try {
+      if (currentPreference === 'liked') {
+        await removeFoodAsync({ type: 'PREFERRED', foodName: recommendation.foodName });
+      } else if (currentPreference === 'disliked') {
+        await removeFoodAsync({ type: 'DISLIKED', foodName: recommendation.foodName });
+      }
 
-      showToastMessage(
-        feedback === 'liked' ? '선호 음식으로 저장되었습니다!' : '비선호 음식으로 저장되었습니다',
+      if (nextFeedback === 'liked') {
+        await addFoodAsync({
+          type: 'PREFERRED',
+          foodName: recommendation.foodName,
+        });
+        setDismissingRecommendationIds((prev) =>
+          prev.filter((foodId) => foodId !== recommendation.foodId),
+        );
+      } else if (nextFeedback === 'disliked') {
+        await addFoodAsync({
+          type: 'DISLIKED',
+          foodName: recommendation.foodName,
+          reason: 'DISLIKE',
+        });
+        window.setTimeout(() => {
+          setHighlightedDislikedIds((prev) =>
+            prev.includes(recommendation.foodId) ? prev : [...prev, recommendation.foodId],
+          );
+        }, 20);
+        window.setTimeout(() => {
+          setDismissingRecommendationIds((prev) =>
+            prev.includes(recommendation.foodId) ? prev : [...prev, recommendation.foodId],
+          );
+        }, 450);
+        window.setTimeout(() => {
+          setHiddenRecommendationIds((prev) =>
+            prev.includes(recommendation.foodId) ? prev : [...prev, recommendation.foodId],
+          );
+          setDismissingRecommendationIds((prev) =>
+            prev.filter((foodId) => foodId !== recommendation.foodId),
+          );
+          setHighlightedDislikedIds((prev) =>
+            prev.filter((foodId) => foodId !== recommendation.foodId),
+          );
+        }, 810);
+      }
+
+      if (nextFeedback) {
+        showToastMessage(
+          feedback === 'liked' ? '선호 음식으로 저장되었습니다!' : '비선호 음식으로 저장되었습니다',
+        );
+      }
+    } catch {
+      setPreferenceOverrides((prev) => ({
+        ...prev,
+        [recommendation.foodId]: currentPreference,
+      }));
+      showToast.error(
+        nextFeedback === 'liked'
+          ? `${recommendation.foodName} 선호 등록에 실패했어요.\n잠시 후 다시 시도해주세요.`
+          : nextFeedback === 'disliked'
+            ? `${recommendation.foodName} 비선호 등록에 실패했어요.\n잠시 후 다시 시도해주세요.`
+            : `${recommendation.foodName} 추천 관리를 변경하지 못했어요.\n잠시 후 다시 시도해주세요.`,
       );
     }
   };
 
   const handleAddFood = (recommendation: RecommendationCardItem) => {
     onSaveFood?.(recommendation);
-
-    saveRecommendationMutation.mutate({
-      setId: recommendation.setId,
-      foodId: recommendation.foodId,
-      mealType,
-      date,
-    });
-
-    recommendationEventMutation.mutate({
-      setId: recommendation.setId,
-      foodId: recommendation.foodId,
-      event: 'save',
-      mealType,
-      date,
-    });
+    setHiddenRecommendationIds((prev) =>
+      prev.includes(recommendation.foodId) ? prev : [...prev, recommendation.foodId],
+    );
 
     showToastMessage(`${recommendation.foodName}이(가) 오늘의 식단에 추가되었습니다!`);
   };
@@ -128,15 +208,27 @@ export default function AIRecommendations({
   };
 
   const fetchedRecommendations = recommendationQuery.data?.recommendations;
-  const recommendationsToRender = (recommendations ?? fetchedRecommendations ?? []).slice(0, 6);
+  const shouldHideRecommendation = (recommendation: RecommendationCardItem) => {
+    return hiddenRecommendationIds.includes(recommendation.foodId);
+  };
+
+  const recommendationsToRender = (recommendations ?? fetchedRecommendations ?? [])
+    .filter((recommendation) => !shouldHideRecommendation(recommendation))
+    .slice(0, 6);
   const mergedCoachingMessage = coachingMessage ?? null;
   const mergedIsLoading = isLoading || recommendationQuery.isLoading;
+  const queryError = recommendationQuery.error as ApiError | null;
+  const backendErrorMessage = getApiErrorMessage(queryError);
   const mergedErrorMessage =
     errorMessage ??
-    (axios.isAxiosError(recommendationQuery.error)
-      ? recommendationQuery.error.response?.status === 401
+    (queryError
+      ? queryError.status === 401
         ? '세션 정보를 확인한 뒤 다시 시도해주세요.'
-        : '추천 식단을 불러오지 못했습니다.'
+        : backendErrorMessage
+          ? backendErrorMessage
+        : queryError.status === 404
+          ? '온보딩 또는 목표 영양소 설정이 필요합니다.'
+          : '추천 식단을 불러오지 못했습니다.'
       : null);
 
   return (
@@ -194,22 +286,35 @@ export default function AIRecommendations({
 
             {!mergedIsLoading
               ? recommendationsToRender.map((recommendation) => (
-                  <RecommendationCard
+                  <div
                     key={recommendation.foodId}
-                    recommendation={recommendation}
-                    isFavorite={isFavorite?.(recommendation.foodId)}
-                    preference={preferences[recommendation.foodId] ?? null}
-                    onToggleFavorite={toggleFavorite}
-                    onLike={(item) => handleFeedback(item, 'liked')}
-                    onDislike={(item) => handleFeedback(item, 'disliked')}
-                    onSave={handleAddFood}
-                  />
+                    className={`overflow-hidden transition-all duration-300 ease-out ${
+                      dismissingRecommendationIds.includes(recommendation.foodId)
+                        ? 'max-h-0 -translate-y-1 scale-[0.98] opacity-0'
+                        : 'max-h-[480px] translate-y-0 scale-100 opacity-100'
+                    }`}
+                  >
+                    <RecommendationCard
+                      recommendation={recommendation}
+                      className={
+                        highlightedDislikedIds.includes(recommendation.foodId)
+                          ? 'ring-2 ring-rose-200'
+                          : ''
+                      }
+                      isFavorite={isFavorite?.(recommendation.foodId)}
+                      preference={getCurrentPreference(recommendation)}
+                      onToggleFavorite={toggleFavorite}
+                      onLike={(item) => handleFeedback(item, 'liked')}
+                      onDislike={(item) => handleFeedback(item, 'disliked')}
+                      onSave={handleAddFood}
+                    />
+                  </div>
                 ))
               : null}
           </div>
         </div>
 
-        {showToast ? (
+        {showInlineToast ? (
           <div className="fixed bottom-20 left-1/2 z-50 w-[calc(100vw-2rem)] max-w-[340px] -translate-x-1/2 animate-toast-slide-in">
             <div className="toast-success flex min-w-[280px] items-center gap-2 rounded-xl px-4 py-3 shadow-lg">
               <CheckCircle className="h-5 w-5 flex-shrink-0" />

@@ -48,6 +48,16 @@ export default function ProfilePage() {
 
   const userName = '사용자';
   const profileImageUrl = null;
+  const formatDecimal = (value: number | null | undefined) => {
+    if (value == null || Number.isNaN(value)) {
+      return '-';
+    }
+
+    return new Intl.NumberFormat('ko-KR', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2,
+    }).format(value);
+  };
 
   const persistProfile = (nextProfile: StoredProfile) => {
     setProfile(nextProfile);
@@ -259,7 +269,9 @@ export default function ProfilePage() {
                 <Apple className="h-4 w-4 text-gray-400" />
                 <span className="text-sm text-gray-600">TDEE</span>
               </div>
-              <span className="text-sm font-semibold text-green-600">{profile.tdee || '-'} kcal</span>
+              <span className="text-sm font-semibold text-green-600">
+                {profile.tdee != null ? `${formatDecimal(profile.tdee)} kcal` : '-'}
+              </span>
             </div>
           </div>
 
@@ -285,7 +297,7 @@ export default function ProfilePage() {
 
           <div className="mb-3 rounded-xl bg-gradient-to-br from-green-50 to-emerald-50 p-4">
             <p className="mb-1 text-xs text-gray-600">목표 칼로리</p>
-            <p className="text-2xl font-bold text-green-600">{profile.goalCalories || '-'}</p>
+            <p className="text-2xl font-bold text-green-600">{formatDecimal(profile.goalCalories)}</p>
             <p className="mt-0.5 text-xs text-gray-500">kcal/일</p>
           </div>
 
@@ -295,21 +307,21 @@ export default function ProfilePage() {
                 <div className="h-3 w-3 rounded-full bg-blue-500" />
                 <span className="text-sm text-gray-600">탄수화물</span>
               </div>
-              <span className="text-sm font-semibold text-gray-700">{profile.goalCarbs || '-'} g</span>
+              <span className="text-sm font-semibold text-gray-700">{formatDecimal(profile.goalCarbs)} g</span>
             </div>
             <div className="flex items-center justify-between py-2">
               <div className="flex items-center gap-2">
                 <div className="h-3 w-3 rounded-full bg-red-500" />
                 <span className="text-sm text-gray-600">단백질</span>
               </div>
-              <span className="text-sm font-semibold text-gray-700">{profile.goalProtein || '-'} g</span>
+              <span className="text-sm font-semibold text-gray-700">{formatDecimal(profile.goalProtein)} g</span>
             </div>
             <div className="flex items-center justify-between py-2">
               <div className="flex items-center gap-2">
                 <div className="h-3 w-3 rounded-full bg-yellow-500" />
                 <span className="text-sm text-gray-600">지방</span>
               </div>
-              <span className="text-sm font-semibold text-gray-700">{profile.goalFat || '-'} g</span>
+              <span className="text-sm font-semibold text-gray-700">{formatDecimal(profile.goalFat)} g</span>
             </div>
           </div>
         </div>

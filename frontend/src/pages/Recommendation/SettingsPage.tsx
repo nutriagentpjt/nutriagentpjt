@@ -1,11 +1,13 @@
-import { Activity, ChevronLeft, ChevronRight, Droplet, HeartPulse, Shield } from 'lucide-react';
+import { Activity, ChevronLeft, ChevronRight, Droplet, HeartPulse, Shield, Sparkles } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { showToast } from '@/components/common';
 import type { Disease } from '@/types/onboarding';
 import AllergiesSettings from '@/components/profile/PersonalSettingsAllergies';
 import DietSettings from '@/components/profile/PersonalSettingsDiet';
 import DiseasesSettings from '@/components/profile/PersonalSettingsDiseases';
 import LifestyleSettings from '@/components/profile/PersonalSettingsLifestyle';
+import RecommendationSettings from '@/components/profile/PersonalSettingsRecommendation';
 import {
   loadStoredProfile,
   mergeBackendProfile,
@@ -15,14 +17,14 @@ import {
 import { ROUTES } from '@/constants/routes';
 import { usePreferences, useProfile } from '@/hooks';
 
-type SettingsView = 'menu' | 'lifestyle' | 'allergies' | 'diseases' | 'diet';
+type SettingsView = 'menu' | 'lifestyle' | 'allergies' | 'diseases' | 'diet' | 'recommendation';
 
 export default function SettingsPage() {
   const navigate = useNavigate();
   const [profile, setProfile] = useState<StoredProfile>(() => loadStoredProfile());
   const [currentView, setCurrentView] = useState<SettingsView>('menu');
   const { data: backendProfile, updateProfileAsync } = useProfile();
-  const { data: preferences, updatePreferencesAsync } = usePreferences();
+  const { data: preferences, updatePreferencesAsync, removeFoodAsync, isRemovingFood } = usePreferences();
 
   const handleProfileUpdate = (updates: Partial<StoredProfile>) => {
     const nextProfile = { ...profile, ...updates };
@@ -112,6 +114,7 @@ export default function SettingsPage() {
             {currentView === 'allergies' && '알러지 정보'}
             {currentView === 'diseases' && '질환 정보'}
             {currentView === 'diet' && '추가 식단 설정'}
+            {currentView === 'recommendation' && '추천 관리'}
           </h1>
           <div className="w-10" />
         </div>
@@ -169,6 +172,24 @@ export default function SettingsPage() {
                     <div className="text-left">
                       <h3 className="mb-1 text-base font-bold text-gray-900">질환 정보</h3>
                       <p className="text-xs text-gray-500">건강 상태 설정</p>
+                    </div>
+                  </div>
+                  <ChevronRight className="h-5 w-5 flex-shrink-0 text-gray-400" />
+                </div>
+              </button>
+
+              <button
+                onClick={() => setCurrentView('recommendation')}
+                className="w-full rounded-2xl border-2 border-gray-200 bg-white p-6 transition-all hover:border-green-400 hover:bg-green-50 active:scale-[0.98]"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-violet-50 to-purple-50">
+                      <Sparkles className="h-6 w-6 text-violet-500" />
+                    </div>
+                    <div className="text-left">
+                      <h3 className="mb-1 text-base font-bold text-gray-900">추천 관리</h3>
+                      <p className="text-xs text-gray-500">선호 · 비선호 음식 관리</p>
                     </div>
                   </div>
                   <ChevronRight className="h-5 w-5 flex-shrink-0 text-gray-400" />
@@ -242,6 +263,30 @@ export default function SettingsPage() {
             onSave={async ({ lowSodium, lowSugar, maxCaloriesPerMeal }) => {
               await syncPreferences({ lowSodium, lowSugar, maxCaloriesPerMeal });
               setCurrentView('menu');
+            }}
+          />
+        ) : null}
+
+        {currentView === 'recommendation' ? (
+          <RecommendationSettings
+            preferredFoods={preferences?.preferredFoods ?? []}
+            dislikedFoods={preferences?.dislikedFoods ?? []}
+            isRemoving={isRemovingFood}
+            onRemovePreferred={async (foodName) => {
+              try {
+                await removeFoodAsync({ type: 'PREFERRED', foodName });
+                showToast.success(`${foodName} 선호 등록이 해제되었습니다`);
+              } catch {
+                showToast.error(`${foodName} 선호 등록을 해제하지 못했어요.\n잠시 후 다시 시도해주세요.`);
+              }
+            }}
+            onRemoveDisliked={async (foodName) => {
+              try {
+                await removeFoodAsync({ type: 'DISLIKED', foodName });
+                showToast.success(`${foodName} 비선호 등록이 해제되었습니다`);
+              } catch {
+                showToast.error(`${foodName} 비선호 등록을 해제하지 못했어요.\n잠시 후 다시 시도해주세요.`);
+              }
             }}
           />
         ) : null}
