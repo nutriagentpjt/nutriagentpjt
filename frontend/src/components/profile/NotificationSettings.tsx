@@ -1,0 +1,64 @@
+import { ChevronLeft } from 'lucide-react';
+import { useEffect, useRef } from 'react';
+
+interface NotificationSettingsProps {
+  onClose: () => void;
+}
+
+export default function NotificationSettings({ onClose }: NotificationSettingsProps) {
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const previousFocusRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    previousFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    closeButtonRef.current?.focus();
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        onClose();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      previousFocusRef.current?.focus();
+    };
+  }, [onClose]);
+
+  return (
+    <div
+      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="notification-settings-title"
+    >
+      <div className="relative flex h-full w-full flex-col bg-white sm:max-w-[390px] sm:shadow-2xl">
+        <div className="flex-shrink-0 border-b border-gray-200 bg-white">
+          <div className="flex items-center justify-between px-5 py-4">
+            <button
+              ref={closeButtonRef}
+              type="button"
+              aria-label="알림 설정 닫기"
+              onClick={onClose}
+              className="flex h-10 w-10 items-center justify-center rounded-full transition-colors hover:bg-gray-100 active:bg-gray-200"
+            >
+              <ChevronLeft className="h-6 w-6 text-gray-700" />
+            </button>
+            <h1 id="notification-settings-title" className="text-lg font-bold text-gray-900">알림 설정</h1>
+            <div className="w-10" />
+          </div>
+        </div>
+
+        <div className="flex-1 overflow-y-auto">
+          <div className="px-5 py-4">
+            <div className="py-12 text-center">
+              <p className="text-sm text-gray-400">알림 설정 옵션을 준비 중입니다</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
