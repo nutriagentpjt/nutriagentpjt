@@ -1,0 +1,16 @@
+export const ROUTES = {
+  HOME: '/',
+  ONBOARDING_WELCOME: '/onboarding/welcome',
+  ONBOARDING_TDEE: '/onboarding/tdee',
+  ONBOARDING_GOAL: '/onboarding/goal',
+  MEAL_SEARCH: '/meals/search',
+  MEAL_UPLOAD: '/meals/upload',
+  MEAL_SAVE: '/meals/save',
+  MEAL_VIEW: '/meals',
+  RECOMMENDATION: '/recommendations',
+  RECOMMENDATION_SETTINGS: '/recommendations/settings',
+  MYPAGE: '/mypage',
+  LEGACY_AI_AGENT: '/ai-agent',
+  LEGACY_STATS: '/stats',
+  LEGACY_PROFILE: '/profile',
+} as const;
