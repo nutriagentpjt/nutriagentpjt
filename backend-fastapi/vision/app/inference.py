@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -125,21 +126,12 @@ def _aggregate_candidates(neighbors: list[dict[str, Any]]) -> list[AggregatedCan
     return candidates
 
 
+def _nan_to_none(v: Any) -> Any:
+    return None if isinstance(v, float) and math.isnan(v) else v
+
+
 def _build_nutrition(payload: dict[str, Any]) -> NutritionInfo:
-    return NutritionInfo(
-        serving_basis=payload.get("serving_basis"),
-        calories_kcal=payload.get("calories_kcal"),
-        protein_g=payload.get("protein_g"),
-        fat_g=payload.get("fat_g"),
-        carbs_g=payload.get("carbs_g"),
-        sugars_g=payload.get("sugars_g"),
-        fiber_g=payload.get("fiber_g"),
-        sodium_mg=payload.get("sodium_mg"),
-        potassium_mg=payload.get("potassium_mg"),
-        cholesterol_mg=payload.get("cholesterol_mg"),
-        sat_fat_g=payload.get("sat_fat_g"),
-        caffeine_mg=payload.get("caffeine_mg"),
-    )
+    return NutritionInfo(**{k: _nan_to_none(v) for k, v in payload.items()})
 
 
 def _build_empty_response(top_k_used: int) -> SearchImageResponse:
