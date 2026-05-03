@@ -1,1 +1,0 @@
-import{u as c,a as n,r as d,R as s,j as i,A as l}from"./index-Bo22C5bG.js";function E(){const t=c(),o=n(a=>a.selectedDate),e=n(a=>a.selectedFood);d.useEffect(()=>{e||t(s.MEAL_SEARCH,{replace:!0})},[t,e]);const r=o?new Date(`${o}T00:00:00`):new Date;return i.jsx(l,{food:e,isOpen:!!e,initialDate:r,onClose:()=>t(s.MEAL_SEARCH),redirectTo:s.HOME})}export{E as default};
