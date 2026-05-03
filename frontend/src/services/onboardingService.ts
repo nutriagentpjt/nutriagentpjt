@@ -2,6 +2,18 @@ import api from './api';
 import type { OnboardingRequest, OnboardingResponse } from '@/types/onboarding';
 import type { ProfileResponse } from '@/types/profile';
 
+function isCompletedProfile(profile: ProfileResponse) {
+  return (
+    profile.age != null &&
+    profile.gender != null &&
+    profile.height != null &&
+    profile.weight != null &&
+    profile.activityLevel != null &&
+    profile.mealPattern != null &&
+    profile.waterIntakeGoal != null
+  );
+}
+
 function mapProfileToOnboardingResponse(profile: ProfileResponse): OnboardingResponse {
   return {
     age: profile.age ?? 25,
@@ -24,7 +36,7 @@ function mapProfileToOnboardingResponse(profile: ProfileResponse): OnboardingRes
       lowSugar: false,
       maxCaloriesPerMeal: 600,
     },
-    completed: true,
+    completed: isCompletedProfile(profile),
   };
 }
 

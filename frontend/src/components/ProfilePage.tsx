@@ -16,6 +16,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { ROUTES } from '@/constants/routes';
 import NotificationSettings from '@/components/profile/NotificationSettings';
+import { showToast } from '@/components/common/Toast/Toast';
 import {
   activityLabelMap,
   defaultProfile,
@@ -64,6 +65,30 @@ export default function ProfilePage() {
     saveStoredProfile(nextProfile);
   };
 
+  const readValidatedNumber = ({
+    value,
+    min,
+    max,
+    label,
+    integer = false,
+  }: {
+    value: string;
+    min: number;
+    max: number;
+    label: string;
+    integer?: boolean;
+  }) => {
+    const parsed = Number.parseFloat(value);
+    const normalized = integer ? Math.round(parsed) : parsed;
+
+    if (!Number.isFinite(normalized) || normalized < min || normalized > max) {
+      showToast.error(`${label} 값을 다시 확인해주세요.`);
+      return null;
+    }
+
+    return normalized;
+  };
+
   const calculateBMI = useMemo(() => {
     if (!profile.weight || !profile.height) return '0.0';
     const heightInMeters = profile.height / 100;
@@ -97,12 +122,31 @@ export default function ProfilePage() {
     });
   }, [backendProfile, nutritionTargets]);
 
+  useEffect(() => {
+    if (!showEditProfile) {
+      return;
+    }
+
+    setEditWeight(profile.weight?.toString() || '');
+    setEditHeight(profile.height?.toString() || '');
+    setEditAge(profile.age?.toString() || '');
+    setEditActivityLevel(profile.activityLevel || defaultProfile.activityLevel);
+  }, [profile.age, profile.height, profile.weight, profile.activityLevel, showEditProfile]);
+
   const handleSaveProfile = async () => {
+    const nextAge = readValidatedNumber({ value: editAge, min: 1, max: 120, label: '나이', integer: true });
+    const nextWeight = readValidatedNumber({ value: editWeight, min: 20, max: 300, label: '체중' });
+    const nextHeight = readValidatedNumber({ value: editHeight, min: 80, max: 250, label: '키' });
+
+    if (nextAge == null || nextWeight == null || nextHeight == null) {
+      return;
+    }
+
     const nextProfile: StoredProfile = {
       ...profile,
-      weight: Number.parseFloat(editWeight) || profile.weight,
-      height: Number.parseFloat(editHeight) || profile.height,
-      age: Number.parseFloat(editAge) || profile.age,
+      weight: nextWeight,
+      height: nextHeight,
+      age: nextAge,
       activityLevel: editActivityLevel,
     };
 
@@ -150,6 +194,18 @@ export default function ProfilePage() {
   };
 
   const handleSaveGoals = async () => {
+    const macroTotal = editCarbsPercentage + editProteinPercentage + editFatPercentage;
+
+    if (macroTotal !== 100) {
+      showToast.error('탄수화물, 단백질, 지방 비율 합계를 100%로 맞춰주세요.');
+      return;
+    }
+
+    if (!Number.isFinite(editGoalCalories) || editGoalCalories < 800 || editGoalCalories > 6000) {
+      showToast.error('목표 칼로리를 올바른 범위로 입력해주세요.');
+      return;
+    }
+
     const goalCalories = editGoalCalories || 2000;
     const goalCarbs = Math.round((goalCalories * (editCarbsPercentage / 100)) / 4);
     const goalProtein = Math.round((goalCalories * (editProteinPercentage / 100)) / 4);
@@ -398,6 +454,9 @@ export default function ProfilePage() {
                 <label className="mb-2 block text-sm font-semibold text-gray-700">나이</label>
                 <input
                   type="number"
+                  min="1"
+                  max="120"
+                  step="1"
                   value={editAge}
                   onChange={(event) => setEditAge(event.target.value)}
                   className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-gray-900 transition-all focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-500/50"
@@ -409,6 +468,8 @@ export default function ProfilePage() {
                 <label className="mb-2 block text-sm font-semibold text-gray-700">체중 (kg)</label>
                 <input
                   type="number"
+                  min="20"
+                  max="300"
                   step="0.1"
                   value={editWeight}
                   onChange={(event) => setEditWeight(event.target.value)}
@@ -421,6 +482,8 @@ export default function ProfilePage() {
                 <label className="mb-2 block text-sm font-semibold text-gray-700">키 (cm)</label>
                 <input
                   type="number"
+                  min="80"
+                  max="250"
                   step="0.1"
                   value={editHeight}
                   onChange={(event) => setEditHeight(event.target.value)}
@@ -482,6 +545,9 @@ export default function ProfilePage() {
                 <label className="mb-2 block text-sm font-semibold text-gray-700">목표 칼로리</label>
                 <input
                   type="number"
+                  min="800"
+                  max="6000"
+                  step="1"
                   value={editGoalCalories}
                   onChange={(event) => setEditGoalCalories(Number.parseInt(event.target.value, 10) || 0)}
                   className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-gray-900 transition-all focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-500/50"
@@ -594,7 +660,12 @@ export default function ProfilePage() {
               </div>
 
               <div className="rounded-xl bg-gray-50 p-4">
-                <p className="mb-3 text-xs font-semibold text-gray-700">예상 영양소</p>
+                <div className="mb-3 flex items-center justify-between">
+                  <p className="text-xs font-semibold text-gray-700">예상 영양소</p>
+                  <span className={`text-xs font-semibold ${editCarbsPercentage + editProteinPercentage + editFatPercentage === 100 ? 'text-green-600' : 'text-red-600'}`}>
+                    총합 {editCarbsPercentage + editProteinPercentage + editFatPercentage}%
+                  </span>
+                </div>
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-gray-600">탄수화물</span>

@@ -129,7 +129,7 @@ const getExerciseFrequencyFromActivityLevel = (activityLevel: ActivityLevel): nu
   }
 };
 
-const getExerciseTimeFromActivityLevel = (_activityLevel: ActivityLevel): ExerciseTime => 'EVENING';
+const getExerciseTimeFromActivityLevel = (): ExerciseTime => 'EVENING';
 
 const getHealthGoal = (
   goalCalories: number,
@@ -158,6 +158,63 @@ const mealPatternOptions = [
   { value: 4, label: '소량 다회' },
 ] as const;
 
+const ONBOARDING_VALIDATION = {
+  age: { min: 1, max: 120 },
+  weight: { min: 20, max: 300 },
+  height: { min: 80, max: 250 },
+  goalCalories: { min: 800, max: 6000 },
+  waterGoal: { min: 0.5, max: 10 },
+  maxCaloriesPerMeal: { min: 100, max: 3000 },
+} as const;
+
+function isFiniteNumberInRange(value: number, min: number, max: number) {
+  return Number.isFinite(value) && value >= min && value <= max;
+}
+
+function getValidatedBodyMetrics(age: string, weight: string, height: string) {
+  const nextAge = Number(age);
+  const nextWeight = Number(weight);
+  const nextHeight = Number(height);
+
+  if (
+    !isFiniteNumberInRange(nextAge, ONBOARDING_VALIDATION.age.min, ONBOARDING_VALIDATION.age.max) ||
+    !isFiniteNumberInRange(nextWeight, ONBOARDING_VALIDATION.weight.min, ONBOARDING_VALIDATION.weight.max) ||
+    !isFiniteNumberInRange(nextHeight, ONBOARDING_VALIDATION.height.min, ONBOARDING_VALIDATION.height.max)
+  ) {
+    return null;
+  }
+
+  return {
+    age: nextAge,
+    weight: nextWeight,
+    height: nextHeight,
+  };
+}
+
+function getHydratedTDEE({
+  age,
+  gender,
+  height,
+  weight,
+  activityLevel,
+}: {
+  age: number;
+  gender: Gender;
+  height: number;
+  weight: number;
+  activityLevel: ActivityLevel;
+}) {
+  if (
+    !isFiniteNumberInRange(age, ONBOARDING_VALIDATION.age.min, ONBOARDING_VALIDATION.age.max) ||
+    !isFiniteNumberInRange(weight, ONBOARDING_VALIDATION.weight.min, ONBOARDING_VALIDATION.weight.max) ||
+    !isFiniteNumberInRange(height, ONBOARDING_VALIDATION.height.min, ONBOARDING_VALIDATION.height.max)
+  ) {
+    return 0;
+  }
+
+  return calculateTDEE(calculateBMR(gender, weight, height, age), activityLevel);
+}
+
 interface OnboardingFlowProps {
   fallbackStep: number;
 }
@@ -172,6 +229,7 @@ export default function OnboardingFlow({ fallbackStep }: OnboardingFlowProps) {
     typeof window !== 'undefined'
       ? Number(window.localStorage.getItem(ONBOARDING_STEP_KEY) ?? fallbackStep)
       : fallbackStep;
+  const initialStepRef = useRef(Number.isFinite(initialStep) ? initialStep : fallbackStep);
 
   const [step, setStep] = useState(Number.isFinite(initialStep) ? initialStep : fallbackStep);
   const [direction, setDirection] = useState(1);
@@ -195,17 +253,16 @@ export default function OnboardingFlow({ fallbackStep }: OnboardingFlowProps) {
 
   const hasLocalDraft =
     typeof window !== 'undefined' && Boolean(window.localStorage.getItem(ONBOARDING_DRAFT_KEY));
+  const initialHasLocalDraftRef = useRef(hasLocalDraft);
 
   const { data: onboardingData } = useOnboarding({ enabled: !hasLocalDraft });
   const saveOnboardingMutation = useSaveOnboarding();
 
   const calculatedTDEE = useMemo(() => {
-    const ageValue = Number(age);
-    const weightValue = Number(weight);
-    const heightValue = Number(height);
+    const metrics = getValidatedBodyMetrics(age, weight, height);
 
-    if (!ageValue || !weightValue || !heightValue) return 0;
-    return calculateTDEE(calculateBMR(gender, weightValue, heightValue, ageValue), activityLevel);
+    if (!metrics) return 0;
+    return calculateTDEE(calculateBMR(gender, metrics.weight, metrics.height, metrics.age), activityLevel);
   }, [activityLevel, age, gender, height, weight]);
 
   const carbsGrams = useMemo(() => Math.round((goalCalories * (carbsPercentage / 100)) / 4), [carbsPercentage, goalCalories]);
@@ -233,10 +290,17 @@ export default function OnboardingFlow({ fallbackStep }: OnboardingFlowProps) {
     setLowSugar(onboardingData.constraints?.lowSugar ?? false);
     setMaxCaloriesPerMeal(onboardingData.constraints?.maxCaloriesPerMeal ?? defaultOnboardingDraft.maxCaloriesPerMeal);
 
+    const hydratedTDEE = getHydratedTDEE({
+      age: onboardingData.age,
+      gender: onboardingData.gender,
+      height: onboardingData.height,
+      weight: onboardingData.weight,
+      activityLevel: onboardingData.activityLevel,
+    });
     const mealsCount = getMealsPerDayFromPattern(onboardingData.mealPattern);
     const nextGoalCalories = onboardingData.constraints?.maxCaloriesPerMeal
       ? onboardingData.constraints.maxCaloriesPerMeal * mealsCount
-      : calculatedTDEE || defaultOnboardingDraft.goalCalories;
+      : hydratedTDEE || defaultOnboardingDraft.goalCalories;
     setGoalCalories(nextGoalCalories);
 
     if (onboardingData.dietStyles?.includes('KETO') || onboardingData.dietStyles?.includes('LOW_CARB')) {
@@ -251,7 +315,7 @@ export default function OnboardingFlow({ fallbackStep }: OnboardingFlowProps) {
       weight: onboardingData.weight,
       height: onboardingData.height,
       activityLevel: onboardingData.activityLevel,
-      tdee: calculatedTDEE || draft.tdee,
+      tdee: hydratedTDEE || draft.tdee,
       goalCalories: nextGoalCalories,
       goalCarbs: onboardingData.dietStyles?.includes('KETO') || onboardingData.dietStyles?.includes('LOW_CARB')
         ? Math.round((nextGoalCalories * 0.05) / 4)
@@ -271,12 +335,39 @@ export default function OnboardingFlow({ fallbackStep }: OnboardingFlowProps) {
       lowSugar: onboardingData.constraints?.lowSugar ?? false,
       maxCaloriesPerMeal: onboardingData.constraints?.maxCaloriesPerMeal ?? defaultOnboardingDraft.maxCaloriesPerMeal,
     });
-  }, [calculatedTDEE, draft.diseases, draft.goalCarbs, draft.goalFat, draft.goalProtein, draft.tdee, onboardingData]);
+  }, [draft.goalCarbs, draft.goalFat, draft.goalProtein, draft.tdee, onboardingData]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
     window.localStorage.setItem(ONBOARDING_STEP_KEY, String(step));
+
+    const shouldPersistDraft =
+      initialHasLocalDraftRef.current ||
+      hasHydratedFromServerRef.current ||
+      step !== initialStepRef.current ||
+      gender !== defaultOnboardingDraft.gender ||
+      age !== String(defaultOnboardingDraft.age) ||
+      weight !== String(defaultOnboardingDraft.weight) ||
+      height !== String(defaultOnboardingDraft.height) ||
+      activityLevel !== defaultOnboardingDraft.activityLevel ||
+      goalCalories !== defaultOnboardingDraft.goalCalories ||
+      carbsGrams !== defaultOnboardingDraft.goalCarbs ||
+      proteinGrams !== defaultOnboardingDraft.goalProtein ||
+      fatGrams !== defaultOnboardingDraft.goalFat ||
+      selectedDietStyle !== null ||
+      waterGoal !== defaultOnboardingDraft.waterGoal ||
+      mealsPerDay !== defaultOnboardingDraft.mealsPerDay ||
+      allergies.length > 0 ||
+      diseases.length > 0 ||
+      lowSodium !== defaultOnboardingDraft.lowSodium ||
+      lowSugar !== defaultOnboardingDraft.lowSugar ||
+      maxCaloriesPerMeal !== defaultOnboardingDraft.maxCaloriesPerMeal;
+
+    if (!shouldPersistDraft) {
+      return;
+    }
+
     saveOnboardingDraft({
       gender,
       age: Number(age) || draft.age,
@@ -350,7 +441,11 @@ export default function OnboardingFlow({ fallbackStep }: OnboardingFlowProps) {
   };
 
   const handleStep3Continue = () => {
-    if (!age || !weight || !height) return;
+    if (!getValidatedBodyMetrics(age, weight, height)) {
+      showToast.error('나이, 체중, 키를 올바른 범위로 입력해주세요.');
+      return;
+    }
+
     goToStep(4);
   };
 
@@ -361,11 +456,39 @@ export default function OnboardingFlow({ fallbackStep }: OnboardingFlowProps) {
   };
 
   const handleComplete = async () => {
+    const metrics = getValidatedBodyMetrics(age, weight, height);
+
+    if (!metrics) {
+      showToast.error('기본 신체 정보를 다시 확인해주세요.');
+      return;
+    }
+
+    if (!isFiniteNumberInRange(goalCalories, ONBOARDING_VALIDATION.goalCalories.min, ONBOARDING_VALIDATION.goalCalories.max)) {
+      showToast.error('목표 칼로리를 올바른 범위로 입력해주세요.');
+      return;
+    }
+
+    if (!isFiniteNumberInRange(waterGoal, ONBOARDING_VALIDATION.waterGoal.min, ONBOARDING_VALIDATION.waterGoal.max)) {
+      showToast.error('물 섭취 목표를 올바른 범위로 입력해주세요.');
+      return;
+    }
+
+    if (
+      !isFiniteNumberInRange(
+        maxCaloriesPerMeal,
+        ONBOARDING_VALIDATION.maxCaloriesPerMeal.min,
+        ONBOARDING_VALIDATION.maxCaloriesPerMeal.max,
+      )
+    ) {
+      showToast.error('식사 당 목표 최대 칼로리를 올바른 범위로 입력해주세요.');
+      return;
+    }
+
     const localProfile = {
       gender,
-      age: Number(age),
-      weight: Number(weight),
-      height: Number(height),
+      age: metrics.age,
+      weight: metrics.weight,
+      height: metrics.height,
       activityLevel,
       tdee: calculatedTDEE,
       goalCalories,
@@ -391,7 +514,7 @@ export default function OnboardingFlow({ fallbackStep }: OnboardingFlowProps) {
         healthGoal: getHealthGoal(goalCalories, calculatedTDEE, selectedDietStyle),
         activityLevel: localProfile.activityLevel,
         exerciseFrequency: getExerciseFrequencyFromActivityLevel(localProfile.activityLevel),
-        exerciseTime: getExerciseTimeFromActivityLevel(localProfile.activityLevel),
+        exerciseTime: getExerciseTimeFromActivityLevel(),
         mealPattern: getMealPattern(localProfile.mealsPerDay),
         preferredFoods: [],
         dislikedFoods: [],
