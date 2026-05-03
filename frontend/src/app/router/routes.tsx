@@ -1,23 +1,11 @@
-import { lazy, Suspense } from 'react';
+import { Suspense } from 'react';
 import type { ReactNode } from 'react';
 import { createBrowserRouter } from 'react-router-dom';
 import { ROUTES } from '@/constants/routes';
 import { MainLayout } from '@/layouts';
 import { ProtectedRoute } from './ProtectedRoute';
-import HomePage from '@/pages/HomePage';
 import NotFoundPage from '@/pages/NotFoundPage';
-import { GoalSettingPage, TDEECalculatorPage, WelcomePage } from '@/pages/Onboarding';
-
-const AIAgentPage = lazy(() => import('@/pages/AIAgentPage'));
-const StatsPage = lazy(() => import('@/pages/StatsPage'));
-const ProfilePage = lazy(() => import('@/pages/ProfilePage'));
-const FoodSearchPage = lazy(() => import('@/pages/MealRecording/FoodSearchPage'));
-const ImageUploadPage = lazy(() => import('@/pages/MealRecording/ImageUploadPage'));
-const MealSavePage = lazy(() => import('@/pages/MealRecording/MealSavePage'));
-const DailyMealViewPage = lazy(() => import('@/pages/MealView/DailyMealViewPage'));
-const RecommendationPage = lazy(() => import('@/pages/Recommendation/RecommendationPage'));
-const SettingsPage = lazy(() => import('@/pages/Recommendation/SettingsPage'));
-const MyPage = lazy(() => import('@/pages/MyPage/MyPage'));
+import PlaceholderPage from '@/pages/PlaceholderPage';
 
 function withSuspense(element: ReactNode) {
   return (
@@ -25,6 +13,10 @@ function withSuspense(element: ReactNode) {
       {element}
     </Suspense>
   );
+}
+
+function createPlaceholder(title: string, description: string) {
+  return <PlaceholderPage title={title} description={description} />;
 }
 
 export const router = createBrowserRouter([
@@ -36,24 +28,63 @@ export const router = createBrowserRouter([
       </ProtectedRoute>
     ),
     children: [
-      { index: true, element: <HomePage /> },
-      { path: ROUTES.MEAL_SEARCH.slice(1), element: withSuspense(<FoodSearchPage />) },
-      { path: ROUTES.MEAL_UPLOAD.slice(1), element: withSuspense(<ImageUploadPage />) },
-      { path: ROUTES.MEAL_SAVE.slice(1), element: withSuspense(<MealSavePage />) },
-      { path: ROUTES.MEAL_VIEW.slice(1), element: withSuspense(<DailyMealViewPage />) },
-      { path: ROUTES.RECOMMENDATION.slice(1), element: withSuspense(<RecommendationPage />) },
+      {
+        index: true,
+        element: createPlaceholder('홈 화면', '홈 화면 기능은 후속 PR에서 추가됩니다.'),
+      },
+      {
+        path: ROUTES.MEAL_SEARCH.slice(1),
+        element: withSuspense(createPlaceholder('식단 검색', '식단 검색 기능은 후속 PR에서 추가됩니다.')),
+      },
+      {
+        path: ROUTES.MEAL_UPLOAD.slice(1),
+        element: withSuspense(createPlaceholder('이미지 업로드', '이미지 업로드 기능은 후속 PR에서 추가됩니다.')),
+      },
+      {
+        path: ROUTES.MEAL_SAVE.slice(1),
+        element: withSuspense(createPlaceholder('식단 저장', '식단 저장 기능은 후속 PR에서 추가됩니다.')),
+      },
+      {
+        path: ROUTES.MEAL_VIEW.slice(1),
+        element: withSuspense(createPlaceholder('식단 보기', '식단 보기 기능은 후속 PR에서 추가됩니다.')),
+      },
+      {
+        path: ROUTES.RECOMMENDATION.slice(1),
+        element: withSuspense(createPlaceholder('추천 식단', '추천 식단 기능은 후속 PR에서 추가됩니다.')),
+      },
       {
         path: ROUTES.RECOMMENDATION_SETTINGS.slice(1),
-        element: withSuspense(<SettingsPage />),
+        element: withSuspense(createPlaceholder('추천 설정', '추천 설정 기능은 후속 PR에서 추가됩니다.')),
       },
-      { path: ROUTES.MYPAGE.slice(1), element: withSuspense(<MyPage />) },
-      { path: ROUTES.LEGACY_AI_AGENT.slice(1), element: withSuspense(<AIAgentPage />) },
-      { path: ROUTES.LEGACY_STATS.slice(1), element: withSuspense(<StatsPage />) },
-      { path: ROUTES.LEGACY_PROFILE.slice(1), element: withSuspense(<ProfilePage />) },
+      {
+        path: ROUTES.MYPAGE.slice(1),
+        element: withSuspense(createPlaceholder('마이페이지', '마이페이지 기능은 후속 PR에서 추가됩니다.')),
+      },
+      {
+        path: ROUTES.LEGACY_AI_AGENT.slice(1),
+        element: withSuspense(createPlaceholder('AI 어시스턴트', 'AI 어시스턴트 기능은 후속 PR에서 추가됩니다.')),
+      },
+      {
+        path: ROUTES.LEGACY_STATS.slice(1),
+        element: withSuspense(createPlaceholder('통계', '통계 기능은 후속 PR에서 추가됩니다.')),
+      },
+      {
+        path: ROUTES.LEGACY_PROFILE.slice(1),
+        element: withSuspense(createPlaceholder('프로필', '프로필 기능은 후속 PR에서 추가됩니다.')),
+      },
     ],
   },
-  { path: ROUTES.ONBOARDING_WELCOME, element: <WelcomePage /> },
-  { path: ROUTES.ONBOARDING_TDEE, element: <TDEECalculatorPage /> },
-  { path: ROUTES.ONBOARDING_GOAL, element: <GoalSettingPage /> },
+  {
+    path: ROUTES.ONBOARDING_WELCOME,
+    element: createPlaceholder('온보딩', '온보딩 화면은 후속 PR에서 추가됩니다.'),
+  },
+  {
+    path: ROUTES.ONBOARDING_TDEE,
+    element: createPlaceholder('TDEE 계산', 'TDEE 계산 화면은 후속 PR에서 추가됩니다.'),
+  },
+  {
+    path: ROUTES.ONBOARDING_GOAL,
+    element: createPlaceholder('목표 설정', '목표 설정 화면은 후속 PR에서 추가됩니다.'),
+  },
   { path: '*', element: <NotFoundPage /> },
 ]);
