@@ -64,23 +64,23 @@ export default function RecommendationCard({
       </div>
 
       <div className="mb-4 grid grid-cols-4 gap-2">
-        <div className="rounded-lg border border-green-100 bg-gradient-to-br from-green-50 to-emerald-50 p-2 text-center">
-          <p className="mb-0.5 text-[10px] text-gray-500">칼로리</p>
-          <p className="number-sm whitespace-nowrap text-sm font-bold text-green-600">
-            {recommendation.nutrients.calories} <span className="text-[10px]">kcal</span>
+        <div className="flex flex-col items-center justify-center rounded-lg border border-green-100 bg-gradient-to-br from-green-50 to-emerald-50 p-2 text-center">
+          <p className="number-sm text-sm font-bold leading-tight text-green-600">
+            <span className="block whitespace-nowrap">{recommendation.nutrients.calories}</span>
+            <span className="mt-0.5 block text-[9px] leading-none">kcal</span>
           </p>
         </div>
-        <div className="rounded-lg border border-accent-100 bg-gradient-to-br from-accent-50 to-blue-50 p-2 text-center">
+        <div className="flex flex-col rounded-lg border border-accent-100 bg-gradient-to-br from-accent-50 to-blue-50 p-2 text-center">
           <p className="mb-0.5 text-[10px] text-gray-500">단백질</p>
-          <p className="number-sm text-sm font-bold text-accent-600">{recommendation.nutrients.protein} g</p>
+          <p className="number-sm mt-auto text-sm font-bold leading-tight text-accent-600">{recommendation.nutrients.protein} g</p>
         </div>
-        <div className="rounded-lg border border-secondary-100 bg-gradient-to-br from-secondary-50 to-orange-50 p-2 text-center">
+        <div className="flex flex-col rounded-lg border border-secondary-100 bg-gradient-to-br from-secondary-50 to-orange-50 p-2 text-center">
           <p className="mb-0.5 text-[10px] text-gray-500">탄수화물</p>
-          <p className="number-sm text-sm font-bold text-secondary-600">{recommendation.nutrients.carbs} g</p>
+          <p className="number-sm mt-auto text-sm font-bold leading-tight text-secondary-600">{recommendation.nutrients.carbs} g</p>
         </div>
-        <div className="rounded-lg border border-yellow-100 bg-gradient-to-br from-yellow-50 to-amber-50 p-2 text-center">
+        <div className="flex flex-col rounded-lg border border-yellow-100 bg-gradient-to-br from-yellow-50 to-amber-50 p-2 text-center">
           <p className="mb-0.5 text-[10px] text-gray-500">지방</p>
-          <p className="number-sm text-sm font-bold text-yellow-600">{recommendation.nutrients.fat} g</p>
+          <p className="number-sm mt-auto text-sm font-bold leading-tight text-yellow-600">{recommendation.nutrients.fat} g</p>
         </div>
       </div>
 

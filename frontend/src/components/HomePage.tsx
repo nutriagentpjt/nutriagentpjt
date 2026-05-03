@@ -73,7 +73,7 @@ export default function HomePage() {
   const [hoveredMealType, setHoveredMealType] = useState<string | null>(null);
 
   // 건강 데이터 수정 모달 state
-  const [showHealthModal, setShowHealthModal] = useState(false);
+  const [healthModalType, setHealthModalType] = useState<'weight' | 'water' | null>(null);
   const [editingWeight, setEditingWeight] = useState("");
   const [editingWater, setEditingWater] = useState("");
 
@@ -813,27 +813,38 @@ export default function HomePage() {
     handleUpdateWater(newWater);
   };
 
-  // 건강 데이터 수정 모달 열기
-  const handleOpenHealthModal = () => {
+  // 몸무게 수정 모달 열기
+  const handleOpenWeightModal = () => {
     setEditingWeight(currentWeight?.toString() || "");
-    setEditingWater(currentWater?.toString() || "0");
-    setShowHealthModal(true);
+    setHealthModalType('weight');
   };
 
-  // 건강 데이터 ��장
-  const handleSaveHealthData = () => {
+  // 물 섭취량 수정 모달 열기
+  const handleOpenWaterModal = () => {
+    setEditingWater(currentWater?.toString() || "0");
+    setHealthModalType('water');
+  };
+
+  // 몸무게 저장
+  const handleSaveWeightData = () => {
     const weight = parseFloat(editingWeight);
-    const water = parseFloat(editingWater);
 
     if (!isNaN(weight) && weight > 0 && weight < 500) {
       handleUpdateWeight(weight);
     }
 
+    setHealthModalType(null);
+  };
+
+  // 물 섭취량 저장
+  const handleSaveWaterData = () => {
+    const water = parseFloat(editingWater);
+
     if (!isNaN(water) && water >= 0 && water < 20) {
       handleUpdateWater(water);
     }
 
-    setShowHealthModal(false);
+    setHealthModalType(null);
   };
 
   // 갤러리 이미지 데이터
@@ -1244,7 +1255,7 @@ export default function HomePage() {
             {/* Weight Tracker */}
             <div className="bg-white rounded-xl p-3 shadow-sm border border-gray-100 relative">
               <button
-                onClick={handleOpenHealthModal}
+                onClick={handleOpenWeightModal}
                 className="absolute top-2 right-2 text-[10px] text-gray-500 hover:text-green-600 font-medium px-2 py-1 hover:bg-gray-50 rounded transition-colors"
               >
                 수정
@@ -1268,7 +1279,7 @@ export default function HomePage() {
             {/* Water Tracker */}
             <div className="bg-white rounded-xl p-3 shadow-sm border border-gray-100 relative">
               <button
-                onClick={handleOpenHealthModal}
+                onClick={handleOpenWaterModal}
                 className="absolute top-2 right-2 text-[10px] text-gray-500 hover:text-green-600 font-medium px-2 py-1 hover:bg-gray-50 rounded transition-colors"
               >
                 수정
@@ -1325,70 +1336,72 @@ export default function HomePage() {
       </div>
 
       {/* Health Data Edit Modal */}
-      {showHealthModal && (
+      {healthModalType && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center px-5">
           <div className="bg-white rounded-2xl p-6 w-full max-w-[340px] shadow-xl">
-            <h3 className="text-lg font-bold text-gray-900 mb-5">건강 데이터 수정</h3>
+            <h3 className="text-lg font-bold text-gray-900 mb-5">
+              {healthModalType === 'weight' ? '몸무게 수정' : '물 섭취량 수정'}
+            </h3>
 
-            {/* Weight Input */}
-            <div className="mb-5">
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                몸무게 (kg)
-              </label>
-              <div className="relative">
-                <input
-                  type="number"
-                  step="0.1"
-                  value={editingWeight}
-                  onChange={(e) => setEditingWeight(e.target.value)}
-                  placeholder="예: 70.5"
-                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500/50 focus:border-green-500"
-                />
-                <div className="absolute right-4 top-1/2 -translate-y-1/2">
-                  <Scale className="w-4 h-4 text-gray-400" />
+            {healthModalType === 'weight' ? (
+              <div className="mb-6">
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  몸무게 (kg)
+                </label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={editingWeight}
+                    onChange={(e) => setEditingWeight(e.target.value)}
+                    placeholder="예: 70.5"
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500/50 focus:border-green-500"
+                  />
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                    <Scale className="w-4 h-4 text-gray-400" />
+                  </div>
                 </div>
               </div>
-            </div>
-
-            {/* Water Input */}
-            <div className="mb-6">
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                물 섭취량 (L)
-              </label>
-              <div className="relative">
-                <input
-                  type="number"
-                  step="0.1"
-                  value={editingWater}
-                  onChange={(e) => setEditingWater(e.target.value)}
-                  placeholder="예: 2.0"
-                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500/50 focus:border-green-500"
-                />
-                <div className="absolute right-4 top-1/2 -translate-y-1/2">
-                  <Droplet className="w-4 h-4 text-gray-400" />
+            ) : (
+              <div className="mb-6">
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  물 섭취량 (L)
+                </label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={editingWater}
+                    onChange={(e) => setEditingWater(e.target.value)}
+                    placeholder="예: 2.0"
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500/50 focus:border-green-500"
+                  />
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                    <Droplet className="w-4 h-4 text-gray-400" />
+                  </div>
                 </div>
+                <button
+                  onClick={() => {
+                    const current = parseFloat(editingWater) || 0;
+                    setEditingWater((current + 0.25).toFixed(2));
+                  }}
+                  className="mt-2 text-xs text-green-600 hover:text-green-700 font-medium"
+                >
+                  + 한잔 추가 (250ml)
+                </button>
               </div>
-              <button
-                onClick={() => {
-                  const current = parseFloat(editingWater) || 0;
-                  setEditingWater((current + 0.25).toFixed(2));
-                }}
-                className="mt-2 text-xs text-green-600 hover:text-green-700 font-medium"
-              >
-                + 한잔 추가 (250ml)
-              </button>
-            </div>
+            )}
 
             {/* Buttons */}
             <div className="flex gap-2.5">
               <button
-                onClick={() => setShowHealthModal(false)}
+                onClick={() => setHealthModalType(null)}
                 className="flex-1 px-4 py-3 bg-gray-100 text-gray-700 rounded-xl font-medium text-sm active:bg-gray-200 transition-colors"
               >
                 취소
               </button>
               <button
-                onClick={handleSaveHealthData}
+                onClick={healthModalType === 'weight' ? handleSaveWeightData : handleSaveWaterData}
                 className="flex-1 px-4 py-3 bg-green-500 text-white rounded-xl font-medium text-sm active:bg-green-600 transition-colors"
               >
                 저장
