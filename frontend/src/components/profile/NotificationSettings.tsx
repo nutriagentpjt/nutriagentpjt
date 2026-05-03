@@ -1,10 +1,32 @@
 import { ChevronLeft } from 'lucide-react';
+import { useEffect, useRef } from 'react';
 
 interface NotificationSettingsProps {
   onClose: () => void;
 }
 
 export default function NotificationSettings({ onClose }: NotificationSettingsProps) {
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const previousFocusRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    previousFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    closeButtonRef.current?.focus();
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        onClose();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      previousFocusRef.current?.focus();
+    };
+  }, [onClose]);
+
   return (
     <div
       className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50"
@@ -16,6 +38,7 @@ export default function NotificationSettings({ onClose }: NotificationSettingsPr
         <div className="flex-shrink-0 border-b border-gray-200 bg-white">
           <div className="flex items-center justify-between px-5 py-4">
             <button
+              ref={closeButtonRef}
               type="button"
               aria-label="알림 설정 닫기"
               onClick={onClose}

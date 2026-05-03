@@ -46,7 +46,7 @@ export const onboardingService = {
     return response.data;
   },
 
-  getOnboarding: async (): Promise<OnboardingResponse | null> => {
+  getOnboarding: async (): Promise<OnboardingResponse> => {
     const response = await api.get<ProfileResponse>('/profile');
     return mapProfileToOnboardingResponse(response.data);
   },

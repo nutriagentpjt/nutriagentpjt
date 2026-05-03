@@ -707,16 +707,16 @@ export default function OnboardingFlow({ fallbackStep }: OnboardingFlowProps) {
                 <h2 className="text-2xl font-bold text-gray-900 mb-2">당신에 대해<br />알려주세요</h2>
                 <p className="text-sm text-gray-600 mb-8">목표를 달성하는데 큰 도움이 됩니다!</p>
                 <div className="mb-6">
-                  <label className="input-label">나이</label>
-                  <div className="relative"><input type="number" inputMode="numeric" value={age} onChange={(e) => setAge(e.target.value)} placeholder="25" className="input-primary pr-12" min="0" max="150" /><div className="absolute right-4 top-1/2 -translate-y-1/2"><span className="text-sm text-gray-500 font-medium">세</span></div></div>
+                  <label htmlFor="onboarding-age" className="input-label">나이</label>
+                  <div className="relative"><input id="onboarding-age" type="number" inputMode="numeric" value={age} onChange={(e) => setAge(e.target.value)} placeholder="25" className="input-primary pr-12" min="0" max="150" /><div className="absolute right-4 top-1/2 -translate-y-1/2"><span className="text-sm text-gray-500 font-medium">세</span></div></div>
                 </div>
                 <div className="mb-6">
-                  <label className="input-label">체중</label>
-                  <div className="relative"><input type="number" inputMode="decimal" step="0.1" value={weight} onChange={(e) => setWeight(e.target.value)} placeholder="70" className="input-primary pr-12" min="0" max="250" /><div className="absolute right-4 top-1/2 -translate-y-1/2"><span className="text-sm text-gray-500 font-medium">kg</span></div></div>
+                  <label htmlFor="onboarding-weight" className="input-label">체중</label>
+                  <div className="relative"><input id="onboarding-weight" type="number" inputMode="decimal" step="0.1" value={weight} onChange={(e) => setWeight(e.target.value)} placeholder="70" className="input-primary pr-12" min="0" max="250" /><div className="absolute right-4 top-1/2 -translate-y-1/2"><span className="text-sm text-gray-500 font-medium">kg</span></div></div>
                 </div>
                 <div className="mb-6">
-                  <label className="input-label">신장</label>
-                  <div className="relative"><input type="number" inputMode="numeric" value={height} onChange={(e) => setHeight(e.target.value)} placeholder="175" className="input-primary pr-12" min="0" max="300" /><div className="absolute right-4 top-1/2 -translate-y-1/2"><span className="text-sm text-gray-500 font-medium">cm</span></div></div>
+                  <label htmlFor="onboarding-height" className="input-label">신장</label>
+                  <div className="relative"><input id="onboarding-height" type="number" inputMode="numeric" value={height} onChange={(e) => setHeight(e.target.value)} placeholder="175" className="input-primary pr-12" min="0" max="300" /><div className="absolute right-4 top-1/2 -translate-y-1/2"><span className="text-sm text-gray-500 font-medium">cm</span></div></div>
                 </div>
                 <button onClick={handleStep3Continue} className="btn-primary w-full min-touch flex items-center justify-center gap-2">다음<ChevronRight className="w-5 h-5" /></button>
                 <button onClick={() => goToStep(2)} className="mt-3 text-sm text-gray-400 hover:text-gray-600 transition-colors flex items-center justify-center gap-1 w-full py-2"><ChevronRight className="w-3 h-3 rotate-180" />이전으로</button>
@@ -1036,8 +1036,12 @@ export default function OnboardingFlow({ fallbackStep }: OnboardingFlowProps) {
               <p className="text-base text-gray-600 leading-relaxed">NutriAgent와 함께<br />건강한 식습관 관리를 시작하세요</p>
             </div>
             <div className="w-full space-y-3">
-              <button onClick={handleComplete} className="btn-primary w-full min-touch flex items-center justify-center gap-2 shadow-lg shadow-green-500/20">
-                시작하기
+              <button
+                onClick={handleComplete}
+                disabled={saveOnboardingMutation.isPending}
+                className="btn-primary w-full min-touch flex items-center justify-center gap-2 shadow-lg shadow-green-500/20 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {saveOnboardingMutation.isPending ? '저장 중...' : '시작하기'}
                 <ChevronRight className="w-5 h-5" />
               </button>
               <button onClick={() => goToStep(9)} className="w-full min-touch py-3.5 px-6 text-gray-600 hover:text-gray-900 transition-colors text-sm font-medium">

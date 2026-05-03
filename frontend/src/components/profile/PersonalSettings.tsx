@@ -1,5 +1,5 @@
 import { Activity, ChevronLeft, ChevronRight, Droplet, HeartPulse, Shield } from 'lucide-react';
-import { useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Disease } from '@/types/onboarding';
 import type { StoredProfile } from './shared';
 import AllergiesSettings from './PersonalSettingsAllergies';
@@ -17,14 +17,34 @@ type SettingsView = 'menu' | 'lifestyle' | 'allergies' | 'diseases' | 'diet';
 
 export default function PersonalSettings({ profile, onClose, onProfileUpdate }: PersonalSettingsProps) {
   const [currentView, setCurrentView] = useState<SettingsView>('menu');
+  const backButtonRef = useRef<HTMLButtonElement>(null);
+  const previousFocusRef = useRef<HTMLElement | null>(null);
 
-  const handleBack = () => {
+  const handleBack = useCallback(() => {
     if (currentView === 'menu') {
       onClose();
     } else {
       setCurrentView('menu');
     }
-  };
+  }, [currentView, onClose]);
+
+  useEffect(() => {
+    previousFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    backButtonRef.current?.focus();
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        handleBack();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      previousFocusRef.current?.focus();
+    };
+  }, [handleBack]);
 
   const handleSave = (updates?: Partial<StoredProfile>) => {
     if (updates) {
@@ -39,6 +59,7 @@ export default function PersonalSettings({ profile, onClose, onProfileUpdate }: 
         <div className="flex-shrink-0 border-b border-gray-200 bg-white">
           <div className="flex items-center justify-between px-5 py-4">
             <button
+              ref={backButtonRef}
               type="button"
               aria-label="뒤로가기"
               onClick={handleBack}
