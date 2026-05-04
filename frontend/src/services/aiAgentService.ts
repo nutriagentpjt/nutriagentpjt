@@ -63,6 +63,18 @@ function isUnauthorizedError(error: unknown) {
   return false;
 }
 
+function getErrorStatus(error: unknown) {
+  if (axios.isAxiosError(error)) {
+    return error.response?.status;
+  }
+
+  if (typeof error === 'object' && error !== null && 'status' in error) {
+    return (error as { status?: number }).status;
+  }
+
+  return undefined;
+}
+
 async function withSessionRetry<T>(task: () => Promise<T>, canRetry = true): Promise<T> {
   try {
     return await task();
@@ -205,7 +217,7 @@ export const aiAgentService = {
         },
       };
     } catch (error) {
-      if (axios.isAxiosError(error) && [404, 501, 502, 503, 504].includes(error.response?.status ?? 0)) {
+      if ([404, 501, 502, 503, 504].includes(getErrorStatus(error) ?? 0)) {
         return {
           threadId: request.threadId,
           message: {

@@ -1,4 +1,4 @@
-import { useRef, useEffect, useMemo, useState } from "react";
+import { useRef, useEffect, useState } from "react";
 import { Bot, Check, Ellipsis, MessageSquarePlus, Pencil, Pin, PanelsLeftBottom, Send, Sparkles, Trash2 } from "lucide-react";
 import { useAIAgentChat } from "@/hooks";
 
@@ -26,13 +26,22 @@ export default function AIAgentPage() {
   const [showHistory, setShowHistory] = useState(false);
   const [showPersonaPicker, setShowPersonaPicker] = useState(false);
   const [activeMenuSessionId, setActiveMenuSessionId] = useState<string | null>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
-  const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // 메시지가 추가될 때마다 스크롤을 맨 아래로
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: "smooth", block: "end" });
+      return;
+    }
+
+    messagesContainerRef.current?.scrollTo({
+      top: messagesContainerRef.current.scrollHeight,
+      behavior: "smooth",
+    });
   }, [messages, isTyping]);
 
   // 스크롤 이벤트 핸들러
@@ -203,7 +212,7 @@ export default function AIAgentPage() {
             ? "[&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-300 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:opacity-100"
             : "[&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-300 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:opacity-0"
         } [&::-webkit-scrollbar-thumb]:transition-opacity [&::-webkit-scrollbar-thumb]:duration-300`}
-        ref={messagesEndRef}
+        ref={messagesContainerRef}
         onScroll={handleScroll}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
@@ -247,6 +256,7 @@ export default function AIAgentPage() {
             </div>
           </div>
         )}
+        <div ref={messagesEndRef} />
       </div>
 
       {showHistory && (

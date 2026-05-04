@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { aiAgentService } from '@/services';
 import type { AIAgentConversation, AIAgentMessage, AIAgentPersona, AIAgentSession } from '@/types';
 import { showToast } from '@/components/common/Toast/Toast';
@@ -53,10 +53,15 @@ export function useAIAgentChat() {
   const [isCreatingSession, setIsCreatingSession] = useState(false);
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const activeRequestIdRef = useRef(0);
 
   useEffect(() => {
     saveSessionUiState(sessionUiState);
   }, [sessionUiState]);
+
+  const invalidateActiveRequest = useCallback(() => {
+    activeRequestIdRef.current += 1;
+  }, []);
 
   const applySessionUiState = useCallback(
     (items: AIAgentSession[]) =>
@@ -122,6 +127,8 @@ export function useAIAgentChat() {
 
   const startNewChat = useCallback(async () => {
     setIsCreatingSession(true);
+    invalidateActiveRequest();
+    setIsTyping(false);
 
     try {
       const session = await aiAgentService.createSession({ persona: selectedPersona });
@@ -139,7 +146,7 @@ export function useAIAgentChat() {
     } finally {
       setIsCreatingSession(false);
     }
-  }, [refreshSessions, selectedPersona]);
+  }, [invalidateActiveRequest, refreshSessions, selectedPersona]);
 
   const renameSession = useCallback((sessionId: string, title: string) => {
     setSessionUiState((current) => ({
@@ -173,15 +180,19 @@ export function useAIAgentChat() {
       }));
 
       if (conversation.threadId === sessionId) {
+        invalidateActiveRequest();
+        setIsTyping(false);
         setConversation({
           messages: [createAssistantMessage(aiAgentService.getInitialGreeting())],
         });
       }
     },
-    [conversation.threadId],
+    [conversation.threadId, invalidateActiveRequest],
   );
 
   const selectSession = useCallback(async (session: AIAgentSession) => {
+    invalidateActiveRequest();
+    setIsTyping(false);
     setIsLoadingHistory(true);
 
     try {
@@ -199,7 +210,7 @@ export function useAIAgentChat() {
     } finally {
       setIsLoadingHistory(false);
     }
-  }, []);
+  }, [invalidateActiveRequest]);
 
   const sendMessage = useCallback(async () => {
     const trimmed = inputValue.trim();
@@ -220,6 +231,9 @@ export function useAIAgentChat() {
     }));
     setInputValue('');
     setIsTyping(true);
+    const requestId = activeRequestIdRef.current + 1;
+    activeRequestIdRef.current = requestId;
+    const isActiveRequest = () => activeRequestIdRef.current === requestId;
 
     try {
       let threadId = conversation.threadId;
@@ -241,8 +255,15 @@ export function useAIAgentChat() {
           },
           (content) => {
             streamed = true;
+            if (!isActiveRequest()) {
+              return;
+            }
             setIsTyping(false);
             setConversation((current) => {
+              if (!isActiveRequest()) {
+                return current;
+              }
+
               const hasMessage = current.messages.some((message) => message.id === assistantMessageId);
 
               if (hasMessage) {
@@ -274,8 +295,9 @@ export function useAIAgentChat() {
           },
         );
 
-        if (!streamed) {
+        if (!streamed && isActiveRequest()) {
           setConversation((current) => ({
+            ...current,
             threadId: response.threadId ?? threadId ?? current.threadId,
             messages: [
               ...current.messages,
@@ -289,6 +311,15 @@ export function useAIAgentChat() {
           }));
         }
       } catch {
+        if (!isActiveRequest()) {
+          return;
+        }
+
+        if (streamed) {
+          await refreshSessions();
+          return;
+        }
+
         setConversation((current) => ({
           ...current,
           messages: current.messages.filter((message) => message.id !== assistantMessageId),
@@ -304,7 +335,12 @@ export function useAIAgentChat() {
           })),
         });
 
+        if (!isActiveRequest()) {
+          return;
+        }
+
         setConversation((current) => ({
+          ...current,
           threadId: response.threadId ?? threadId ?? current.threadId,
           messages: [
             ...current.messages,
@@ -320,6 +356,10 @@ export function useAIAgentChat() {
 
       await refreshSessions();
     } catch {
+      if (!isActiveRequest()) {
+        return;
+      }
+
       setConversation((current) => ({
         ...current,
         messages: [
