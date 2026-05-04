@@ -2,7 +2,7 @@
 
 ## 1. 디렉토리 구조
 
-```
+```text
 src/
 ├── components/            # 재사용 가능한 컴포넌트
 │   ├── common/

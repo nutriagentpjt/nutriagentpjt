@@ -27,7 +27,7 @@
 
 - **Framework**: React 18+ with TypeScript
 - **Routing**: React Router
-- **State Management**: Context API / Zustand / Redux (TBD)
+- **State Management**: UI 상태는 Zustand, 서버 상태는 TanStack Query
 - **UI Components**: Custom components (no UI library)
 - **Styling**: Tailwind CSS / Styled Components / CSS Modules (TBD)
 - **Data Fetching**: Axios / React Query

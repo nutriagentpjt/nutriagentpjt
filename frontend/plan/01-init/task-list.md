@@ -141,12 +141,12 @@
 
 ### 5.2 훅
 
-- [ ] `hooks/useCamera.ts` - 카메라 권한, 스트림 관리
+- [x] `hooks/useCamera.ts` - 카메라 권한, 스트림 관리 구현
 - [x] `hooks/useImageUpload.ts` - 이미지 업로드 뮤테이션
 
 ### 5.3 컴포넌트
 
-- [ ] `components/camera/CameraCapture.tsx` - 카메라 컴포넌트
+- [x] `components/camera/CameraCapture.tsx` - 카메라 컴포넌트 구현
 - [x] `components/camera/ImagePreview.tsx` - 이미지 미리보기
 
 ### 5.4 페이지
@@ -164,7 +164,7 @@
 현재 기기의 기본 카메라/갤러리를 여는 방식을 우선 사용하고 있음.
 `hooks/useCamera.ts` - 카메라 권한, 스트림 관리
 `components/camera/CameraCapture.tsx` - 카메라 컴포넌트
-의 경우 구현은 되어있으나, 메인 플로우에 적용되지 않음. 이 부분은 추후 논의를 통해
+의 경우 구현은 되어있으나, 메인 플로우 적용은 아직 이뤄지지 않음. 이 부분은 추후 논의를 통해
 앱 내부 스트림 카메라를 사용할지, 사용자 기기의 기본 카메라/갤러리를 사용할지 결정이 필요함.
 
 로딩 오버레이 및 OCR/분류 결과 모달은 해당 파트와 병합이 이루어진 뒤 진행할 예정
