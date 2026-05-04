@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { TrendingUp, Droplet, Scale, Flame, ChevronLeft, ChevronRight } from "lucide-react";
+import { formatDate } from "@/utils";
 
 type PeriodType = "week" | "month" | "year";
 
@@ -54,7 +55,7 @@ export default function StatsPage() {
     for (let i = 1; i <= 30; i++) { // 최대 30일 전까지 검색
       const prevDate = new Date(date);
       prevDate.setDate(date.getDate() - i);
-      const prevKey = prevDate.toISOString().split('T')[0];
+      const prevKey = formatDate(prevDate);
       if (healthData[prevKey]?.weight !== undefined) {
         return healthData[prevKey].weight!;
       }
@@ -67,7 +68,7 @@ export default function StatsPage() {
     for (let i = 1; i <= 30; i++) {
       const prevDate = new Date(date);
       prevDate.setDate(date.getDate() - i);
-      const prevKey = prevDate.toISOString().split('T')[0];
+      const prevKey = formatDate(prevDate);
       if (healthData[prevKey]?.water !== undefined) {
         return healthData[prevKey].water!;
       }
@@ -166,7 +167,7 @@ export default function StatsPage() {
       // 미래 날짜는 제외
       if (date > today) continue;
 
-      const dateKey = date.toISOString().split('T')[0];
+      const dateKey = formatDate(date);
       const dayData = aggregateDataByDate(dateKey);
 
       weekData.push({
@@ -202,7 +203,7 @@ export default function StatsPage() {
       // 미래 날짜는 제외
       if (d > today) break;
 
-      const dateKey = d.toISOString().split('T')[0];
+      const dateKey = formatDate(d);
       const dayData = aggregateDataByDate(dateKey);
 
       monthData.push({
@@ -241,7 +242,7 @@ export default function StatsPage() {
         // 미래 날짜는 제외
         if (d > today) break;
 
-        const dateKey = d.toISOString().split('T')[0];
+        const dateKey = formatDate(d);
         monthDays.push(aggregateDataByDate(dateKey));
       }
 
