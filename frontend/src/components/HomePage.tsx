@@ -13,7 +13,7 @@ import type { RecommendationCardItem } from "@/components/recommendation";
 import type { Food } from "@/types";
 import { ROUTES } from "@/constants/routes";
 import { useImageUploadStore } from "@/store";
-import { getStoredMeals } from "@/utils";
+import { formatDate, getStoredMeals } from "@/utils";
 
 export default function HomePage() {
   const location = useLocation();
@@ -170,7 +170,7 @@ export default function HomePage() {
 
   // 선택된 날짜의 키 생성
   const getDateKey = (date: Date) => {
-    return date.toISOString().split('T')[0];
+    return formatDate(date);
   };
 
   // 현재 선택된 날짜의 식단
@@ -187,7 +187,7 @@ export default function HomePage() {
     for (let i = 1; i <= 30; i++) { // 최대 30일 전까지 검색
       const prevDate = new Date(date);
       prevDate.setDate(date.getDate() - i);
-      const prevKey = prevDate.toISOString().split('T')[0];
+      const prevKey = formatDate(prevDate);
       if (healthData[prevKey]?.weight !== undefined) {
         return healthData[prevKey].weight;
       }
