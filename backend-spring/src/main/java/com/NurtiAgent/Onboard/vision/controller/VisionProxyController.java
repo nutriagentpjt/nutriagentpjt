@@ -62,14 +62,17 @@ public class VisionProxyController {
         }
         String url = builder.toUriString();
 
-        MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+        HttpEntity<ByteArrayResource> filePart;
         try {
-            body.add("file", buildFilePart(file));
+            filePart = buildFilePart(file);
         } catch (IOException e) {
             log.error("업로드 파일 읽기 실패", e);
             return ResponseEntity.internalServerError()
                     .body("{\"detail\":\"failed to read uploaded file\"}");
         }
+
+        MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+        body.add("file", filePart);
 
         HttpHeaders headers = buildHeaders(guestId, servletRequest);
         HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(body, headers);
@@ -86,10 +89,10 @@ public class VisionProxyController {
         }
     }
 
-    private ByteArrayResource buildFilePart(MultipartFile file) throws IOException {
+    private HttpEntity<ByteArrayResource> buildFilePart(MultipartFile file) throws IOException {
         byte[] bytes = file.getBytes();
         String filename = file.getOriginalFilename() != null ? file.getOriginalFilename() : "upload";
-        return new ByteArrayResource(bytes) {
+        ByteArrayResource resource = new ByteArrayResource(bytes) {
             @Override
             public String getFilename() {
                 return filename;
@@ -100,6 +103,12 @@ public class VisionProxyController {
                 return bytes.length;
             }
         };
+        HttpHeaders partHeaders = new HttpHeaders();
+        String contentType = file.getContentType();
+        partHeaders.setContentType(contentType != null
+                ? MediaType.parseMediaType(contentType)
+                : MediaType.APPLICATION_OCTET_STREAM);
+        return new HttpEntity<>(resource, partHeaders);
     }
 
     private HttpHeaders buildHeaders(String guestId, HttpServletRequest servletRequest) {

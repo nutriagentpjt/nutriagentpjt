@@ -143,7 +143,56 @@ class VisionProxyControllerTest {
             assertThat(body).isInstanceOf(MultiValueMap.class);
             @SuppressWarnings("unchecked")
             MultiValueMap<String, Object> form = (MultiValueMap<String, Object>) body;
-            assertThat(form.getFirst("file")).isNotNull();
+            Object filePart = form.getFirst("file");
+            assertThat(filePart).isInstanceOf(HttpEntity.class);
+            HttpEntity<?> filePartEntity = (HttpEntity<?>) filePart;
+            assertThat(filePartEntity.getHeaders().getContentType())
+                    .isEqualTo(MediaType.IMAGE_JPEG);
+        }
+
+        @Test
+        @DisplayName("파일 Content-Type이 없으면 application/octet-stream 으로 전송")
+        void filePart_defaultContentType_whenAbsent() throws Exception {
+            when(restTemplate.exchange(anyString(), eq(HttpMethod.POST), any(HttpEntity.class), eq(String.class)))
+                    .thenReturn(ResponseEntity.ok("{}"));
+
+            MockMultipartFile noTypeFile = new MockMultipartFile(
+                    "file", "raw.bin", null, new byte[]{9, 9, 9});
+
+            mockMvc.perform(multipart("/api/v1/vision/analyze")
+                            .file(noTypeFile)
+                            .session(authSession))
+                    .andExpect(status().isOk());
+
+            @SuppressWarnings({"unchecked", "rawtypes"})
+            ArgumentCaptor<HttpEntity> captor = ArgumentCaptor.forClass(HttpEntity.class);
+            verify(restTemplate).exchange(anyString(), eq(HttpMethod.POST), captor.capture(), eq(String.class));
+
+            @SuppressWarnings("unchecked")
+            MultiValueMap<String, Object> form = (MultiValueMap<String, Object>) captor.getValue().getBody();
+            HttpEntity<?> filePartEntity = (HttpEntity<?>) form.getFirst("file");
+            assertThat(filePartEntity.getHeaders().getContentType())
+                    .isEqualTo(MediaType.APPLICATION_OCTET_STREAM);
+        }
+
+        @Test
+        @DisplayName("파일 읽기 실패: 500 + detail 본문, 업스트림 호출 안 함")
+        void fileReadError_returns500() throws Exception {
+            MockMultipartFile failingFile = new MockMultipartFile(
+                    "file", "bad.jpg", MediaType.IMAGE_JPEG_VALUE, new byte[]{1, 2}) {
+                @Override
+                public byte[] getBytes() throws java.io.IOException {
+                    throw new java.io.IOException("simulated read failure");
+                }
+            };
+
+            mockMvc.perform(multipart("/api/v1/vision/analyze")
+                            .file(failingFile)
+                            .session(authSession))
+                    .andExpect(status().isInternalServerError())
+                    .andExpect(content().string(containsString("failed to read uploaded file")));
+
+            verify(restTemplate, never()).exchange(anyString(), any(), any(HttpEntity.class), eq(String.class));
         }
 
         @Test
