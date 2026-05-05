@@ -55,6 +55,14 @@ jobs:
             backend-fastapi/pyproject.toml
             backend-fastapi/uv.lock
 
+      # Setup Java for Spring Boot backend
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'gradle'
+
       # Install dependencies
       - name: Install backend dependencies
         run: uv sync

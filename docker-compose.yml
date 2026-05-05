@@ -1,12 +1,6 @@
 version: '3.8'
 
 services:
-
-  # -------------------------------------------------------
-  # PostgreSQL + pgvector
-  # 반드시 pgvector/pgvector:pg15 이미지를 사용해야 합니다.
-  # 일반 postgres:15 에는 pgvector 확장이 없어 벡터 검색이 동작하지 않습니다.
-  # -------------------------------------------------------
   postgres:
     image: pgvector/pgvector:pg15
     container_name: nutriagent-postgres
@@ -18,6 +12,8 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    networks:
+      - nutriagent-net
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
@@ -26,9 +22,30 @@ services:
       retries: 5
       start_period: 10s
 
-  # -------------------------------------------------------
-  # Vision API (FastAPI + DINOv2 + pgvector 검색)
-  # -------------------------------------------------------
+  fastapi:
+    build:
+      context: ./backend-fastapi
+    container_name: nutriagent-fastapi
+    environment:
+      POSTGRES_SERVER: nutriagent-postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY}
+      SPRING_BASE_URL: http://nutriagent-spring:8080
+      AWS_REGION: ${AWS_REGION:-us-east-1}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+    expose:
+      - "8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - nutriagent-net
+    restart: unless-stopped
+
   vision-api:
     build:
       context: ./backend-fastapi/vision
@@ -38,8 +55,7 @@ services:
       postgres:
         condition: service_healthy
     environment:
-      # postgres 서비스명을 호스트로 사용 (컨테이너 내부 DNS)
-      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@nutriagent-postgres:5432/${POSTGRES_DB}
       APP_ENV: ${APP_ENV:-dev}
       MODEL_DEVICE: ${MODEL_DEVICE:-cpu}
       MODEL_WEIGHTS_PATH: ${MODEL_WEIGHTS_PATH:-}
@@ -49,18 +65,39 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      # data/ 는 이미지에 포함하지 않고 호스트에서 마운트
-      # - merged_food_db_keyword_avg.csv : git clone 시 자동으로 존재
-      # - pgvector_rows.parquet          : git 미포함, EC2에 별도 업로드 필요
       - ./backend-fastapi/vision/data:/app/data
-      # 모델 가중치 캐시: 컨테이너 재시작 시 재다운로드 방지
       - vision_model_cache:/root/.cache/torch
+    networks:
+      - nutriagent-net
     restart: unless-stopped
-    # Dockerfile의 HEALTHCHECK(/health/ready)와 연동
-    # Spring 등 vision-api에 의존하는 서비스는 아래처럼 사용:
-    #   depends_on:
-    #     vision-api:
-    #       condition: service_healthy
+
+  spring:
+    build:
+      context: ./backend-spring
+    container_name: nutriagent-spring
+    environment:
+      DB_URL: jdbc:postgresql://nutriagent-postgres:5432/${POSTGRES_DB}
+      DB_USERNAME: ${POSTGRES_USER}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      FASTAPI_BASE_URL: http://nutriagent-fastapi:8000
+      VISION_BASE_URL: http://nutriagent-vision:8000
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY}
+    ports:
+      - "8080:8080"
+    depends_on:
+      fastapi:
+        condition: service_started
+      vision-api:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+    networks:
+      - nutriagent-net
+    restart: unless-stopped
+
+networks:
+  nutriagent-net:
+    name: nutriagent-net
 
 volumes:
   postgres_data:

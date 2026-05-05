@@ -28,9 +28,9 @@ public class UserService {
 
         User savedUser = userRepository.save(user);
 
-        // 세션에 userId 저장
+        // 세션에 guestId 저장
         HttpSession session = request.getSession(true);
-        session.setAttribute("userId", savedUser.getId().toString());
+        session.setAttribute("GUEST_ID", guestId);
 
         return guestId;
     }
@@ -46,7 +46,7 @@ public class UserService {
 
         // 세션 갱신
         HttpSession session = request.getSession(true);
-        session.setAttribute("userId", user.getId().toString());
+        session.setAttribute("GUEST_ID", guestId);
     }
 
     private String generateUniqueGuestId() {
