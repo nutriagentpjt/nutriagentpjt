@@ -32,10 +32,22 @@ services:
       DB_PASSWORD: ${POSTGRES_PASSWORD}
       FASTAPI_BASE_URL: http://nutriagent-fastapi:8000
       INTERNAL_API_KEY: ${INTERNAL_API_KEY}
-    ports:
-      - "8080:8080"
+    expose:
+      - "8080"
     depends_on:
       - fastapi
+    networks:
+      - nutriagent-net
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+    container_name: nutriagent-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - spring
     networks:
       - nutriagent-net
     restart: unless-stopped

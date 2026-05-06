@@ -7,7 +7,9 @@ on:
     paths:
       - 'backend-spring/**'
       - 'backend-fastapi/**'
+      - 'frontend/**'
       - 'docker-compose.yml'
+      - '.github/workflows/cd.yml'
   workflow_dispatch:
 
 jobs:
