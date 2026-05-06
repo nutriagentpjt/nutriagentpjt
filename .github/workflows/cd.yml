@@ -24,8 +24,10 @@ jobs:
           script: |
             set -e
             cd ~/nutriagentpjt
-            echo "[cd] git pull"
-            git pull origin main
+            echo "[cd] sync to origin/main"
+            git fetch origin main
+            git reset --hard origin/main
+            git clean -fd
             echo "[cd] HEAD: $(git rev-parse --short HEAD) $(git log -1 --pretty=%s)"
             echo "[cd] build spring (no-cache)"
             docker compose build --no-cache spring
