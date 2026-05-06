@@ -35,10 +35,14 @@ jobs:
             docker compose build --no-cache spring
             echo "[cd] build fastapi"
             docker compose build fastapi
+            echo "[cd] build frontend"
+            docker compose build frontend
             echo "[cd] up -d (force-recreate)"
             docker compose up -d --force-recreate
             echo "[cd] ps"
             docker compose ps
             echo "[cd] spring logs (tail 50)"
             docker compose logs --tail=50 spring || true
+            echo "[cd] frontend logs (tail 20)"
+            docker compose logs --tail=20 frontend || true
             docker image prune -f
