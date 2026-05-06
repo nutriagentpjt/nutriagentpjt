@@ -5,7 +5,8 @@ build-analyze
 .gitignore
 *.log
 .env
-.env.*
+.env.local
+.env.*.local
 .DS_Store
 plan
 docs
