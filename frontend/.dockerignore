@@ -1,0 +1,11 @@
+node_modules
+build
+build-analyze
+.git
+.gitignore
+*.log
+.env
+.env.*
+.DS_Store
+plan
+docs
