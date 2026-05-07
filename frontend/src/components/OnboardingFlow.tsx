@@ -14,10 +14,12 @@ import {
 } from 'lucide-react';
 import { ROUTES } from '@/constants/routes';
 import { useOnboarding, useSaveOnboarding } from '@/hooks';
+import { authService } from '@/services';
+import { sessionService } from '@/services/sessionService';
+import { useAuthStore } from '@/store';
 import { calculateBMR, calculateTDEE } from '@/utils/tdeeCalculator';
 import {
   ONBOARDING_DRAFT_KEY,
-  ONBOARDING_COMPLETE_KEY,
   ONBOARDING_STEP_KEY,
   activityOptions,
   completeOnboarding,
@@ -224,6 +226,8 @@ export default function OnboardingFlow({ fallbackStep }: OnboardingFlowProps) {
   const location = useLocation();
   const draft = loadOnboardingDraft();
   const hasHydratedFromServerRef = useRef(false);
+  const beginGoogleLinking = useAuthStore((state) => state.beginGoogleLinking);
+  const setGuestSession = useAuthStore((state) => state.setGuestSession);
 
   const initialStep =
     typeof window !== 'undefined'
@@ -432,12 +436,18 @@ export default function OnboardingFlow({ fallbackStep }: OnboardingFlowProps) {
     setStep(nextStep);
   };
 
-  const handleSkip = () => {
-    if (typeof window !== 'undefined') {
-      window.localStorage.setItem(ONBOARDING_COMPLETE_KEY, 'true');
-      window.localStorage.removeItem(ONBOARDING_STEP_KEY);
+  const handleExistingAccountLogin = () => {
+    beginGoogleLinking('existing-account-login');
+
+    const result = authService.startGoogleAuthFlow({
+      source: 'existing-account-login',
+      returnTo: ROUTES.HOME,
+    });
+
+    if (result.status === 'unavailable') {
+      setGuestSession(sessionService.getStoredGuestId());
+      showToast.info('구글 계정 로그인 연동은 아직 준비 중이에요.\n지금은 게스트로 먼저 시작할 수 있어요.');
     }
-    navigate(ROUTES.HOME, { replace: true });
   };
 
   const handleStep3Continue = () => {
@@ -538,6 +548,19 @@ export default function OnboardingFlow({ fallbackStep }: OnboardingFlowProps) {
     }
 
     completeOnboarding(localProfile);
+
+    beginGoogleLinking('post-onboarding-link');
+    const linkResult = authService.startGoogleAuthFlow({
+      source: 'post-onboarding-link',
+      returnTo: ROUTES.HOME,
+    });
+
+    if (linkResult.status === 'redirected') {
+      return;
+    }
+
+    setGuestSession(sessionService.getStoredGuestId());
+    showToast.info('계정 연동 준비가 아직 완료되지 않았어요.\n지금은 게스트 상태로 먼저 시작할게요.');
     navigate(ROUTES.HOME, { replace: true });
   };
 
@@ -606,7 +629,7 @@ export default function OnboardingFlow({ fallbackStep }: OnboardingFlowProps) {
                 시작하기
                 <ChevronRight className="w-5 h-5" />
               </button>
-              <button onClick={handleSkip} className="w-full min-touch py-3.5 px-6 text-gray-600 hover:text-gray-900 transition-colors text-sm font-medium">
+              <button onClick={handleExistingAccountLogin} className="w-full min-touch py-3.5 px-6 text-gray-600 hover:text-gray-900 transition-colors text-sm font-medium">
                 이미 계정이 있습니다
               </button>
             </div>

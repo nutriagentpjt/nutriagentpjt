@@ -1,5 +1,6 @@
 import axios, { AxiosError } from 'axios';
 import type { ApiError } from '@/types';
+import { getAccessToken } from '@/utils/auth';
 import { GUEST_ID_STORAGE_KEY } from './sessionService';
 
 export const apiBaseUrl = import.meta.env.VITE_API_URL as string;
@@ -17,9 +18,16 @@ const apiClient = axios.create({
 apiClient.interceptors.request.use(
   (config) => {
     if (typeof window !== 'undefined') {
-      const guestId = window.localStorage.getItem(GUEST_ID_STORAGE_KEY);
-      if (guestId) {
-        config.headers.set('X-Guest-Id', guestId);
+      const accessToken = getAccessToken();
+
+      if (accessToken) {
+        config.headers.set('Authorization', `Bearer ${accessToken}`);
+        config.headers.delete('X-Guest-Id');
+      } else {
+        const guestId = window.localStorage.getItem(GUEST_ID_STORAGE_KEY);
+        if (guestId) {
+          config.headers.set('X-Guest-Id', guestId);
+        }
       }
     }
 

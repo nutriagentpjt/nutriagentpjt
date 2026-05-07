@@ -15,6 +15,7 @@ export * from './onboardingService';
 export * from './profileService';
 export * from './preferenceService';
 export * from './sessionService';
+export * from './authService';
 
 // recommendation
 export * from './recommendationService';
