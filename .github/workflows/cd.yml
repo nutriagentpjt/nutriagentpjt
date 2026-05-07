@@ -41,6 +41,24 @@ jobs:
             docker compose up -d --force-recreate
             echo "[cd] ps"
             docker compose ps
+            echo "[cd] smoke: wait for /api/v1/chat/personas to return 200 (max 90s)"
+            SMOKE_OK=0
+            for i in $(seq 1 45); do
+              if curl -fsS -o /dev/null -m 5 http://localhost/api/v1/chat/personas; then
+                echo "[cd] smoke ok at attempt $i ($(date +%T))"
+                SMOKE_OK=1
+                break
+              fi
+              sleep 2
+            done
+            if [ "$SMOKE_OK" != "1" ]; then
+              echo "[cd] smoke FAILED — dumping logs" >&2
+              docker compose ps
+              docker compose logs --tail=200 spring fastapi frontend
+              exit 1
+            fi
+            echo "[cd] smoke: SPA /"
+            curl -fsS -o /dev/null http://localhost/
             echo "[cd] spring logs (tail 50)"
             docker compose logs --tail=50 spring || true
             echo "[cd] frontend logs (tail 20)"
