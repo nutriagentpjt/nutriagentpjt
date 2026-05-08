@@ -1,6 +1,27 @@
 version: '3.8'
 
 services:
+  postgres:
+    image: pgvector/pgvector:pg15
+    container_name: nutriagent-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - nutriagent-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
   fastapi:
     build:
       context: ./backend-fastapi
@@ -18,6 +39,34 @@ services:
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
     expose:
       - "8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - nutriagent-net
+    restart: unless-stopped
+
+  vision-api:
+    build:
+      context: ./backend-fastapi/vision
+      dockerfile: Dockerfile
+    container_name: nutriagent-vision
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@nutriagent-postgres:5432/${POSTGRES_DB}
+      APP_ENV: ${APP_ENV:-dev}
+      MODEL_DEVICE: ${MODEL_DEVICE:-cpu}
+      MODEL_WEIGHTS_PATH: ${MODEL_WEIGHTS_PATH:-}
+      VISION_WORKERS: ${VISION_WORKERS:-2}
+      DEFAULT_TOP_K: ${DEFAULT_TOP_K:-5}
+      MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-10}
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend-fastapi/vision/data:/app/data
+      - vision_model_cache:/root/.cache/torch
     networks:
       - nutriagent-net
     restart: unless-stopped
@@ -31,11 +80,17 @@ services:
       DB_USERNAME: ${POSTGRES_USER}
       DB_PASSWORD: ${POSTGRES_PASSWORD}
       FASTAPI_BASE_URL: http://nutriagent-fastapi:8000
+      VISION_BASE_URL: http://nutriagent-vision:8000
       INTERNAL_API_KEY: ${INTERNAL_API_KEY}
     expose:
       - "8080"
     depends_on:
-      - fastapi
+      fastapi:
+        condition: service_started
+      vision-api:
+        condition: service_started
+      postgres:
+        condition: service_healthy
     networks:
       - nutriagent-net
     restart: unless-stopped
@@ -55,4 +110,7 @@ services:
 networks:
   nutriagent-net:
     name: nutriagent-net
-    external: true
+
+volumes:
+  postgres_data:
+  vision_model_cache:
