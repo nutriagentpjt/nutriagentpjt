@@ -31,6 +31,7 @@ jobs:
             git reset --hard origin/main
             git clean -fd
             echo "[cd] HEAD: $(git rev-parse --short HEAD) $(git log -1 --pretty=%s)"
+            echo "[cd] vision-api intentionally excluded — pending pgvector follow-up PR"
             echo "[cd] build spring (no-cache)"
             docker compose build --no-cache spring
             echo "[cd] build fastapi"
