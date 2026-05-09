@@ -31,6 +31,9 @@ jobs:
             git reset --hard origin/main
             git clean -fd
             echo "[cd] HEAD: $(git rev-parse --short HEAD) $(git log -1 --pretty=%s)"
+            echo "[cd] vision-api intentionally excluded — pending pgvector follow-up PR"
+            echo "[cd] preflight: ensure external network nutriagent-net exists"
+            docker network inspect nutriagent-net >/dev/null 2>&1 || docker network create nutriagent-net
             echo "[cd] build spring (no-cache)"
             docker compose build --no-cache spring
             echo "[cd] build fastapi"
