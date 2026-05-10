@@ -1,15 +1,58 @@
 import { create } from 'zustand';
+import type { AuthenticatedUser, AuthMode, GoogleAuthIntentSource } from '@/services/authService';
 
 interface AuthState {
-  userId: string | null;
+  authMode: AuthMode;
+  guestId: string | null;
+  user: AuthenticatedUser | null;
+  lastGoogleLinkingSource: GoogleAuthIntentSource | null;
   isAuthenticated: boolean;
-  setUserId: (id: string | null) => void;
-  clearUser: () => void;
+  isLinking: boolean;
+  beginGoogleLinking: (source: GoogleAuthIntentSource) => void;
+  setGuestSession: (guestId: string | null) => void;
+  setAuthenticatedUser: (user: AuthenticatedUser) => void;
+  clearAuth: () => void;
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
-  userId: null,
+  authMode: 'guest',
+  guestId: null,
+  user: null,
+  lastGoogleLinkingSource: null,
   isAuthenticated: false,
-  setUserId: (id) => set({ userId: id, isAuthenticated: id !== null }),
-  clearUser: () => set({ userId: null, isAuthenticated: false }),
+  isLinking: false,
+  beginGoogleLinking: (source) =>
+    set((state) => ({
+      ...state,
+      authMode: 'linking',
+      lastGoogleLinkingSource: source,
+      isLinking: true,
+    })),
+  setGuestSession: (guestId) =>
+    set({
+      authMode: 'guest',
+      guestId,
+      user: null,
+      lastGoogleLinkingSource: null,
+      isAuthenticated: false,
+      isLinking: false,
+    }),
+  setAuthenticatedUser: (user) =>
+    set({
+      authMode: 'authenticated',
+      guestId: null,
+      user,
+      lastGoogleLinkingSource: null,
+      isAuthenticated: true,
+      isLinking: false,
+    }),
+  clearAuth: () =>
+    set({
+      authMode: 'guest',
+      guestId: null,
+      user: null,
+      lastGoogleLinkingSource: null,
+      isAuthenticated: false,
+      isLinking: false,
+    }),
 }));

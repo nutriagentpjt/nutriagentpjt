@@ -1,6 +1,8 @@
 import { useRef, useEffect, useState } from "react";
 import { Bot, Check, Ellipsis, MessageSquarePlus, Pencil, Pin, PanelsLeftBottom, Send, Sparkles, Trash2 } from "lucide-react";
+import { MealPlateCard } from "@/components/ai-agent/MealPlateCard";
 import { useAIAgentChat } from "@/hooks";
+import { parseMealPlateSegments } from "@/utils/aiMealPlate";
 
 export default function AIAgentPage() {
   const {
@@ -82,11 +84,21 @@ export default function AIAgentPage() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!inputRef.current) {
+      return;
+    }
+
+    if (!inputValue.trim()) {
+      inputRef.current.style.height = "44px";
+    }
+  }, [inputValue]);
+
   // Enter 키로 전송 (Shift+Enter는 줄바꿈)
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      handleSend();
+      submitMessage();
     }
   };
 
@@ -113,6 +125,18 @@ export default function AIAgentPage() {
 
     renameSession(sessionId, nextTitle);
     setActiveMenuSessionId(null);
+  };
+
+  const submitMessage = () => {
+    if (!inputValue.trim() || isTyping) {
+      return;
+    }
+
+    void handleSend();
+
+    if (inputRef.current) {
+      inputRef.current.style.height = "44px";
+    }
   };
 
   return (
@@ -221,29 +245,70 @@ export default function AIAgentPage() {
           <div className="flex justify-center py-6 text-sm text-gray-500">이전 대화를 불러오는 중입니다.</div>
         ) : null}
 
-        {messages.map((message) => (
-          <div
-            key={message.id}
-            className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
-          >
+        {messages.map((message) => {
+          const segments = parseMealPlateSegments(message.content);
+          const hasMealPlate = segments.some((segment) => segment.type === "plate");
+
+          return (
             <div
-              className={`max-w-[75%] rounded-2xl px-4 py-2.5 shadow-sm ${
-                message.role === "user"
-                  ? "bg-green-500 text-white"
-                  : "bg-gradient-to-br from-white to-gray-50/50 text-gray-900 border border-gray-100/50"
-              }`}
+              key={message.id}
+              className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
             >
-              <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
-              <p
-                className={`text-[10px] mt-1 ${
-                  message.role === "user" ? "text-green-100" : "text-gray-400"
-                }`}
-              >
-                {formatTime(message.timestamp)}
-              </p>
+              {message.role === "assistant" && hasMealPlate ? (
+                <div className="w-full space-y-2">
+                  {segments.map((segment, index) =>
+                    segment.type === "plate" ? (
+                      <div key={`plate-${message.id}-${index}`} className="w-full pr-1">
+                        <MealPlateCard plate={segment.content} />
+                      </div>
+                    ) : (
+                      <div
+                        key={`text-${message.id}-${index}`}
+                        className="max-w-[75%] rounded-2xl border border-gray-100/50 bg-gradient-to-br from-white to-gray-50/50 px-4 py-2.5 text-gray-900 shadow-sm"
+                      >
+                        <p className="text-sm leading-relaxed whitespace-pre-wrap">{segment.content}</p>
+                      </div>
+                    ),
+                  )}
+
+                  <p className="px-1 text-[10px] text-gray-400">
+                    {formatTime(message.timestamp)}
+                  </p>
+                </div>
+              ) : (
+                <div
+                  className={`rounded-2xl shadow-sm ${
+                    message.role === "user"
+                      ? "max-w-[75%] bg-green-500 px-4 py-2.5 text-white"
+                      : "max-w-[75%] border border-gray-100/50 bg-gradient-to-br from-white to-gray-50/50 px-4 py-2.5 text-gray-900"
+                  }`}
+                >
+                  <div className="space-y-2">
+                    {segments.map((segment, index) =>
+                      segment.type === "plate" ? (
+                        <MealPlateCard key={`plate-${message.id}-${index}`} plate={segment.content} />
+                      ) : (
+                        <p
+                          key={`text-${message.id}-${index}`}
+                          className="text-sm leading-relaxed whitespace-pre-wrap"
+                        >
+                          {segment.content}
+                        </p>
+                      ),
+                    )}
+                  </div>
+                  <p
+                    className={`text-[10px] mt-1 ${
+                      message.role === "user" ? "text-green-100" : "text-gray-400"
+                    }`}
+                  >
+                    {formatTime(message.timestamp)}
+                  </p>
+                </div>
+              )}
             </div>
-          </div>
-        ))}
+          );
+        })}
 
         {isTyping && (
           <div className="flex justify-start">
@@ -412,7 +477,7 @@ export default function AIAgentPage() {
             }}
           />
           <button
-            onClick={handleSend}
+            onClick={submitMessage}
             disabled={!inputValue.trim() || isTyping}
             className="w-11 h-11 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed active:bg-green-600 transition-colors"
           >

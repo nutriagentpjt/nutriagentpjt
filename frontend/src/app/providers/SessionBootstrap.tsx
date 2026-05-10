@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react';
+import { authService } from '@/services/authService';
 import { sessionService } from '@/services/sessionService';
 import { useAuthStore } from '@/store';
 
@@ -8,21 +9,31 @@ interface SessionBootstrapProps {
 
 export function SessionBootstrap({ children }: SessionBootstrapProps) {
   const [isReady, setIsReady] = useState(false);
-  const setUserId = useAuthStore((state) => state.setUserId);
-  const clearUser = useAuthStore((state) => state.clearUser);
+  const setGuestSession = useAuthStore((state) => state.setGuestSession);
+  const setAuthenticatedUser = useAuthStore((state) => state.setAuthenticatedUser);
+  const clearAuth = useAuthStore((state) => state.clearAuth);
 
   useEffect(() => {
     let isCancelled = false;
 
     const bootstrap = async () => {
       try {
+        const restoredSession = authService.restoreSession();
+
+        if (restoredSession.mode === 'authenticated') {
+          if (!isCancelled) {
+            setAuthenticatedUser(restoredSession.user);
+          }
+          return;
+        }
+
         const guestId = await sessionService.ensureSession();
         if (!isCancelled) {
-          setUserId(guestId);
+          setGuestSession(guestId);
         }
       } catch {
         if (!isCancelled) {
-          clearUser();
+          clearAuth();
         }
       } finally {
         if (!isCancelled) {
@@ -36,7 +47,7 @@ export function SessionBootstrap({ children }: SessionBootstrapProps) {
     return () => {
       isCancelled = true;
     };
-  }, [clearUser, setUserId]);
+  }, [clearAuth, setAuthenticatedUser, setGuestSession]);
 
   if (!isReady) {
     return <div className="min-h-screen bg-white" aria-hidden="true" />;
