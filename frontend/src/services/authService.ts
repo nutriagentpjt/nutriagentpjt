@@ -109,7 +109,8 @@ export const authService = {
     const accessToken = getAccessToken();
     const user = readStoredAuthenticatedUser();
 
-    if (!accessToken || !user) {
+    if (!accessToken || !isAuthenticatedUser(user)) {
+      this.clearAuthenticatedSession();
       return { mode: 'guest' as const };
     }
 
@@ -136,7 +137,13 @@ export const authService = {
       return { status: 'unavailable' };
     }
 
-    const redirectUrl = new URL(authUrl);
+    let redirectUrl: URL;
+    try {
+      redirectUrl = new URL(authUrl);
+    } catch {
+      return { status: 'unavailable' };
+    }
+
     redirectUrl.searchParams.set('returnTo', returnTo);
     redirectUrl.searchParams.set('source', source);
 

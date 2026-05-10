@@ -128,6 +128,10 @@ export default function AIAgentPage() {
   };
 
   const submitMessage = () => {
+    if (!inputValue.trim() || isTyping) {
+      return;
+    }
+
     void handleSend();
 
     if (inputRef.current) {
@@ -244,8 +248,6 @@ export default function AIAgentPage() {
         {messages.map((message) => {
           const segments = parseMealPlateSegments(message.content);
           const hasMealPlate = segments.some((segment) => segment.type === "plate");
-          const textSegments = segments.filter((segment) => segment.type === "text");
-          const plateSegments = segments.filter((segment) => segment.type === "plate");
 
           return (
             <div
@@ -254,26 +256,20 @@ export default function AIAgentPage() {
             >
               {message.role === "assistant" && hasMealPlate ? (
                 <div className="w-full space-y-2">
-                  {textSegments.length > 0 ? (
-                    <div className="max-w-[75%] rounded-2xl border border-gray-100/50 bg-gradient-to-br from-white to-gray-50/50 px-4 py-2.5 text-gray-900 shadow-sm">
-                      <div className="space-y-2">
-                        {textSegments.map((segment, index) => (
-                          <p
-                            key={`text-${message.id}-${index}`}
-                            className="text-sm leading-relaxed whitespace-pre-wrap"
-                          >
-                            {segment.content}
-                          </p>
-                        ))}
+                  {segments.map((segment, index) =>
+                    segment.type === "plate" ? (
+                      <div key={`plate-${message.id}-${index}`} className="w-full pr-1">
+                        <MealPlateCard plate={segment.content} />
                       </div>
-                    </div>
-                  ) : null}
-
-                  {plateSegments.map((segment, index) => (
-                    <div key={`plate-${message.id}-${index}`} className="w-full pr-1">
-                      <MealPlateCard plate={segment.content} />
-                    </div>
-                  ))}
+                    ) : (
+                      <div
+                        key={`text-${message.id}-${index}`}
+                        className="max-w-[75%] rounded-2xl border border-gray-100/50 bg-gradient-to-br from-white to-gray-50/50 px-4 py-2.5 text-gray-900 shadow-sm"
+                      >
+                        <p className="text-sm leading-relaxed whitespace-pre-wrap">{segment.content}</p>
+                      </div>
+                    ),
+                  )}
 
                   <p className="px-1 text-[10px] text-gray-400">
                     {formatTime(message.timestamp)}
