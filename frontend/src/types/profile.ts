@@ -36,7 +36,10 @@ export interface ProfileUpdateRequest {
   gender?: Gender;
   height?: number;
   weight?: number;
+  healthGoal?: HealthGoal;
   activityLevel?: ActivityLevel;
+  exerciseFrequency?: number;
+  exerciseTime?: ExerciseTime;
   diseases?: Disease[];
 }
 
