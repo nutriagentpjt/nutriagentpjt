@@ -17,7 +17,12 @@ import { useOnboarding, useSaveOnboarding } from '@/hooks';
 import { authService, preferenceService, profileService } from '@/services';
 import { sessionService } from '@/services/sessionService';
 import { useAuthStore } from '@/store';
-import { filterSupportedOnboardingDiseases, getOnboardingSaveHealthGoal } from '@/utils/onboardingContract';
+import {
+  filterSupportedOnboardingDiseases,
+  getExerciseFrequencyFromActivityLevel,
+  getExerciseTimeFromActivityLevel,
+  getOnboardingSaveHealthGoal,
+} from '@/utils/onboardingContract';
 import { calculateBMR, calculateTDEE } from '@/utils/tdeeCalculator';
 import {
   ONBOARDING_DRAFT_KEY,
@@ -33,7 +38,6 @@ import type {
   ActivityLevel,
   DietStyle,
   Disease,
-  ExerciseTime,
   Gender,
   MealPattern,
 } from '@/types/onboarding';
@@ -115,23 +119,6 @@ const getMealPattern = (mealsPerDay: number): MealPattern => {
       return 'THREE_MEALS';
   }
 };
-
-const getExerciseFrequencyFromActivityLevel = (activityLevel: ActivityLevel): number => {
-  switch (activityLevel) {
-    case 'SEDENTARY':
-      return 1;
-    case 'LIGHTLY_ACTIVE':
-      return 2;
-    case 'MODERATELY_ACTIVE':
-      return 4;
-    case 'VERY_ACTIVE':
-      return 6;
-    default:
-      return 3;
-  }
-};
-
-const getExerciseTimeFromActivityLevel = (): ExerciseTime => 'EVENING';
 
 const mealPatternOptions = [
   { value: 2, label: '2끼' },

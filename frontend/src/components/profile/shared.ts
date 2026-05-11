@@ -6,7 +6,12 @@ import type {
   OnboardingRequest,
   UserProfile,
 } from '@/types/onboarding';
-import { filterSupportedOnboardingDiseases, getOnboardingSaveHealthGoal } from '@/utils/onboardingContract';
+import {
+  filterSupportedOnboardingDiseases,
+  getExerciseFrequencyFromActivityLevel,
+  getExerciseTimeFromActivityLevel,
+  getOnboardingSaveHealthGoal,
+} from '@/utils/onboardingContract';
 import type {
   NutritionTargetResponse,
   PreferenceResponse,
@@ -208,8 +213,10 @@ export function buildOnboardingPayload(profile: StoredProfile): OnboardingReques
       selectedDietStyle: profile.dietStyles?.[0] ?? null,
     }),
     activityLevel: profile.activityLevel ?? defaultProfile.activityLevel,
-    exerciseFrequency: 3,
-    exerciseTime: 'EVENING',
+    exerciseFrequency: getExerciseFrequencyFromActivityLevel(
+      profile.activityLevel ?? defaultProfile.activityLevel,
+    ),
+    exerciseTime: getExerciseTimeFromActivityLevel(),
     mealPattern: getMealPatternFromMealsPerDay(profile.mealsPerDay),
     preferredFoods: [],
     dislikedFoods: [],
