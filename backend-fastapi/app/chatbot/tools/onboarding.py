@@ -25,7 +25,7 @@ class GetOnboardingTool(BaseTool):
         try:
             async with httpx.AsyncClient() as client:
                 resp = await client.get(
-                    f"{SPRING_BASE_URL}/onboarding",
+                    f"{SPRING_BASE_URL}/profile",
                     cookies={"JSESSIONID": context.get("jsessionid", "")},
                     headers={"X-Guest-Id": context["guest_id"]},
                     timeout=10.0,
@@ -89,8 +89,8 @@ class UpdateOnboardingTool(BaseTool):
     async def execute(self, params: dict, context: dict) -> Any:
         try:
             async with httpx.AsyncClient() as client:
-                resp = await client.post(
-                    f"{SPRING_BASE_URL}/onboarding",
+                resp = await client.put(
+                    f"{SPRING_BASE_URL}/profile",
                     json=params,
                     cookies={"JSESSIONID": context.get("jsessionid", "")},
                     headers={"X-Guest-Id": context["guest_id"]},
