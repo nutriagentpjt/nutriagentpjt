@@ -13,6 +13,7 @@ export interface AuthenticatedUser {
   id: string;
   email?: string | null;
   name?: string | null;
+  photoUrl?: string | null;
   provider: 'google';
 }
 

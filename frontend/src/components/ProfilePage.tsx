@@ -26,7 +26,9 @@ import {
   type StoredProfile,
 } from '@/components/profile/shared';
 import { useNutritionTargets, useProfile } from '@/hooks';
+import { authService } from '@/services/authService';
 import { GUEST_ID_STORAGE_KEY } from '@/services/sessionService';
+import { useAuthStore } from '@/store';
 
 export default function ProfilePage() {
   const navigate = useNavigate();
@@ -39,6 +41,7 @@ export default function ProfilePage() {
   const [editWeight, setEditWeight] = useState(profile.weight?.toString() || '');
   const [editHeight, setEditHeight] = useState(profile.height?.toString() || '');
   const [editAge, setEditAge] = useState(profile.age?.toString() || '');
+  const [editDisplayName, setEditDisplayName] = useState(profile.displayName || '');
   const [editActivityLevel, setEditActivityLevel] = useState(profile.activityLevel || defaultProfile.activityLevel);
   const [editGoalCalories, setEditGoalCalories] = useState(profile.goalCalories || defaultProfile.goalCalories || 2000);
   const [editCarbsPercentage, setEditCarbsPercentage] = useState(50);
@@ -46,9 +49,9 @@ export default function ProfilePage() {
   const [editFatPercentage, setEditFatPercentage] = useState(25);
   const { data: backendProfile, updateProfileAsync } = useProfile();
   const { data: nutritionTargets, updateNutritionTargetsAsync } = useNutritionTargets();
+  const authenticatedUser = useAuthStore((state) => state.user);
+  const clearAuth = useAuthStore((state) => state.clearAuth);
 
-  const userName = '사용자';
-  const profileImageUrl = null;
   const formatDecimal = (value: number | null | undefined) => {
     if (value == null || Number.isNaN(value)) {
       return '-';
@@ -59,6 +62,26 @@ export default function ProfilePage() {
       maximumFractionDigits: 2,
     }).format(value);
   };
+
+  const resolvedUserName = useMemo(() => {
+    if (profile.hasCustomDisplayName && profile.displayName?.trim()) {
+      return profile.displayName.trim();
+    }
+
+    if (authenticatedUser?.name?.trim()) {
+      return authenticatedUser.name.trim();
+    }
+
+    if (profile.displayName?.trim()) {
+      return profile.displayName.trim();
+    }
+
+    return '사용자';
+  }, [authenticatedUser?.name, profile.displayName, profile.hasCustomDisplayName]);
+
+  const resolvedProfileImageUrl = useMemo(() => {
+    return authenticatedUser?.photoUrl?.trim() || profile.profileImageUrl || null;
+  }, [authenticatedUser?.photoUrl, profile.profileImageUrl]);
 
   const persistProfile = (nextProfile: StoredProfile) => {
     setProfile(nextProfile);
@@ -130,8 +153,18 @@ export default function ProfilePage() {
     setEditWeight(profile.weight?.toString() || '');
     setEditHeight(profile.height?.toString() || '');
     setEditAge(profile.age?.toString() || '');
+    setEditDisplayName(profile.hasCustomDisplayName ? profile.displayName || '' : authenticatedUser?.name || '');
     setEditActivityLevel(profile.activityLevel || defaultProfile.activityLevel);
-  }, [profile.age, profile.height, profile.weight, profile.activityLevel, showEditProfile]);
+  }, [
+    authenticatedUser?.name,
+    profile.activityLevel,
+    profile.age,
+    profile.displayName,
+    profile.hasCustomDisplayName,
+    profile.height,
+    profile.weight,
+    showEditProfile,
+  ]);
 
   const handleSaveProfile = async () => {
     const nextAge = readValidatedNumber({ value: editAge, min: 1, max: 120, label: '나이', integer: true });
@@ -142,12 +175,22 @@ export default function ProfilePage() {
       return;
     }
 
+    const normalizedDisplayName = editDisplayName.trim();
+    const nextDisplayName =
+      normalizedDisplayName ||
+      authenticatedUser?.name?.trim() ||
+      null;
+    const hasCustomDisplayName = normalizedDisplayName.length > 0;
+
     const nextProfile: StoredProfile = {
       ...profile,
       weight: nextWeight,
       height: nextHeight,
       age: nextAge,
       activityLevel: editActivityLevel,
+      displayName: nextDisplayName,
+      hasCustomDisplayName,
+      profileImageUrl: authenticatedUser?.photoUrl?.trim() || profile.profileImageUrl || null,
     };
 
     try {
@@ -245,6 +288,8 @@ export default function ProfilePage() {
 
   const handleLogout = () => {
     if (window.confirm('로그아웃 하시겠습니까?')) {
+      authService.clearAuthenticatedSession();
+      clearAuth();
       window.localStorage.removeItem('onboardingComplete');
       window.localStorage.removeItem('userProfile');
       window.localStorage.removeItem('onboardingDraft');
@@ -259,9 +304,9 @@ export default function ProfilePage() {
       <div className="relative px-5 pb-24 pt-16" style={{ backgroundColor: '#1cb454' }}>
         <div className="flex flex-col items-center">
           <div className="relative mb-4">
-            {profileImageUrl ? (
+            {resolvedProfileImageUrl ? (
               <img
-                src={profileImageUrl}
+                src={resolvedProfileImageUrl}
                 alt="Profile"
                 className="h-24 w-24 rounded-full border-4 border-white object-cover shadow-lg"
               />
@@ -272,7 +317,7 @@ export default function ProfilePage() {
             )}
           </div>
 
-          <h1 className="mb-1 text-2xl font-bold text-white">{userName} 님</h1>
+          <h1 className="mb-1 text-2xl font-bold text-white">{resolvedUserName} 님</h1>
           <p className="text-sm text-white/90">
             {profile.gender === 'FEMALE' ? '여성' : '남성'} · {profile.age || '-'}세
           </p>
@@ -450,6 +495,19 @@ export default function ProfilePage() {
             </div>
 
             <div className="space-y-4">
+              <div>
+                <label htmlFor="profile-display-name" className="mb-2 block text-sm font-semibold text-gray-700">사용자 명 수정</label>
+                <input
+                  id="profile-display-name"
+                  type="text"
+                  maxLength={30}
+                  value={editDisplayName}
+                  onChange={(event) => setEditDisplayName(event.target.value)}
+                  className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-gray-900 transition-all focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-500/50"
+                  placeholder={authenticatedUser?.name || '예: 홍길동'}
+                />
+              </div>
+
               <div>
                 <label className="mb-2 block text-sm font-semibold text-gray-700">나이</label>
                 <input
