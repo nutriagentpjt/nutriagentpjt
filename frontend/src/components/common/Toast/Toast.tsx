@@ -13,7 +13,7 @@ export function Toast(props: ToastProps) {
     const handlePointerDown = (event: PointerEvent) => {
       const target = event.target;
 
-      if (!(target instanceof HTMLElement)) {
+      if (!(target instanceof Element)) {
         return;
       }
 

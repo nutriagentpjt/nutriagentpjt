@@ -3,6 +3,7 @@ import { devtools, persist } from 'zustand/middleware';
 
 export type ThemeMode = 'light' | 'dark';
 export type Language = 'ko' | 'en';
+export type TimeString = string;
 export type WeeklyReminderDay =
   | 'MONDAY'
   | 'TUESDAY'
@@ -16,24 +17,24 @@ export interface NotificationSettings {
   enabled: boolean;
   mealReminders: {
     enabled: boolean;
-    breakfastTime: string;
-    lunchTime: string;
-    dinnerTime: string;
+    breakfastTime: TimeString;
+    lunchTime: TimeString;
+    dinnerTime: TimeString;
   };
   waterReminder: {
     enabled: boolean;
-    startTime: string;
-    endTime: string;
-    intervalHours: number;
+    startTime: TimeString;
+    endTime: TimeString;
+    intervalHours: 1 | 2 | 3 | 4;
   };
   weightReminder: {
     enabled: boolean;
     day: WeeklyReminderDay;
-    time: string;
+    time: TimeString;
   };
   aiCoachingReminder: {
     enabled: boolean;
-    time: string;
+    time: TimeString;
   };
 }
 
@@ -75,6 +76,16 @@ export const defaultNotificationSettings: NotificationSettings = {
   },
 };
 
+function isValidTimeString(value: string): value is TimeString {
+  return /^([01]\d|2[0-3]):([0-5]\d)$/.test(value);
+}
+
+function sanitizeWaterIntervalHours(value: number): 1 | 2 | 3 | 4 {
+  if (value <= 1) return 1;
+  if (value >= 4) return 4;
+  return Math.round(value) as 1 | 2 | 3 | 4;
+}
+
 export const useSettingsStore = create<SettingsState>()(
   devtools(
     persist(
@@ -97,27 +108,59 @@ export const useSettingsStore = create<SettingsState>()(
               ...state.notifications,
               mealReminders: {
                 ...state.notifications.mealReminders,
-                ...updates,
+                ...(updates.breakfastTime && isValidTimeString(updates.breakfastTime)
+                  ? { breakfastTime: updates.breakfastTime }
+                  : {}),
+                ...(updates.lunchTime && isValidTimeString(updates.lunchTime)
+                  ? { lunchTime: updates.lunchTime }
+                  : {}),
+                ...(updates.dinnerTime && isValidTimeString(updates.dinnerTime)
+                  ? { dinnerTime: updates.dinnerTime }
+                  : {}),
+                ...(typeof updates.enabled === 'boolean' ? { enabled: updates.enabled } : {}),
               },
             },
           })),
         updateWaterReminder: (updates) =>
-          set((state) => ({
-            notifications: {
-              ...state.notifications,
-              waterReminder: {
-                ...state.notifications.waterReminder,
-                ...updates,
+          set((state) => {
+            const current = state.notifications.waterReminder;
+            const nextStartTime =
+              updates.startTime && isValidTimeString(updates.startTime) ? updates.startTime : current.startTime;
+            const nextEndTime =
+              updates.endTime && isValidTimeString(updates.endTime) ? updates.endTime : current.endTime;
+
+            if (nextStartTime >= nextEndTime) {
+              return state;
+            }
+
+            return {
+              notifications: {
+                ...state.notifications,
+                waterReminder: {
+                  ...current,
+                  ...(updates.startTime && isValidTimeString(updates.startTime)
+                    ? { startTime: updates.startTime }
+                    : {}),
+                  ...(updates.endTime && isValidTimeString(updates.endTime)
+                    ? { endTime: updates.endTime }
+                    : {}),
+                  ...(typeof updates.intervalHours === 'number'
+                    ? { intervalHours: sanitizeWaterIntervalHours(updates.intervalHours) }
+                    : {}),
+                  ...(typeof updates.enabled === 'boolean' ? { enabled: updates.enabled } : {}),
+                },
               },
-            },
-          })),
+            };
+          }),
         updateWeightReminder: (updates) =>
           set((state) => ({
             notifications: {
               ...state.notifications,
               weightReminder: {
                 ...state.notifications.weightReminder,
-                ...updates,
+                ...(updates.time && isValidTimeString(updates.time) ? { time: updates.time } : {}),
+                ...(updates.day ? { day: updates.day } : {}),
+                ...(typeof updates.enabled === 'boolean' ? { enabled: updates.enabled } : {}),
               },
             },
           })),
@@ -127,7 +170,8 @@ export const useSettingsStore = create<SettingsState>()(
               ...state.notifications,
               aiCoachingReminder: {
                 ...state.notifications.aiCoachingReminder,
-                ...updates,
+                ...(updates.time && isValidTimeString(updates.time) ? { time: updates.time } : {}),
+                ...(typeof updates.enabled === 'boolean' ? { enabled: updates.enabled } : {}),
               },
             },
           })),

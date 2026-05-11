@@ -496,8 +496,9 @@ export default function ProfilePage() {
 
             <div className="space-y-4">
               <div>
-                <label className="mb-2 block text-sm font-semibold text-gray-700">사용자 명 수정</label>
+                <label htmlFor="profile-display-name" className="mb-2 block text-sm font-semibold text-gray-700">사용자 명 수정</label>
                 <input
+                  id="profile-display-name"
                   type="text"
                   maxLength={30}
                   value={editDisplayName}
