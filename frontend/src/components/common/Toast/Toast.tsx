@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { CircleX } from 'lucide-react';
 import { toast, Toaster } from 'sonner';
 
@@ -8,6 +9,29 @@ export interface ToastProps {
 }
 
 export function Toast(props: ToastProps) {
+  useEffect(() => {
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target;
+
+      if (!(target instanceof HTMLElement)) {
+        return;
+      }
+
+      const clickedInsideToast = target.closest('[data-sonner-toaster], [data-sonner-toast]');
+      if (clickedInsideToast) {
+        return;
+      }
+
+      toast.dismiss();
+    };
+
+    window.addEventListener('pointerdown', handlePointerDown, true);
+
+    return () => {
+      window.removeEventListener('pointerdown', handlePointerDown, true);
+    };
+  }, []);
+
   return (
     <Toaster
       closeButton={false}

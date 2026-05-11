@@ -25,6 +25,9 @@ export type StoredProfile = UserProfile & {
   goalCarbs?: number;
   goalProtein?: number;
   goalFat?: number;
+  displayName?: string | null;
+  hasCustomDisplayName?: boolean;
+  profileImageUrl?: string | null;
 };
 
 export const defaultProfile: StoredProfile = {
@@ -46,6 +49,9 @@ export const defaultProfile: StoredProfile = {
   lowSodium: false,
   lowSugar: false,
   maxCaloriesPerMeal: 600,
+  displayName: null,
+  hasCustomDisplayName: false,
+  profileImageUrl: null,
 };
 
 export const activityLabelMap: Record<ActivityLevel, string> = {
@@ -123,6 +129,9 @@ export function loadStoredProfile(): StoredProfile {
       lowSodium: parsed.lowSodium ?? defaultProfile.lowSodium,
       lowSugar: parsed.lowSugar ?? defaultProfile.lowSugar,
       maxCaloriesPerMeal: parsed.maxCaloriesPerMeal ?? defaultProfile.maxCaloriesPerMeal,
+      displayName: parsed.displayName ?? defaultProfile.displayName,
+      hasCustomDisplayName: parsed.hasCustomDisplayName ?? defaultProfile.hasCustomDisplayName,
+      profileImageUrl: parsed.profileImageUrl ?? defaultProfile.profileImageUrl,
     };
   } catch {
     return defaultProfile;
@@ -198,6 +207,9 @@ export function mergeBackendProfile({
     goalProtein: nutritionTargets?.target.protein ?? currentProfile.goalProtein,
     goalCarbs: nutritionTargets?.target.carbs ?? currentProfile.goalCarbs,
     goalFat: nutritionTargets?.target.fat ?? currentProfile.goalFat,
+    displayName: currentProfile.displayName,
+    hasCustomDisplayName: currentProfile.hasCustomDisplayName,
+    profileImageUrl: currentProfile.profileImageUrl,
   };
 }
 
