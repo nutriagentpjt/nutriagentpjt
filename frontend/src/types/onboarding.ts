@@ -5,6 +5,7 @@ export type HealthGoal =
   | 'LEAN_MASS_UP'
   | 'MAINTAIN'
   | 'GENERAL_HEALTH';
+export type OnboardingSaveHealthGoal = 'DIET' | 'BULK_UP' | 'LEAN_MASS_UP';
 export type ActivityLevel =
   | 'SEDENTARY'
   | 'LIGHTLY_ACTIVE'
@@ -79,6 +80,21 @@ export interface OnboardingRequest {
   gender: Gender;
   height: number;
   weight: number;
+  healthGoal: OnboardingSaveHealthGoal;
+  activityLevel: ActivityLevel;
+  exerciseFrequency: number;
+  exerciseTime?: ExerciseTime;
+  mealPattern: MealPattern;
+  preferredFoods: string[];
+  dislikedFoods: string[];
+  diseases: Disease[];
+}
+
+export interface OnboardingResponse {
+  age: number;
+  gender: Gender;
+  height: number;
+  weight: number;
   healthGoal: HealthGoal;
   activityLevel: ActivityLevel;
   exerciseFrequency: number;
@@ -91,9 +107,6 @@ export interface OnboardingRequest {
   dietStyles: DietStyle[];
   waterIntakeGoal: number;
   constraints: OnboardingConstraints;
-}
-
-export interface OnboardingResponse extends OnboardingRequest {
   completed?: boolean;
 }
 

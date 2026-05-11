@@ -14,9 +14,15 @@ import {
 } from 'lucide-react';
 import { ROUTES } from '@/constants/routes';
 import { useOnboarding, useSaveOnboarding } from '@/hooks';
-import { authService } from '@/services';
+import { authService, preferenceService, profileService } from '@/services';
 import { sessionService } from '@/services/sessionService';
 import { useAuthStore } from '@/store';
+import {
+  filterSupportedOnboardingDiseases,
+  getExerciseFrequencyFromActivityLevel,
+  getExerciseTimeFromActivityLevel,
+  getOnboardingSaveHealthGoal,
+} from '@/utils/onboardingContract';
 import { calculateBMR, calculateTDEE } from '@/utils/tdeeCalculator';
 import {
   ONBOARDING_DRAFT_KEY,
@@ -32,9 +38,7 @@ import type {
   ActivityLevel,
   DietStyle,
   Disease,
-  ExerciseTime,
   Gender,
-  HealthGoal,
   MealPattern,
 } from '@/types/onboarding';
 
@@ -116,43 +120,6 @@ const getMealPattern = (mealsPerDay: number): MealPattern => {
   }
 };
 
-const getExerciseFrequencyFromActivityLevel = (activityLevel: ActivityLevel): number => {
-  switch (activityLevel) {
-    case 'SEDENTARY':
-      return 1;
-    case 'LIGHTLY_ACTIVE':
-      return 2;
-    case 'MODERATELY_ACTIVE':
-      return 4;
-    case 'VERY_ACTIVE':
-      return 6;
-    default:
-      return 3;
-  }
-};
-
-const getExerciseTimeFromActivityLevel = (): ExerciseTime => 'EVENING';
-
-const getHealthGoal = (
-  goalCalories: number,
-  calculatedTDEE: number,
-  selectedDietStyle: DietStyle | null,
-): HealthGoal => {
-  if (selectedDietStyle === 'HIGH_PROTEIN') {
-    return 'LEAN_MASS_UP';
-  }
-
-  if (goalCalories <= calculatedTDEE - 100) {
-    return 'DIET';
-  }
-
-  if (goalCalories >= calculatedTDEE + 100) {
-    return 'BULK_UP';
-  }
-
-  return 'MAINTAIN';
-};
-
 const mealPatternOptions = [
   { value: 2, label: '2끼' },
   { value: 3, label: '3끼' },
@@ -215,6 +182,30 @@ function getHydratedTDEE({
   }
 
   return calculateTDEE(calculateBMR(gender, weight, height, age), activityLevel);
+}
+
+function getBackendErrorMessage(error: unknown) {
+  if (
+    typeof error === 'object' &&
+    error &&
+    'data' in error &&
+    typeof error.data === 'object' &&
+    error.data &&
+    'error' in error.data &&
+    typeof error.data.error === 'string'
+  ) {
+    return error.data.error;
+  }
+
+  return null;
+}
+
+function isDuplicateUserProfileError(message: string | null) {
+  if (!message) {
+    return false;
+  }
+
+  return message.includes('duplicate key value') && message.includes('user_profiles');
 }
 
 interface OnboardingFlowProps {
@@ -521,30 +512,88 @@ export default function OnboardingFlow({ fallbackStep }: OnboardingFlowProps) {
         gender: localProfile.gender,
         height: localProfile.height,
         weight: localProfile.weight,
-        healthGoal: getHealthGoal(goalCalories, calculatedTDEE, selectedDietStyle),
+        healthGoal: getOnboardingSaveHealthGoal({
+          goalCalories,
+          calculatedTDEE,
+          selectedDietStyle,
+        }),
         activityLevel: localProfile.activityLevel,
         exerciseFrequency: getExerciseFrequencyFromActivityLevel(localProfile.activityLevel),
         exerciseTime: getExerciseTimeFromActivityLevel(),
         mealPattern: getMealPattern(localProfile.mealsPerDay),
         preferredFoods: [],
         dislikedFoods: [],
-        allergies: localProfile.allergies,
-        diseases: localProfile.diseases,
-        dietStyles: localProfile.dietStyles,
-        waterIntakeGoal: localProfile.waterGoal,
-        constraints: {
-          lowSodium: localProfile.lowSodium,
-          lowSugar: localProfile.lowSugar,
-          maxCaloriesPerMeal: Math.max(1, localProfile.maxCaloriesPerMeal),
-        },
+        diseases: filterSupportedOnboardingDiseases(localProfile.diseases),
       },
     };
 
+    const persistSupplementalOnboardingData = async () => {
+      await Promise.all([
+        profileService.updateProfile({
+          age: localProfile.age,
+          gender: localProfile.gender,
+          height: localProfile.height,
+          weight: localProfile.weight,
+          healthGoal: getOnboardingSaveHealthGoal({
+            goalCalories,
+            calculatedTDEE,
+            selectedDietStyle,
+          }),
+          activityLevel: localProfile.activityLevel,
+          exerciseFrequency: getExerciseFrequencyFromActivityLevel(localProfile.activityLevel),
+          exerciseTime: getExerciseTimeFromActivityLevel(),
+          diseases: filterSupportedOnboardingDiseases(localProfile.diseases),
+        }),
+        preferenceService.updatePreferences({
+          mealPattern: getMealPattern(localProfile.mealsPerDay),
+          allergies: localProfile.allergies,
+          dietStyles: localProfile.dietStyles,
+          waterIntakeGoal: localProfile.waterGoal,
+          constraints: {
+            lowSodium: localProfile.lowSodium,
+            lowSugar: localProfile.lowSugar,
+            maxCaloriesPerMeal: Math.max(1, localProfile.maxCaloriesPerMeal),
+          },
+        }),
+        profileService.updateNutritionTargets({
+          calories: localProfile.goalCalories,
+          carbs: localProfile.goalCarbs,
+          protein: localProfile.goalProtein,
+          fat: localProfile.goalFat,
+        }),
+      ]);
+    };
+
     try {
+      const ensuredGuestId = await sessionService.ensureSession();
+      setGuestSession(ensuredGuestId);
+
       await saveOnboardingMutation.mutateAsync(onboardingPayload);
-    } catch {
-      showToast.error('온보딩 정보를 서버에 저장하지 못했어요.\n잠시 후 다시 시도해주세요.');
-      return;
+      await persistSupplementalOnboardingData();
+    } catch (error) {
+      const backendMessage = getBackendErrorMessage(error);
+
+      if (isDuplicateUserProfileError(backendMessage)) {
+        try {
+          await persistSupplementalOnboardingData();
+        } catch (fallbackError) {
+          const fallbackMessage = getBackendErrorMessage(fallbackError);
+
+          showToast.error(
+            fallbackMessage
+              ? `온보딩 정보를 저장하지 못했어요.\n${fallbackMessage}`
+              : '온보딩 정보를 서버에 저장하지 못했어요.\n잠시 후 다시 시도해주세요.',
+          );
+          return;
+        }
+      } else {
+        showToast.error(
+          backendMessage
+            ? `온보딩 정보를 저장하지 못했어요.\n${backendMessage}`
+            : '온보딩 정보를 서버에 저장하지 못했어요.\n잠시 후 다시 시도해주세요.',
+        );
+        return;
+      }
     }
 
     completeOnboarding(localProfile);
@@ -815,19 +864,19 @@ export default function OnboardingFlow({ fallbackStep }: OnboardingFlowProps) {
                       <p className="text-xs text-gray-500">현재 습관에 맞게 설정하세요</p>
                     </div>
                   </div>
-                  <div className="grid grid-cols-4 gap-2">
+                  <div className="grid grid-cols-4 gap-1.5">
                     {mealPatternOptions.map((option) => (
                       <button
                         key={option.value}
                         type="button"
                         onClick={() => setMealsPerDay(option.value)}
-                        className={`min-touch rounded-xl border-2 px-3 py-3 text-sm font-semibold transition-all ${
+                        className={`min-touch min-w-0 rounded-xl border-2 px-2 py-3 text-sm font-semibold transition-all ${
                           mealsPerDay === option.value
                             ? 'border-green-500 bg-green-50 text-green-700'
                             : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
                         }`}
                       >
-                        <span className="text-xs leading-none whitespace-nowrap">{option.label}</span>
+                        <span className="block text-center text-[11px] leading-tight break-keep">{option.label}</span>
                       </button>
                     ))}
                   </div>

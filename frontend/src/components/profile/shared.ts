@@ -6,6 +6,12 @@ import type {
   OnboardingRequest,
   UserProfile,
 } from '@/types/onboarding';
+import {
+  filterSupportedOnboardingDiseases,
+  getExerciseFrequencyFromActivityLevel,
+  getExerciseTimeFromActivityLevel,
+  getOnboardingSaveHealthGoal,
+} from '@/utils/onboardingContract';
 import type {
   NutritionTargetResponse,
   PreferenceResponse,
@@ -201,16 +207,19 @@ export function buildOnboardingPayload(profile: StoredProfile): OnboardingReques
     gender: profile.gender ?? defaultProfile.gender,
     height: profile.height ?? defaultProfile.height,
     weight: profile.weight ?? defaultProfile.weight,
+    healthGoal: getOnboardingSaveHealthGoal({
+      goalCalories: profile.goalCalories ?? defaultProfile.goalCalories ?? 2000,
+      calculatedTDEE: profile.tdee ?? defaultProfile.tdee,
+      selectedDietStyle: profile.dietStyles?.[0] ?? null,
+    }),
     activityLevel: profile.activityLevel ?? defaultProfile.activityLevel,
+    exerciseFrequency: getExerciseFrequencyFromActivityLevel(
+      profile.activityLevel ?? defaultProfile.activityLevel,
+    ),
+    exerciseTime: getExerciseTimeFromActivityLevel(),
     mealPattern: getMealPatternFromMealsPerDay(profile.mealsPerDay),
-    allergies: profile.allergies ?? [],
-    diseases: profile.diseases ?? [],
-    dietStyles: profile.dietStyles ?? [],
-    waterIntakeGoal: profile.waterGoal ?? defaultProfile.waterGoal ?? 2,
-    constraints: {
-      lowSodium: profile.lowSodium ?? false,
-      lowSugar: profile.lowSugar ?? false,
-      maxCaloriesPerMeal: profile.maxCaloriesPerMeal ?? defaultProfile.maxCaloriesPerMeal ?? 600,
-    },
+    preferredFoods: [],
+    dislikedFoods: [],
+    diseases: filterSupportedOnboardingDiseases(profile.diseases ?? []),
   };
 }
