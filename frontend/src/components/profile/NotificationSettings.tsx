@@ -1,5 +1,5 @@
 import { ChevronLeft } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Switch } from '@/components/ui/switch';
 import { showToast } from '@/components/common/Toast/Toast';
 import { useSettingsStore } from '@/store';
@@ -33,16 +33,31 @@ function SettingSection({
   disabled: boolean;
   children?: ReactNode;
 }) {
+  const isSectionEnabled = !disabled && enabled;
+
   return (
     <section className={`rounded-2xl border border-gray-200 bg-white p-4 shadow-sm transition-opacity ${disabled ? 'opacity-60' : ''}`}>
       <div className="flex items-start justify-between gap-4">
         <div>
           <h2 className="text-sm font-bold text-gray-900">{title}</h2>
         </div>
-        <Switch checked={enabled} disabled={disabled} onCheckedChange={onEnabledChange} aria-label={`${title} 켜기/끄기`} />
+        <Switch
+          checked={isSectionEnabled}
+          disabled={disabled}
+          onCheckedChange={onEnabledChange}
+          aria-label={`${title} 켜기/끄기`}
+        />
       </div>
 
-      {enabled ? <div className="mt-4 space-y-3">{children}</div> : null}
+      <div
+        className={`grid transition-all duration-300 ease-out ${
+          isSectionEnabled ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'
+        }`}
+      >
+        <div className="overflow-hidden">
+          <div className={`space-y-3 ${isSectionEnabled ? 'mt-4' : 'mt-0'}`}>{children}</div>
+        </div>
+      </div>
     </section>
   );
 }
@@ -58,17 +73,45 @@ function TimeField({
   onChange: (value: string) => void;
   disabled?: boolean;
 }) {
+  const inputId = useId();
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const handleOpenPicker = () => {
+    if (disabled) {
+      return;
+    }
+
+    const input = inputRef.current;
+    if (!input) {
+      return;
+    }
+
+    if (typeof input.showPicker === 'function') {
+      input.showPicker();
+      return;
+    }
+
+    input.focus();
+    input.click();
+  };
+
   return (
-    <label className="block">
-      <span className="mb-2 block text-xs font-semibold text-gray-600">{label}</span>
+    <div className="block">
+      <label htmlFor={inputId} className="mb-2 block text-xs font-semibold text-gray-600">
+        {label}
+      </label>
+      <div onClick={handleOpenPicker} className={disabled ? 'cursor-not-allowed' : 'cursor-pointer'}>
         <input
+          id={inputId}
+          ref={inputRef}
           type="time"
           value={value}
           disabled={disabled}
           onChange={(event) => onChange(event.target.value)}
-          className="w-full min-w-0 rounded-xl border border-gray-200 bg-gray-50 px-3 py-3 text-sm text-gray-900 transition-colors focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-500/40 disabled:cursor-not-allowed disabled:bg-gray-100"
+          className="w-full min-w-0 cursor-pointer rounded-xl border border-gray-200 bg-white px-3 py-3 text-sm text-gray-900 transition-colors focus:border-gray-300 focus:outline-none focus:ring-0 disabled:cursor-not-allowed disabled:bg-gray-100"
         />
-    </label>
+      </div>
+    </div>
   );
 }
 
@@ -154,6 +197,20 @@ export default function NotificationSettings({ onClose }: NotificationSettingsPr
       aria-labelledby="notification-settings-title"
     >
       <div className="relative flex h-full w-full flex-col bg-white sm:max-w-[390px] sm:shadow-2xl">
+        <div
+          className={`pointer-events-none absolute left-1/2 z-10 w-[calc(100%-2.5rem)] max-w-[320px] -translate-x-1/2 transition-all duration-200 ${
+            feedbackMessage
+              ? 'translate-y-0 opacity-100'
+              : 'translate-y-2 opacity-0'
+          }`}
+          style={{ bottom: 'calc(1.5rem + env(safe-area-inset-bottom))' }}
+          aria-live="polite"
+        >
+          <div className="rounded-2xl border border-green-200 bg-white/95 px-4 py-3 text-xs font-semibold text-green-700 shadow-lg backdrop-blur-sm">
+            {feedbackMessage}
+          </div>
+        </div>
+
         <div className="flex-shrink-0 border-b border-gray-200 bg-white">
           <div className="flex items-center justify-between px-5 py-4">
             <button
@@ -174,13 +231,7 @@ export default function NotificationSettings({ onClose }: NotificationSettingsPr
 
         <div className="flex-1 overflow-y-auto bg-gray-50 px-5 py-4">
           <div className="space-y-3">
-            {feedbackMessage ? (
-              <div className="rounded-2xl border border-green-200 bg-green-50 px-4 py-3 text-xs font-semibold text-green-700">
-                {feedbackMessage}
-              </div>
-            ) : null}
-
-            <section className="rounded-2xl border border-green-200 bg-white p-4 shadow-sm">
+            <section className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <h2 className="text-sm font-bold text-gray-900">전체 알림</h2>
@@ -274,7 +325,7 @@ export default function NotificationSettings({ onClose }: NotificationSettingsPr
                     updateWaterReminder({ intervalHours: Number.parseInt(event.target.value, 10) as 1 | 2 | 3 | 4 });
                     showSavedFeedback('물 알림 간격이 저장되었어요.');
                   }}
-                  className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-3 text-sm text-gray-900 transition-colors focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-500/40 disabled:cursor-not-allowed disabled:bg-gray-100"
+                  className="w-full rounded-xl border border-gray-200 bg-white px-3 py-3 text-sm text-gray-900 transition-colors focus:border-gray-300 focus:outline-none focus:ring-0 disabled:cursor-not-allowed disabled:bg-gray-100"
                 >
                   {waterIntervalOptions.map((hours) => (
                     <option key={hours} value={hours}>
@@ -304,7 +355,7 @@ export default function NotificationSettings({ onClose }: NotificationSettingsPr
                       updateWeightReminder({ day: event.target.value as WeeklyReminderDay });
                       showSavedFeedback('체중 기록 알림 요일이 저장되었어요.');
                     }}
-                    className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-3 text-sm text-gray-900 transition-colors focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-500/40 disabled:cursor-not-allowed disabled:bg-gray-100"
+                    className="w-full rounded-xl border border-gray-200 bg-white px-3 py-3 text-sm text-gray-900 transition-colors focus:border-gray-300 focus:outline-none focus:ring-0 disabled:cursor-not-allowed disabled:bg-gray-100"
                   >
                     {Object.entries(weeklyDayLabelMap).map(([value, label]) => (
                       <option key={value} value={value}>

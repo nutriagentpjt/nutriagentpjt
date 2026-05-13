@@ -76,6 +76,9 @@ export default function HomePage() {
   const [healthModalType, setHealthModalType] = useState<'weight' | 'water' | null>(null);
   const [editingWeight, setEditingWeight] = useState("");
   const [editingWater, setEditingWater] = useState("");
+  const weightAdjustIntervalRef = useRef<number | null>(null);
+  const weightAdjustTimeoutRef = useRef<number | null>(null);
+  const activeWeightAdjustDirectionRef = useRef<number | null>(null);
 
   const sanitizeLegacyMeals = (rawMealsByDate: { [key: string]: any[] }) => {
     const dates = Object.keys(rawMealsByDate);
@@ -847,6 +850,61 @@ export default function HomePage() {
     setHealthModalType(null);
   };
 
+  const adjustWeightInput = (delta: number) => {
+    setEditingWeight((prev) => {
+      const current = parseFloat(prev);
+      const nextValue = Number.isFinite(current) ? current + delta : delta > 0 ? delta : 0;
+      const clampedValue = Math.min(499.9, Math.max(0, nextValue));
+      return clampedValue.toFixed(1);
+    });
+  };
+
+  const adjustWaterInput = (delta: number) => {
+    setEditingWater((prev) => {
+      const current = parseFloat(prev);
+      const nextValue = Number.isFinite(current) ? current + delta : delta > 0 ? delta : 0;
+      const clampedValue = Math.min(19.95, Math.max(0, nextValue));
+      return clampedValue.toFixed(2);
+    });
+  };
+
+  const stopWeightAdjustment = () => {
+    activeWeightAdjustDirectionRef.current = null;
+
+    if (weightAdjustTimeoutRef.current !== null) {
+      window.clearTimeout(weightAdjustTimeoutRef.current);
+      weightAdjustTimeoutRef.current = null;
+    }
+
+    if (weightAdjustIntervalRef.current !== null) {
+      window.clearInterval(weightAdjustIntervalRef.current);
+      weightAdjustIntervalRef.current = null;
+    }
+  };
+
+  const startWeightAdjustment = (delta: number) => {
+    if (activeWeightAdjustDirectionRef.current === delta) {
+      return;
+    }
+
+    activeWeightAdjustDirectionRef.current = delta;
+    adjustWeightInput(delta);
+    stopWeightAdjustment();
+    activeWeightAdjustDirectionRef.current = delta;
+
+    weightAdjustTimeoutRef.current = window.setTimeout(() => {
+      weightAdjustIntervalRef.current = window.setInterval(() => {
+        adjustWeightInput(delta);
+      }, 120);
+    }, 350);
+  };
+
+  useEffect(() => {
+    return () => {
+      stopWeightAdjustment();
+    };
+  }, []);
+
   // 갤러리 이미지 데이터
   const galleryImages = [
     { id: 1, url: "https://images.unsplash.com/photo-1759150595639-d128196ab6b3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxrb3JlYW4lMjBmb29kJTIwZGlzaCUyMHBsYXRlfGVufDF8fHx8MTc2OTU0MzIxM3ww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral" },
@@ -1355,11 +1413,43 @@ export default function HomePage() {
                     value={editingWeight}
                     onChange={(e) => setEditingWeight(e.target.value)}
                     placeholder="예: 70.5"
-                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500/50 focus:border-green-500"
+                    className="w-full appearance-none px-4 py-3 bg-white border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500/50 focus:border-green-500 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                   />
                   <div className="absolute right-4 top-1/2 -translate-y-1/2">
                     <Scale className="w-4 h-4 text-gray-400" />
                   </div>
+                </div>
+                <div className="mt-3 grid grid-cols-2 gap-2.5">
+                  <button
+                    type="button"
+                    onMouseDown={() => startWeightAdjustment(-0.1)}
+                    onMouseUp={stopWeightAdjustment}
+                    onMouseLeave={stopWeightAdjustment}
+                    onTouchStart={() => startWeightAdjustment(-0.1)}
+                    onTouchEnd={stopWeightAdjustment}
+                    onTouchCancel={stopWeightAdjustment}
+                    onContextMenu={(event) => event.preventDefault()}
+                    className="rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50 active:bg-gray-100"
+                  >
+                    - 0.1kg
+                  </button>
+                  <button
+                    type="button"
+                    onMouseDown={() => startWeightAdjustment(0.1)}
+                    onMouseUp={stopWeightAdjustment}
+                    onMouseLeave={stopWeightAdjustment}
+                    onTouchStart={() => startWeightAdjustment(0.1)}
+                    onTouchEnd={stopWeightAdjustment}
+                    onTouchCancel={stopWeightAdjustment}
+                    onContextMenu={(event) => event.preventDefault()}
+                    className="rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50 active:bg-gray-100"
+                  >
+                    + 0.1kg
+                  </button>
+                </div>
+                <div className="mt-2 flex items-center gap-1.5 text-xs leading-5 text-gray-500">
+                  <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                  <span>버튼을 길게 눌러 조작할 수 있어요.</span>
                 </div>
               </div>
             ) : (
@@ -1374,21 +1464,32 @@ export default function HomePage() {
                     value={editingWater}
                     onChange={(e) => setEditingWater(e.target.value)}
                     placeholder="예: 2.0"
-                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500/50 focus:border-green-500"
+                    className="w-full appearance-none px-4 py-3 bg-white border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500/50 focus:border-green-500 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                   />
                   <div className="absolute right-4 top-1/2 -translate-y-1/2">
                     <Droplet className="w-4 h-4 text-gray-400" />
                   </div>
                 </div>
-                <button
-                  onClick={() => {
-                    const current = parseFloat(editingWater) || 0;
-                    setEditingWater((current + 0.25).toFixed(2));
-                  }}
-                  className="mt-2 text-xs text-green-600 hover:text-green-700 font-medium"
-                >
-                  + 한잔 추가 (250ml)
-                </button>
+                <div className="mt-3 grid grid-cols-2 gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => adjustWaterInput(-0.25)}
+                    className="rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50 active:bg-gray-100"
+                  >
+                    - 250ml
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => adjustWaterInput(0.25)}
+                    className="rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm font-semibold text-green-600 transition-colors hover:bg-green-50 active:bg-green-100"
+                  >
+                    + 250ml
+                  </button>
+                </div>
+                <div className="mt-2 flex items-center gap-1.5 text-xs leading-5 text-gray-500">
+                  <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                  <span>물 한 잔 기준은 250ml예요.</span>
+                </div>
               </div>
             )}
 
