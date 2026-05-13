@@ -37,6 +37,7 @@ export default function ProfilePage() {
   const [showEditGoals, setShowEditGoals] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showNotificationSettings, setShowNotificationSettings] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   const [editWeight, setEditWeight] = useState(profile.weight?.toString() || '');
   const [editHeight, setEditHeight] = useState(profile.height?.toString() || '');
@@ -287,14 +288,20 @@ export default function ProfilePage() {
   };
 
   const handleLogout = () => {
-    if (window.confirm('로그아웃 하시겠습니까?')) {
+    setShowLogoutConfirm(true);
+  };
+
+  const confirmLogout = () => {
+    try {
       authService.clearAuthenticatedSession();
+    } finally {
       clearAuth();
       window.localStorage.removeItem('onboardingComplete');
       window.localStorage.removeItem('userProfile');
       window.localStorage.removeItem('onboardingDraft');
       window.localStorage.removeItem('onboardingCurrentStep');
       window.localStorage.removeItem(GUEST_ID_STORAGE_KEY);
+      setShowLogoutConfirm(false);
       navigate(ROUTES.ONBOARDING_WELCOME, { replace: true });
     }
   };
@@ -503,7 +510,7 @@ export default function ProfilePage() {
                   maxLength={30}
                   value={editDisplayName}
                   onChange={(event) => setEditDisplayName(event.target.value)}
-                  className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-gray-900 transition-all focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-500/50"
+                  className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-gray-900 transition-all focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-500/50"
                   placeholder={authenticatedUser?.name || '예: 홍길동'}
                 />
               </div>
@@ -517,7 +524,7 @@ export default function ProfilePage() {
                   step="1"
                   value={editAge}
                   onChange={(event) => setEditAge(event.target.value)}
-                  className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-gray-900 transition-all focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-500/50"
+                  className="w-full appearance-none rounded-xl border border-gray-200 bg-white px-4 py-3 text-gray-900 transition-all focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-500/50 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                   placeholder="예: 25"
                 />
               </div>
@@ -531,7 +538,7 @@ export default function ProfilePage() {
                   step="0.1"
                   value={editWeight}
                   onChange={(event) => setEditWeight(event.target.value)}
-                  className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-gray-900 transition-all focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-500/50"
+                  className="w-full appearance-none rounded-xl border border-gray-200 bg-white px-4 py-3 text-gray-900 transition-all focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-500/50 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                   placeholder="예: 70.5"
                 />
               </div>
@@ -545,7 +552,7 @@ export default function ProfilePage() {
                   step="0.1"
                   value={editHeight}
                   onChange={(event) => setEditHeight(event.target.value)}
-                  className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-gray-900 transition-all focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-500/50"
+                  className="w-full appearance-none rounded-xl border border-gray-200 bg-white px-4 py-3 text-gray-900 transition-all focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-500/50 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                   placeholder="예: 175"
                 />
               </div>
@@ -608,7 +615,7 @@ export default function ProfilePage() {
                   step="1"
                   value={editGoalCalories}
                   onChange={(event) => setEditGoalCalories(Number.parseInt(event.target.value, 10) || 0)}
-                  className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-gray-900 transition-all focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-500/50"
+                  className="w-full appearance-none rounded-xl border border-gray-200 bg-white px-4 py-3 text-gray-900 transition-all focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-500/50 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                   placeholder="예: 2000"
                 />
               </div>
@@ -759,6 +766,39 @@ export default function ProfilePage() {
                 className="flex-1 rounded-xl bg-green-500 px-4 py-3 font-semibold text-white transition-colors hover:bg-green-600 active:bg-green-700"
               >
                 저장
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {showLogoutConfirm ? (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 px-5">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="logout-confirm-title"
+            className="w-full max-w-[340px] rounded-2xl bg-white p-6 shadow-xl"
+          >
+            <h3 id="logout-confirm-title" className="text-lg font-bold text-gray-900">
+              로그아웃
+            </h3>
+            <p className="mt-2 text-sm leading-6 text-gray-600">로그아웃 하시겠습니까?</p>
+
+            <div className="mt-6 flex gap-2.5">
+              <button
+                type="button"
+                onClick={() => setShowLogoutConfirm(false)}
+                className="flex-1 rounded-xl bg-gray-100 px-4 py-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-200 active:bg-gray-300"
+              >
+                취소
+              </button>
+              <button
+                type="button"
+                onClick={confirmLogout}
+                className="flex-1 rounded-xl bg-red-500 px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-red-600 active:bg-red-700"
+              >
+                로그아웃
               </button>
             </div>
           </div>
