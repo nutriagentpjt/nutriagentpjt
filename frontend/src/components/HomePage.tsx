@@ -1422,6 +1422,7 @@ export default function HomePage() {
                 <div className="mt-3 grid grid-cols-2 gap-2.5">
                   <button
                     type="button"
+                    onClick={() => adjustWeightInput(-0.1)}
                     onMouseDown={() => startWeightAdjustment(-0.1)}
                     onMouseUp={stopWeightAdjustment}
                     onMouseLeave={stopWeightAdjustment}
@@ -1435,6 +1436,7 @@ export default function HomePage() {
                   </button>
                   <button
                     type="button"
+                    onClick={() => adjustWeightInput(0.1)}
                     onMouseDown={() => startWeightAdjustment(0.1)}
                     onMouseUp={stopWeightAdjustment}
                     onMouseLeave={stopWeightAdjustment}

@@ -292,15 +292,18 @@ export default function ProfilePage() {
   };
 
   const confirmLogout = () => {
-    authService.clearAuthenticatedSession();
-    clearAuth();
-    window.localStorage.removeItem('onboardingComplete');
-    window.localStorage.removeItem('userProfile');
-    window.localStorage.removeItem('onboardingDraft');
-    window.localStorage.removeItem('onboardingCurrentStep');
-    window.localStorage.removeItem(GUEST_ID_STORAGE_KEY);
-    setShowLogoutConfirm(false);
-    navigate(ROUTES.ONBOARDING_WELCOME, { replace: true });
+    try {
+      authService.clearAuthenticatedSession();
+    } finally {
+      clearAuth();
+      window.localStorage.removeItem('onboardingComplete');
+      window.localStorage.removeItem('userProfile');
+      window.localStorage.removeItem('onboardingDraft');
+      window.localStorage.removeItem('onboardingCurrentStep');
+      window.localStorage.removeItem(GUEST_ID_STORAGE_KEY);
+      setShowLogoutConfirm(false);
+      navigate(ROUTES.ONBOARDING_WELCOME, { replace: true });
+    }
   };
 
   return (

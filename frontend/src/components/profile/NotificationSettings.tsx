@@ -50,6 +50,7 @@ function SettingSection({
       </div>
 
       <div
+        aria-hidden={!isSectionEnabled}
         className={`grid transition-all duration-300 ease-out ${
           isSectionEnabled ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'
         }`}
@@ -108,7 +109,7 @@ function TimeField({
           value={value}
           disabled={disabled}
           onChange={(event) => onChange(event.target.value)}
-          className="w-full min-w-0 cursor-pointer rounded-xl border border-gray-200 bg-white px-3 py-3 text-sm text-gray-900 transition-colors focus:border-gray-300 focus:outline-none focus:ring-0 disabled:cursor-not-allowed disabled:bg-gray-100"
+          className="w-full min-w-0 cursor-pointer rounded-xl border border-gray-200 bg-white px-3 py-3 text-sm text-gray-900 transition-colors focus:border-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-300/70 disabled:cursor-not-allowed disabled:bg-gray-100"
         />
       </div>
     </div>
@@ -267,7 +268,7 @@ export default function NotificationSettings({ onClose }: NotificationSettingsPr
                     updateMealReminders({ breakfastTime: value });
                     showSavedFeedback('식사 알림 시간이 저장되었어요.');
                   }}
-                  disabled={isNotificationsDisabled}
+                  disabled={isNotificationsDisabled || !notifications.mealReminders.enabled}
                 />
                 <TimeField
                   label="점심"
@@ -276,7 +277,7 @@ export default function NotificationSettings({ onClose }: NotificationSettingsPr
                     updateMealReminders({ lunchTime: value });
                     showSavedFeedback('식사 알림 시간이 저장되었어요.');
                   }}
-                  disabled={isNotificationsDisabled}
+                  disabled={isNotificationsDisabled || !notifications.mealReminders.enabled}
                 />
                 <TimeField
                   label="저녁"
@@ -285,7 +286,7 @@ export default function NotificationSettings({ onClose }: NotificationSettingsPr
                     updateMealReminders({ dinnerTime: value });
                     showSavedFeedback('식사 알림 시간이 저장되었어요.');
                   }}
-                  disabled={isNotificationsDisabled}
+                  disabled={isNotificationsDisabled || !notifications.mealReminders.enabled}
                 />
               </div>
             </SettingSection>
@@ -304,13 +305,13 @@ export default function NotificationSettings({ onClose }: NotificationSettingsPr
                   label="시작 시간"
                   value={notifications.waterReminder.startTime}
                   onChange={(value) => handleWaterTimeChange('startTime', value)}
-                  disabled={isNotificationsDisabled}
+                  disabled={isNotificationsDisabled || !notifications.waterReminder.enabled}
                 />
                 <TimeField
                   label="종료 시간"
                   value={notifications.waterReminder.endTime}
                   onChange={(value) => handleWaterTimeChange('endTime', value)}
-                  disabled={isNotificationsDisabled}
+                  disabled={isNotificationsDisabled || !notifications.waterReminder.enabled}
                 />
               </div>
               {waterTimeError ? (
@@ -320,12 +321,12 @@ export default function NotificationSettings({ onClose }: NotificationSettingsPr
                 <span className="mb-2 block text-xs font-semibold text-gray-600">알림 간격</span>
                 <select
                   value={notifications.waterReminder.intervalHours}
-                  disabled={isNotificationsDisabled}
+                  disabled={isNotificationsDisabled || !notifications.waterReminder.enabled}
                   onChange={(event) => {
                     updateWaterReminder({ intervalHours: Number.parseInt(event.target.value, 10) as 1 | 2 | 3 | 4 });
                     showSavedFeedback('물 알림 간격이 저장되었어요.');
                   }}
-                  className="w-full rounded-xl border border-gray-200 bg-white px-3 py-3 text-sm text-gray-900 transition-colors focus:border-gray-300 focus:outline-none focus:ring-0 disabled:cursor-not-allowed disabled:bg-gray-100"
+                  className="w-full rounded-xl border border-gray-200 bg-white px-3 py-3 text-sm text-gray-900 transition-colors focus:border-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-300/70 disabled:cursor-not-allowed disabled:bg-gray-100"
                 >
                   {waterIntervalOptions.map((hours) => (
                     <option key={hours} value={hours}>
@@ -350,12 +351,12 @@ export default function NotificationSettings({ onClose }: NotificationSettingsPr
                   <span className="mb-2 block text-xs font-semibold text-gray-600">요일</span>
                   <select
                     value={notifications.weightReminder.day}
-                    disabled={isNotificationsDisabled}
+                    disabled={isNotificationsDisabled || !notifications.weightReminder.enabled}
                     onChange={(event) => {
                       updateWeightReminder({ day: event.target.value as WeeklyReminderDay });
                       showSavedFeedback('체중 기록 알림 요일이 저장되었어요.');
                     }}
-                    className="w-full rounded-xl border border-gray-200 bg-white px-3 py-3 text-sm text-gray-900 transition-colors focus:border-gray-300 focus:outline-none focus:ring-0 disabled:cursor-not-allowed disabled:bg-gray-100"
+                    className="w-full rounded-xl border border-gray-200 bg-white px-3 py-3 text-sm text-gray-900 transition-colors focus:border-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-300/70 disabled:cursor-not-allowed disabled:bg-gray-100"
                   >
                     {Object.entries(weeklyDayLabelMap).map(([value, label]) => (
                       <option key={value} value={value}>
@@ -371,7 +372,7 @@ export default function NotificationSettings({ onClose }: NotificationSettingsPr
                     updateWeightReminder({ time: value });
                     showSavedFeedback('체중 기록 알림 시간이 저장되었어요.');
                   }}
-                  disabled={isNotificationsDisabled}
+                  disabled={isNotificationsDisabled || !notifications.weightReminder.enabled}
                 />
               </div>
             </SettingSection>
@@ -392,7 +393,7 @@ export default function NotificationSettings({ onClose }: NotificationSettingsPr
                   updateAiCoachingReminder({ time: value });
                   showSavedFeedback('AI 코칭 알림 시간이 저장되었어요.');
                 }}
-                disabled={isNotificationsDisabled}
+                disabled={isNotificationsDisabled || !notifications.aiCoachingReminder.enabled}
               />
             </SettingSection>
           </div>
