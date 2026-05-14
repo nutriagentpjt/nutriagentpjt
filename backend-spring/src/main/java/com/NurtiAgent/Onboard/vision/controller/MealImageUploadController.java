@@ -90,8 +90,14 @@ public class MealImageUploadController {
         try {
             ResponseEntity<String> upstream = restTemplate.exchange(
                     url, HttpMethod.POST, requestEntity, String.class);
+            String responseBody = upstream.getBody();
+            if (responseBody == null || responseBody.isBlank()) {
+                log.error("Vision API 응답 본문이 비어있음");
+                return ResponseEntity.internalServerError()
+                        .body("{\"detail\":\"upstream 응답 본문이 비어있음\"}");
+            }
             VisionSearchResponse parsed = objectMapper.readValue(
-                    upstream.getBody(), VisionSearchResponse.class);
+                    responseBody, VisionSearchResponse.class);
             return ResponseEntity.ok(toMealImageUploadResponse(parsed));
         } catch (HttpStatusCodeException e) {
             return ResponseEntity.status(e.getStatusCode())

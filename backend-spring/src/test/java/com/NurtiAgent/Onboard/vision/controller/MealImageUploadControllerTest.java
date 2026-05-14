@@ -385,5 +385,31 @@ class MealImageUploadControllerTest {
                     .andExpect(status().isInternalServerError())
                     .andExpect(content().string(containsString("upstream 응답 파싱 실패")));
         }
+
+        @Test
+        @DisplayName("업스트림 응답 body가 null: 500 + detail 본문")
+        void upstreamBodyNull_returns500() throws Exception {
+            when(restTemplate.exchange(anyString(), eq(HttpMethod.POST), any(HttpEntity.class), eq(String.class)))
+                    .thenReturn(ResponseEntity.ok(null));
+
+            mockMvc.perform(multipart(ENDPOINT)
+                            .file(sampleImage())
+                            .session(authSession))
+                    .andExpect(status().isInternalServerError())
+                    .andExpect(content().string(containsString("upstream 응답 본문이 비어있음")));
+        }
+
+        @Test
+        @DisplayName("업스트림 응답 body가 빈 문자열: 500 + detail 본문")
+        void upstreamBodyBlank_returns500() throws Exception {
+            when(restTemplate.exchange(anyString(), eq(HttpMethod.POST), any(HttpEntity.class), eq(String.class)))
+                    .thenReturn(ResponseEntity.ok("   "));
+
+            mockMvc.perform(multipart(ENDPOINT)
+                            .file(sampleImage())
+                            .session(authSession))
+                    .andExpect(status().isInternalServerError())
+                    .andExpect(content().string(containsString("upstream 응답 본문이 비어있음")));
+        }
     }
 }
