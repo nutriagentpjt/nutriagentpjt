@@ -37,13 +37,14 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * VisionProxyController 슬라이스 테스트 (@WebMvcTest)
+ * MealImageUploadController 슬라이스 테스트 (@WebMvcTest)
  *
  * 테스트 대상:
- *   - POST /api/v1/vision/analyze  (multipart/form-data)
+ *   - POST /meals/upload/image  (multipart/form-data, field name "image")
  *
  * 검증 항목:
  *   - 세션 없으면 401
@@ -52,14 +53,16 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  *   - top_k, min_similarity 쿼리파라미터가 업스트림 URL에 반영
  *   - 업스트림 4xx/5xx 응답 시 status/body 그대로 반환
  *   - 업스트림 경로가 /v1/meals/upload/image 인지
+ *   - 업스트림 multipart 필드명은 "file"
+ *   - vision raw 응답을 FE 계약 MealImageUploadResponse 로 매핑
  */
-@WebMvcTest(VisionProxyController.class)
-@Import(VisionProxyControllerTest.MockConfig.class)
+@WebMvcTest(MealImageUploadController.class)
+@Import(MealImageUploadControllerTest.MockConfig.class)
 @TestPropertySource(properties = {
         "fastapi.vision.url=http://mock-vision:8001",
         "fastapi.internal-key=test-internal-key"
 })
-class VisionProxyControllerTest {
+class MealImageUploadControllerTest {
 
     @Autowired MockMvc mockMvc;
     @Autowired RestTemplate restTemplate;
@@ -67,6 +70,7 @@ class VisionProxyControllerTest {
     private static final String GUEST_ID = "guest_test-001";
     private static final String INTERNAL_KEY = "test-internal-key";
     private static final String VISION_BASE = "http://mock-vision:8001";
+    private static final String ENDPOINT = "/meals/upload/image";
 
     private MockHttpSession authSession;
 
@@ -88,43 +92,94 @@ class VisionProxyControllerTest {
 
     private MockMultipartFile sampleImage() {
         return new MockMultipartFile(
-                "file", "meal.jpg", MediaType.IMAGE_JPEG_VALUE, new byte[]{1, 2, 3, 4});
+                "image", "meal.jpg", MediaType.IMAGE_JPEG_VALUE, new byte[]{1, 2, 3, 4});
+    }
+
+    private static String matchedUpstreamBody() {
+        return "{"
+                + "\"matched\":true,"
+                + "\"prediction\":{\"top1_food_name\":\"김치찌개\",\"top1_similarity\":0.91},"
+                + "\"candidates\":["
+                + "  {\"rank\":1,\"food_id\":42,\"food_name\":\"김치찌개\",\"similarity\":0.91,"
+                + "   \"nutrition\":{\"serving_basis\":250.0,\"calories_kcal\":320.5,"
+                + "                  \"protein_g\":18.2,\"fat_g\":12.0,\"carbs_g\":24.0}}"
+                + "],"
+                + "\"top_k_used\":5,\"returned_candidates\":1,"
+                + "\"model_name\":\"dinov2\",\"distance_metric\":\"cosine\""
+                + "}";
+    }
+
+    private static String unmatchedUpstreamBody() {
+        return "{"
+                + "\"matched\":false,"
+                + "\"prediction\":null,"
+                + "\"candidates\":[],"
+                + "\"top_k_used\":5,\"returned_candidates\":0,"
+                + "\"model_name\":\"dinov2\",\"distance_metric\":\"cosine\""
+                + "}";
     }
 
     @Nested
-    @DisplayName("POST /api/v1/vision/analyze")
-    class Analyze {
+    @DisplayName("POST /meals/upload/image")
+    class Upload {
 
         @Test
         @DisplayName("세션 없음: 401 UNAUTHORIZED")
         void withoutSession_returns401() throws Exception {
-            mockMvc.perform(multipart("/api/v1/vision/analyze").file(sampleImage()))
+            mockMvc.perform(multipart(ENDPOINT).file(sampleImage()))
                     .andExpect(status().isUnauthorized());
 
             verify(restTemplate, never()).exchange(anyString(), any(), any(HttpEntity.class), eq(String.class));
         }
 
         @Test
-        @DisplayName("정상 요청: 업스트림 응답을 그대로 반환")
-        void normal_returnsUpstreamBody() throws Exception {
-            String upstreamBody = "{\"matched\":true,\"prediction\":{\"top1_food_name\":\"김치찌개\"}}";
+        @DisplayName("정상 응답: vision raw → MealImageUploadResponse 매핑")
+        void normal_mapsToMealImageUploadResponse() throws Exception {
             when(restTemplate.exchange(anyString(), eq(HttpMethod.POST), any(HttpEntity.class), eq(String.class)))
-                    .thenReturn(ResponseEntity.ok(upstreamBody));
+                    .thenReturn(ResponseEntity.ok(matchedUpstreamBody()));
 
-            mockMvc.perform(multipart("/api/v1/vision/analyze")
+            mockMvc.perform(multipart(ENDPOINT)
                             .file(sampleImage())
                             .session(authSession))
                     .andExpect(status().isOk())
-                    .andExpect(content().string(upstreamBody));
+                    .andExpect(jsonPath("$.confidence").value(0.91))
+                    .andExpect(jsonPath("$.message").doesNotExist())
+                    .andExpect(jsonPath("$.imageUrl").doesNotExist())
+                    .andExpect(jsonPath("$.recognizedFoods.length()").value(1))
+                    .andExpect(jsonPath("$.recognizedFoods[0].id").value(42))
+                    .andExpect(jsonPath("$.recognizedFoods[0].name").value("김치찌개"))
+                    .andExpect(jsonPath("$.recognizedFoods[0].confidence").value(0.91))
+                    .andExpect(jsonPath("$.recognizedFoods[0].calories").value(320.5))
+                    .andExpect(jsonPath("$.recognizedFoods[0].protein").value(18.2))
+                    .andExpect(jsonPath("$.recognizedFoods[0].fat").value(12.0))
+                    .andExpect(jsonPath("$.recognizedFoods[0].carbs").value(24.0))
+                    .andExpect(jsonPath("$.recognizedFoods[0].servingSize").value(250.0))
+                    .andExpect(jsonPath("$.recognizedFoods[0].brand").doesNotExist())
+                    .andExpect(jsonPath("$.recognizedFoods[0].servingUnit").doesNotExist());
+        }
+
+        @Test
+        @DisplayName("matched=false: message 채움, recognizedFoods 빈 배열")
+        void unmatched_setsMessageAndEmptyList() throws Exception {
+            when(restTemplate.exchange(anyString(), eq(HttpMethod.POST), any(HttpEntity.class), eq(String.class)))
+                    .thenReturn(ResponseEntity.ok(unmatchedUpstreamBody()));
+
+            mockMvc.perform(multipart(ENDPOINT)
+                            .file(sampleImage())
+                            .session(authSession))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.message").value("유사 항목 없음"))
+                    .andExpect(jsonPath("$.confidence").doesNotExist())
+                    .andExpect(jsonPath("$.recognizedFoods.length()").value(0));
         }
 
         @Test
         @DisplayName("X-Guest-Id, X-Internal-Key 헤더와 multipart 본문이 업스트림으로 전달")
         void headers_andBody_forwarded() throws Exception {
             when(restTemplate.exchange(anyString(), eq(HttpMethod.POST), any(HttpEntity.class), eq(String.class)))
-                    .thenReturn(ResponseEntity.ok("{\"matched\":false}"));
+                    .thenReturn(ResponseEntity.ok(unmatchedUpstreamBody()));
 
-            mockMvc.perform(multipart("/api/v1/vision/analyze")
+            mockMvc.perform(multipart(ENDPOINT)
                             .file(sampleImage())
                             .session(authSession))
                     .andExpect(status().isOk());
@@ -144,7 +199,9 @@ class VisionProxyControllerTest {
             @SuppressWarnings("unchecked")
             MultiValueMap<String, Object> form = (MultiValueMap<String, Object>) body;
             Object filePart = form.getFirst("file");
-            assertThat(filePart).isInstanceOf(HttpEntity.class);
+            assertThat(filePart)
+                    .as("업스트림에는 'file' 필드명으로 재포장")
+                    .isInstanceOf(HttpEntity.class);
             HttpEntity<?> filePartEntity = (HttpEntity<?>) filePart;
             assertThat(filePartEntity.getHeaders().getContentType())
                     .isEqualTo(MediaType.IMAGE_JPEG);
@@ -154,12 +211,12 @@ class VisionProxyControllerTest {
         @DisplayName("파일 Content-Type이 없으면 application/octet-stream 으로 전송")
         void filePart_defaultContentType_whenAbsent() throws Exception {
             when(restTemplate.exchange(anyString(), eq(HttpMethod.POST), any(HttpEntity.class), eq(String.class)))
-                    .thenReturn(ResponseEntity.ok("{}"));
+                    .thenReturn(ResponseEntity.ok(unmatchedUpstreamBody()));
 
             MockMultipartFile noTypeFile = new MockMultipartFile(
-                    "file", "raw.bin", null, new byte[]{9, 9, 9});
+                    "image", "raw.bin", null, new byte[]{9, 9, 9});
 
-            mockMvc.perform(multipart("/api/v1/vision/analyze")
+            mockMvc.perform(multipart(ENDPOINT)
                             .file(noTypeFile)
                             .session(authSession))
                     .andExpect(status().isOk());
@@ -179,14 +236,14 @@ class VisionProxyControllerTest {
         @DisplayName("파일 읽기 실패: 500 + detail 본문, 업스트림 호출 안 함")
         void fileReadError_returns500() throws Exception {
             MockMultipartFile failingFile = new MockMultipartFile(
-                    "file", "bad.jpg", MediaType.IMAGE_JPEG_VALUE, new byte[]{1, 2}) {
+                    "image", "bad.jpg", MediaType.IMAGE_JPEG_VALUE, new byte[]{1, 2}) {
                 @Override
                 public byte[] getBytes() throws java.io.IOException {
                     throw new java.io.IOException("simulated read failure");
                 }
             };
 
-            mockMvc.perform(multipart("/api/v1/vision/analyze")
+            mockMvc.perform(multipart(ENDPOINT)
                             .file(failingFile)
                             .session(authSession))
                     .andExpect(status().isInternalServerError())
@@ -199,9 +256,9 @@ class VisionProxyControllerTest {
         @DisplayName("X-Request-ID 헤더가 있으면 업스트림으로 forward")
         void requestId_forwarded() throws Exception {
             when(restTemplate.exchange(anyString(), eq(HttpMethod.POST), any(HttpEntity.class), eq(String.class)))
-                    .thenReturn(ResponseEntity.ok("{}"));
+                    .thenReturn(ResponseEntity.ok(unmatchedUpstreamBody()));
 
-            mockMvc.perform(multipart("/api/v1/vision/analyze")
+            mockMvc.perform(multipart(ENDPOINT)
                             .file(sampleImage())
                             .header("X-Request-ID", "req-abc-123")
                             .session(authSession))
@@ -218,9 +275,9 @@ class VisionProxyControllerTest {
         @DisplayName("X-Request-ID 헤더가 없으면 업스트림에 설정 안 됨")
         void requestId_absent_notForwarded() throws Exception {
             when(restTemplate.exchange(anyString(), eq(HttpMethod.POST), any(HttpEntity.class), eq(String.class)))
-                    .thenReturn(ResponseEntity.ok("{}"));
+                    .thenReturn(ResponseEntity.ok(unmatchedUpstreamBody()));
 
-            mockMvc.perform(multipart("/api/v1/vision/analyze")
+            mockMvc.perform(multipart(ENDPOINT)
                             .file(sampleImage())
                             .session(authSession))
                     .andExpect(status().isOk());
@@ -236,9 +293,9 @@ class VisionProxyControllerTest {
         @DisplayName("업스트림 URL이 /v1/meals/upload/image 로 라우팅")
         void upstream_path_isMealsUploadImage() throws Exception {
             when(restTemplate.exchange(anyString(), eq(HttpMethod.POST), any(HttpEntity.class), eq(String.class)))
-                    .thenReturn(ResponseEntity.ok("{}"));
+                    .thenReturn(ResponseEntity.ok(unmatchedUpstreamBody()));
 
-            mockMvc.perform(multipart("/api/v1/vision/analyze")
+            mockMvc.perform(multipart(ENDPOINT)
                             .file(sampleImage())
                             .session(authSession));
 
@@ -252,9 +309,9 @@ class VisionProxyControllerTest {
         @DisplayName("top_k, min_similarity 쿼리파라미터가 업스트림 URL에 반영")
         void queryParams_appendedToUpstream() throws Exception {
             when(restTemplate.exchange(anyString(), eq(HttpMethod.POST), any(HttpEntity.class), eq(String.class)))
-                    .thenReturn(ResponseEntity.ok("{}"));
+                    .thenReturn(ResponseEntity.ok(unmatchedUpstreamBody()));
 
-            mockMvc.perform(multipart("/api/v1/vision/analyze")
+            mockMvc.perform(multipart(ENDPOINT)
                             .file(sampleImage())
                             .param("top_k", "10")
                             .param("min_similarity", "0.7")
@@ -273,9 +330,9 @@ class VisionProxyControllerTest {
         @DisplayName("쿼리파라미터 없으면 업스트림 URL에도 쿼리 없음")
         void queryParams_omitted_whenAbsent() throws Exception {
             when(restTemplate.exchange(anyString(), eq(HttpMethod.POST), any(HttpEntity.class), eq(String.class)))
-                    .thenReturn(ResponseEntity.ok("{}"));
+                    .thenReturn(ResponseEntity.ok(unmatchedUpstreamBody()));
 
-            mockMvc.perform(multipart("/api/v1/vision/analyze")
+            mockMvc.perform(multipart(ENDPOINT)
                             .file(sampleImage())
                             .session(authSession));
 
@@ -296,7 +353,7 @@ class VisionProxyControllerTest {
                             HttpStatus.UNSUPPORTED_MEDIA_TYPE, "Unsupported Media Type",
                             HttpHeaders.EMPTY, errorBody.getBytes(), null));
 
-            mockMvc.perform(multipart("/api/v1/vision/analyze")
+            mockMvc.perform(multipart(ENDPOINT)
                             .file(sampleImage())
                             .session(authSession))
                     .andExpect(status().isUnsupportedMediaType())
@@ -309,11 +366,24 @@ class VisionProxyControllerTest {
             when(restTemplate.exchange(anyString(), eq(HttpMethod.POST), any(HttpEntity.class), eq(String.class)))
                     .thenThrow(new RuntimeException("connection refused"));
 
-            mockMvc.perform(multipart("/api/v1/vision/analyze")
+            mockMvc.perform(multipart(ENDPOINT)
                             .file(sampleImage())
                             .session(authSession))
                     .andExpect(status().isInternalServerError())
                     .andExpect(content().string(containsString("upstream 호출 실패")));
+        }
+
+        @Test
+        @DisplayName("업스트림 응답 파싱 실패(잘못된 JSON): 500 + detail 본문")
+        void upstreamParseError_returns500() throws Exception {
+            when(restTemplate.exchange(anyString(), eq(HttpMethod.POST), any(HttpEntity.class), eq(String.class)))
+                    .thenReturn(ResponseEntity.ok("not a json"));
+
+            mockMvc.perform(multipart(ENDPOINT)
+                            .file(sampleImage())
+                            .session(authSession))
+                    .andExpect(status().isInternalServerError())
+                    .andExpect(content().string(containsString("upstream 응답 파싱 실패")));
         }
     }
 }
