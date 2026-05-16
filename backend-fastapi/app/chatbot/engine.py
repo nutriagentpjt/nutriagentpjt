@@ -390,6 +390,17 @@ class ConversationEngine:
             "- 도구 실행 결과를 자연스러운 대화체로 변환해서 전달하세요.",
             "- JSON이나 기술적인 형식을 그대로 사용자에게 보여주지 마세요.",
             f"- 응답은 {persona.max_length}자 이내로 작성하세요.",
+            "\n## 식단 세트 추천 출력 규칙",
+            "- recommend_meal 도구 결과의 meal_sets가 있으면(set 모드), 최상위 세트 1개를 반드시 아래 형식의 블록으로 출력하세요.",
+            "- 블록 형식:",
+            "  [MEAL_PLATE]",
+            "  밥 : <RICE 역할 음식 이름>",
+            "  국 : <SOUP 역할 음식 이름>",
+            "  반찬 : <MAIN·SIDE·KIMCHI 음식 이름들을 공백으로 구분>",
+            "  설명 : <1~2문장, 영양·건강 포인트 요약>",
+            "  [/MEAL_PLATE]",
+            "- 블록 외 부연 설명은 블록 앞뒤로 자유롭게 작성해도 됩니다.",
+            "- 음식 이름에서 언더스코어(_)는 공백으로, 불필요한 설명 괄호는 제거하세요.",
         ]
         if persona.use_emoji and persona.emoji_set:
             rules.append(f"- 다음 이모지만 사용하세요: {', '.join(persona.emoji_set)}")

@@ -28,6 +28,12 @@ class RecommendMealTool(BaseTool):
                 "description": "추천 음식 개수 (기본 5)",
                 "default": 5,
             },
+            "mode": {
+                "type": "string",
+                "enum": ["single", "set"],
+                "description": "single=단품 추천, set=1식3찬 한식 세트 추천 (기본 set)",
+                "default": "set",
+            },
         },
         "required": ["meal_type"],
     }
@@ -38,6 +44,7 @@ class RecommendMealTool(BaseTool):
             guest_id=context["guest_id"],
             meal_type=params["meal_type"],
             top_n=params.get("top_n", 5),
+            mode=params.get("mode", "set"),
         )
         try:
             result = await run_recommendation(req, db)
