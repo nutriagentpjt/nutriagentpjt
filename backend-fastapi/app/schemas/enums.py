@@ -52,3 +52,25 @@ class FeedbackType(str, Enum):
     DISLIKE = "dislike"
     SAVED = "saved"
     IGNORED = "ignored"
+
+
+class DishRole(str, Enum):
+    RICE = "RICE"
+    SOUP = "SOUP"
+    MAIN = "MAIN"
+    SIDE = "SIDE"
+    KIMCHI = "KIMCHI"
+    ONE_DISH = "ONE_DISH"
+    RAW = "RAW"
+    SEASONING = "SEASONING"
+    BEVERAGE = "BEVERAGE"
+    SNACK = "SNACK"
+
+
+class KoreanFoodGroup(str, Enum):
+    GRAINS = "GRAINS"
+    MEAT_FISH_EGG_BEAN = "MFEB"
+    VEGETABLES = "VEGETABLES"
+    FRUITS = "FRUITS"
+    DAIRY = "DAIRY"
+    FATS_SUGARS = "FATS_SUGARS"
