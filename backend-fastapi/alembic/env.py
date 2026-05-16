@@ -40,7 +40,7 @@ target_metadata = Base.metadata
 
 # Alembic이 관리하는 테이블만 autogenerate 대상으로 지정
 # Spring(Hibernate)이 소유하는 테이블은 무시
-ALEMBIC_MANAGED_TABLES = {"chat_sessions", "chat_messages", "user_food_feedback"}
+ALEMBIC_MANAGED_TABLES = {"chat_sessions", "chat_messages", "user_food_feedback", "food_profile"}
 
 
 def include_object(object, name, type_, reflected, compare_to):

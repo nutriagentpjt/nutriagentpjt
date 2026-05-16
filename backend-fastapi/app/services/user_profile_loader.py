@@ -34,6 +34,8 @@ class UserContext:
     diseases: list[Disease] = field(default_factory=list)
     allergies: list[str] = field(default_factory=list)
     already_eaten: NutrientTarget | None = None
+    exercise_frequency: int = 0
+    exercise_time: str | None = None  # MORNING/AFTERNOON/EVENING/NIGHT
 
 
 class UserNotFoundError(Exception):
@@ -61,6 +63,8 @@ async def load_user_context(
                     up.health_goal,
                     up.activity_level,
                     up.diseases,
+                    up.exercise_frequency,
+                    up.exercise_time,
                     dp.meal_pattern,
                     dp.preferred_foods,
                     dp.disliked_foods,
@@ -126,6 +130,8 @@ async def load_user_context(
         diseases=diseases,
         allergies=allergies,
         already_eaten=already_eaten,
+        exercise_frequency=row["exercise_frequency"] or 0,
+        exercise_time=row["exercise_time"],
     )
 
 

@@ -1,5 +1,8 @@
-from sqlalchemy import Float, Integer, String
-from sqlalchemy.orm import Mapped, mapped_column
+from datetime import datetime
+
+from sqlalchemy import Float, ForeignKey, Integer, String
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.sql import func
 
 from app.models import Base
 
@@ -23,3 +26,22 @@ class Food(Base):
     purine_level: Mapped[str | None] = mapped_column(String, nullable=True)
     iodine: Mapped[float | None] = mapped_column(Float, nullable=True)
     selenium: Mapped[float | None] = mapped_column(Float, nullable=True)
+    recommandable: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+
+    profile: Mapped["FoodProfile | None"] = relationship(
+        "FoodProfile", back_populates="food", uselist=False
+    )
+
+
+class FoodProfile(Base):
+    __tablename__ = "food_profile"
+
+    food_id: Mapped[int] = mapped_column(ForeignKey("foods.id"), primary_key=True)
+    dish_role: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    food_group: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    gi: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    gl: Mapped[float | None] = mapped_column(Float, nullable=True)
+    purine_mg: Mapped[float | None] = mapped_column(Float, nullable=True)
+    updated_at: Mapped[datetime] = mapped_column(server_default=func.now(), onupdate=func.now())
+
+    food: Mapped["Food"] = relationship("Food", back_populates="profile")
