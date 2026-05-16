@@ -13,6 +13,7 @@ import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBo
 import org.springframework.web.util.UriComponentsBuilder;
 
 import org.springframework.web.client.HttpStatusCodeException;
+import org.springframework.web.context.request.async.AsyncRequestNotUsableException;
 
 import java.io.InputStream;
 import java.util.HashMap;
@@ -178,18 +179,27 @@ public class ChatProxyController {
                                 byte[] buf = new byte[4096];
                                 int n;
                                 while ((n = is.read(buf)) != -1) {
-                                    outputStream.write(buf, 0, n);
-                                    outputStream.flush();
+                                    try {
+                                        outputStream.write(buf, 0, n);
+                                        outputStream.flush();
+                                    } catch (AsyncRequestNotUsableException e) {
+                                        log.debug("SSE 클라이언트 연결 종료 sessionId={}", sessionId);
+                                        break;
+                                    }
                                 }
                             }
                             return null;
                         }
                 );
+            } catch (AsyncRequestNotUsableException e) {
+                log.debug("SSE async request 완료 후 write 시도 sessionId={}", sessionId);
             } catch (Exception e) {
                 log.error("SSE 스트리밍 오류 sessionId={}", sessionId, e);
-                String errorEvent = "data: {\"type\":\"error\",\"message\":\"스트리밍 오류가 발생했습니다\"}\n\n";
-                outputStream.write(errorEvent.getBytes());
-                outputStream.flush();
+                try {
+                    String errorEvent = "data: {\"type\":\"error\",\"message\":\"스트리밍 오류가 발생했습니다\"}\n\n";
+                    outputStream.write(errorEvent.getBytes());
+                    outputStream.flush();
+                } catch (Exception ignored) {}
             }
         };
 
