@@ -29,7 +29,7 @@ class Food(Base):
     recommandable: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
 
     profile: Mapped["FoodProfile | None"] = relationship(
-        "FoodProfile", back_populates="food", uselist=False, lazy="joined"
+        "FoodProfile", back_populates="food", uselist=False
     )
 
 

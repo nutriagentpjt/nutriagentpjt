@@ -2,34 +2,12 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
-from app.models.food import Food, FoodProfile
+from app.models.food import Food
 from app.schemas.enums import Disease
 from app.services.nutrition_calculator import DailyNutritionPlan, NutrientTarget
 
-# 식사로 부적합한 카테고리 (음료, 조미료, 빙과류, 보충제, 원재료 등) — single 모드 전용
-_EXCLUDED_CATEGORIES: frozenset[str] = frozenset([
-    # 음료·조미·빙과
-    "음료류", "음료 및 차류", "빙과류", "조미식품",
-    "장류", "잼류", "당류", "식용유지류",
-    "특수영양식품", "특수의료용도식품",
-    "코코아가공품류 또는 초콜릿류",
-    # 원재료·건조식품 (추천 부적합 — 식사 기록 검색 전용)
-    "곡류 및 그 제품", "곡류·서류 제품",
-    "육류 및 그 제품", "수·조·어·육류", "동물성가공식품류",
-    "두류", "두류·견과 및 종실류",
-    "견과류 및 종실류",
-    "해조류", "채소·해조류",
-    "버섯류",
-    "난류",
-    "감자류 및 전분류",
-    "조미료류", "장류·양념류", "유지류",
-])
-
-# 이름에 포함되면 원재료·보충제로 판단해 제외하는 키워드
-_SUPPLEMENT_KEYWORDS: tuple[str, ...] = (
-    "효소 정", "발효효소 정", "캡슐", "정제", "알약", "분말", "농축액",
-    ", 말린것", ", 건조", ", 생것", ", 날것",
-)
+# single 모드에서 단품으로 부적합한 역할 (반찬·김치는 밥과 함께 먹는 용도)
+_SINGLE_EXCLUDED_ROLES: frozenset[str] = frozenset({"SIDE", "KIMCHI", "SEASONING", "BEVERAGE", "RAW"})
 
 
 async def fetch_and_filter_foods(
@@ -51,9 +29,6 @@ async def fetch_and_filter_foods(
     query = select(Food).where(Food.recommandable == 1).options(joinedload(Food.profile))
     result = await db.execute(query)
     all_foods = list(result.scalars().all())
-
-    # single 모드에서 단품으로 부적합한 역할 제외 (반찬·김치는 밥과 함께 먹는 용도)
-    _SINGLE_EXCLUDED_ROLES = frozenset({"SIDE", "KIMCHI", "SEASONING", "BEVERAGE", "RAW"})
 
     has_allergy = Disease.ALLERGY in diseases
     has_hypertension = Disease.HYPERTENSION in diseases

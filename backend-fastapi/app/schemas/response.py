@@ -65,6 +65,6 @@ class RecommendResponse(BaseModel):
     meal_type: MealType
     daily_target: NutrientTargets
     meal_target: NutrientTargets
-    mode: Literal["single", "set"] = "single"
+    mode: Literal["single", "set"] = "set"
     recommendations: list[FoodRecommendation]
     meal_sets: list[MealSetRecommendation] | None = None
