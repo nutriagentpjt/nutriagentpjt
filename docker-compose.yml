@@ -31,12 +31,61 @@ services:
       DB_USERNAME: ${POSTGRES_USER}
       DB_PASSWORD: ${POSTGRES_PASSWORD}
       FASTAPI_BASE_URL: http://nutriagent-fastapi:8000
+      FASTAPI_VISION_URL: http://nutriagent-vision:8000
       INTERNAL_API_KEY: ${INTERNAL_API_KEY}
     expose:
       - "8080"
     depends_on:
       fastapi:
         condition: service_started
+    networks:
+      - nutriagent-net
+    restart: unless-stopped
+
+  vision-pg:
+    image: pgvector/pgvector:pg16
+    container_name: nutriagent-vision-pg
+    environment:
+      POSTGRES_DB: ${VISION_PG_DB}
+      POSTGRES_USER: ${VISION_PG_USER}
+      POSTGRES_PASSWORD: ${VISION_PG_PASSWORD}
+    volumes:
+      - vision-pg-data:/var/lib/postgresql/data
+    expose:
+      - "5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${VISION_PG_USER} -d ${VISION_PG_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - nutriagent-net
+    restart: unless-stopped
+
+  vision:
+    build:
+      context: ./backend-fastapi/vision
+    container_name: nutriagent-vision
+    environment:
+      DATABASE_URL: postgresql://${VISION_PG_USER}:${VISION_PG_PASSWORD}@nutriagent-vision-pg:5432/${VISION_PG_DB}
+      APP_ENV: ${VISION_APP_ENV:-dev}
+      MODEL_DEVICE: ${VISION_MODEL_DEVICE:-cpu}
+      MODEL_WEIGHTS_PATH: ${VISION_MODEL_WEIGHTS_PATH:-}
+      VISION_WORKERS: ${VISION_WORKERS:-2}
+    volumes:
+      # 운영: ~/nutriagentpjt/backend-fastapi/vision/data/ 에
+      # merged_food_db_keyword_avg.csv (git tracked)
+      # pgvector_rows.parquet      (.gitignore의 *.parquet 로 무시 — 호스트에 직접 업로드)
+      # 두 파일을 두고 마운트. Dockerfile은 data/ 를 COPY 하지 않으므로 컨테이너 내부
+      # 데이터는 오직 이 bind mount 경유로만 제공된다. build 컨텍스트에 parquet이
+      # 들어가지 않도록 backend-fastapi/vision/.dockerignore 가 data/ 를 제외한다.
+      - ./backend-fastapi/vision/data:/app/data
+    expose:
+      - "8000"
+    depends_on:
+      vision-pg:
+        condition: service_healthy
     networks:
       - nutriagent-net
     restart: unless-stopped
@@ -57,3 +106,7 @@ networks:
   nutriagent-net:
     name: nutriagent-net
     external: true
+
+volumes:
+  vision-pg-data:
+    name: nutriagent-vision-pg-data

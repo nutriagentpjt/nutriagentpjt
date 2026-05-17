@@ -61,6 +61,8 @@ htmlcov/
 *.sqlite3
 
 # 대용량 데이터 파일 (git 미포함 — EC2에 별도 업로드)
+# vision/data/pgvector_rows.parquet 가 대표 예. cd.yml의 git clean -fd 는 untracked
+# 는 지우지만 ignored는 보존하므로 매 배포마다 parquet이 날아가지 않는다.
 *.parquet
 
 # 로컬 테스트 이미지
