@@ -23,6 +23,10 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
+          # vision 첫 빌드는 PyTorch + CUDA 휠 ~3GB 다운로드/설치 + layer export로
+          # 단독 ~7분 소요. 다른 서비스 빌드와 합치면 default 10m timeout을 초과한다.
+          # 한 번 캐시되면 후속 CD는 1~2분이라 30m 마진은 첫 배포 보호용.
+          command_timeout: 30m
           script: |
             set -e
             cd ~/nutriagentpjt
