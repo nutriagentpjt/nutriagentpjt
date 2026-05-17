@@ -74,10 +74,13 @@ services:
       MODEL_WEIGHTS_PATH: ${VISION_MODEL_WEIGHTS_PATH:-}
       VISION_WORKERS: ${VISION_WORKERS:-2}
     volumes:
-      # 운영: EC2 호스트의 ~/nutriagentpjt/vision-data/ 에
-      # merged_food_db_keyword_avg.csv, pgvector_rows.parquet 를 두고 마운트.
-      # 부트스트랩은 별도 절차(docker compose exec vision python scripts/init_db.py ...)로 진행.
-      - ./vision-data:/app/data
+      # 운영: ~/nutriagentpjt/backend-fastapi/vision/data/ 에
+      # merged_food_db_keyword_avg.csv (git tracked)
+      # pgvector_rows.parquet      (.gitignore의 *.parquet 로 무시 — 호스트에 직접 업로드)
+      # 두 파일을 두고 마운트. Dockerfile은 data/ 를 COPY 하지 않으므로 컨테이너 내부
+      # 데이터는 오직 이 bind mount 경유로만 제공된다. build 컨텍스트에 parquet이
+      # 들어가지 않도록 backend-fastapi/vision/.dockerignore 가 data/ 를 제외한다.
+      - ./backend-fastapi/vision/data:/app/data
     expose:
       - "8000"
     depends_on:
