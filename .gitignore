@@ -63,6 +63,11 @@ htmlcov/
 # 대용량 데이터 파일 (git 미포함 — EC2에 별도 업로드)
 *.parquet
 
+# Vision data bind mount (운영 EC2의 ~/nutriagentpjt/vision-data/ 에 CSV/parquet 업로드).
+# cd.yml의 git clean -fd 가 untracked는 지우지만 ignored는 보존 — 매 배포마다 부트스트랩
+# 데이터가 날아가지 않도록 ignore.
+vision-data/
+
 # 로컬 테스트 이미지
 test_images/
 

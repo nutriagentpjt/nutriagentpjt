@@ -31,13 +31,16 @@ jobs:
             git reset --hard origin/main
             git clean -fd
             echo "[cd] HEAD: $(git rev-parse --short HEAD) $(git log -1 --pretty=%s)"
-            echo "[cd] vision-api intentionally excluded — pending pgvector follow-up PR"
             echo "[cd] preflight: ensure external network nutriagent-net exists"
             docker network inspect nutriagent-net >/dev/null 2>&1 || docker network create nutriagent-net
+            echo "[cd] preflight: ensure ./vision-data directory exists (for vision data bind mount)"
+            mkdir -p vision-data
             echo "[cd] build spring (no-cache)"
             docker compose build --no-cache spring
             echo "[cd] build fastapi"
             docker compose build fastapi
+            echo "[cd] build vision"
+            docker compose build vision
             echo "[cd] build frontend"
             docker compose build frontend
             echo "[cd] up -d (force-recreate)"
@@ -57,11 +60,21 @@ jobs:
             if [ "$SMOKE_OK" != "1" ]; then
               echo "[cd] smoke FAILED — dumping logs" >&2
               docker compose ps
-              docker compose logs --tail=200 spring fastapi frontend
+              docker compose logs --tail=200 spring fastapi frontend vision vision-pg
               exit 1
             fi
             echo "[cd] smoke: SPA /"
             curl -fsS -o /dev/null http://localhost/
+            echo "[cd] smoke: vision liveness (best-effort — readiness needs data bootstrap)"
+            # /health 는 liveness(앱이 응답 가능한지)만 확인. /health/ready 는 DB+모델
+            # 체크라 데이터 부트스트랩(scripts/init_db.py + load_*.py) 전에는 실패할 수 있다.
+            # 이번 PR 범위는 컨테이너 기동까지 — readiness 검증은 부트스트랩 PR에서.
+            if docker exec nutriagent-vision curl -fsS -o /dev/null -m 5 http://localhost:8000/health; then
+              echo "[cd] vision liveness ok"
+            else
+              echo "[cd] vision liveness 실패 (부트스트랩 전이면 정상) — vision logs:"
+              docker compose logs --tail=80 vision || true
+            fi
             echo "[cd] spring logs (tail 50)"
             docker compose logs --tail=50 spring || true
             echo "[cd] frontend logs (tail 20)"
