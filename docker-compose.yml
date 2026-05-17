@@ -81,6 +81,11 @@ services:
       # 데이터는 오직 이 bind mount 경유로만 제공된다. build 컨텍스트에 parquet이
       # 들어가지 않도록 backend-fastapi/vision/.dockerignore 가 data/ 를 제외한다.
       - ./backend-fastapi/vision/data:/app/data
+      # DINOv2 모델 가중치(~330MB) 캐시 영속화. 컨테이너 재생성(매 CD)마다
+      # torch.hub 가 같은 가중치를 재다운로드하는 비용 + 외부 네트워크 의존 제거.
+      # named volume 이라 docker compose down 후에도 보존, 명시적으로 지우려면
+      # `docker volume rm nutriagent-vision-torch-cache`.
+      - vision-torch-cache:/root/.cache/torch
     expose:
       - "8000"
     depends_on:
@@ -110,3 +115,5 @@ networks:
 volumes:
   vision-pg-data:
     name: nutriagent-vision-pg-data
+  vision-torch-cache:
+    name: nutriagent-vision-torch-cache

@@ -68,11 +68,8 @@ jobs:
             echo "[cd] smoke: SPA /"
             curl -fsS -o /dev/null http://localhost/
             echo "[cd] smoke: vision liveness (/health, 폴링 60회×2s = 최대 120s)"
-            # /health 는 liveness(앱이 응답 가능한지)만 확인. /health/ready 는 DB+모델
-            # 체크라 데이터 부트스트랩(scripts/init_db.py + load_*.py) 전에는 실패할 수 있다.
-            # 이번 PR 범위는 컨테이너 기동까지 — readiness 검증은 부트스트랩 PR에서.
-            # vision 부팅에 uvicorn + DINOv2 모델 로드(~330MB 첫 다운로드)가 포함돼
-            # start_period 120s(Dockerfile)에 맞춰 폴링도 120s 까지 허용.
+            # /health 는 liveness(앱이 응답 가능한지). vision 부팅에 uvicorn + DINOv2
+            # 모델 로드가 포함돼 start_period 120s(Dockerfile)에 맞춰 폴링도 120s 허용.
             # vision 컨테이너(python:3.12-slim 베이스)에는 curl 이 없으므로 Dockerfile
             # HEALTHCHECK 와 동일한 python urllib 패턴으로 호출한다.
             VISION_LIVE_OK=0
@@ -88,6 +85,29 @@ jobs:
             done
             if [ "$VISION_LIVE_OK" != "1" ]; then
               echo "[cd] vision liveness FAILED — dumping logs" >&2
+              docker compose ps
+              docker compose logs --tail=200 vision vision-pg
+              exit 1
+            fi
+            echo "[cd] smoke: vision readiness (/health/ready, 폴링 60회×2s = 최대 120s)"
+            # /health/ready 는 DB(vision_foods/image_embeddings) + DINOv2 모델 로드까지
+            # 완료된 상태에서만 200. 부트스트랩 완료(2026-05-17) 이후 운영 활성.
+            # liveness 통과 후 모델 로드 완료까지 추가 대기가 필요해 별도 폴링.
+            # vision-torch-cache named volume 으로 모델 가중치 재다운로드를 회피하므로
+            # 첫 부팅 외엔 readiness 도달이 빠르다.
+            VISION_READY_OK=0
+            for i in $(seq 1 60); do
+              if docker exec nutriagent-vision \
+                   python -c "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/health/ready', timeout=5).status == 200 else 1)" \
+                   >/dev/null 2>&1; then
+                echo "[cd] vision readiness ok at attempt $i ($(date +%T))"
+                VISION_READY_OK=1
+                break
+              fi
+              sleep 2
+            done
+            if [ "$VISION_READY_OK" != "1" ]; then
+              echo "[cd] vision readiness FAILED — dumping logs" >&2
               docker compose ps
               docker compose logs --tail=200 vision vision-pg
               exit 1
