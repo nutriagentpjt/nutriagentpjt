@@ -26,6 +26,7 @@ export default function MainLayout() {
   const isRecommendationOverlay = location.pathname === ROUTES.RECOMMENDATION;
   const hideLayoutHeader =
     isRecommendationOverlay ||
+    location.pathname === ROUTES.MEAL_UPLOAD ||
     location.pathname === ROUTES.MYPAGE ||
     location.pathname === ROUTES.RECOMMENDATION_SETTINGS;
 

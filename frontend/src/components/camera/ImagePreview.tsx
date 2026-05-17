@@ -21,9 +21,13 @@ export function ImagePreview({ className, image, onConfirm, onRetake }: ImagePre
       </div>
 
       <div className="mt-4 flex items-center justify-between gap-3">
-        <button type="button" onClick={onRetake} className="btn btn-ghost flex-1">
+        <button
+          type="button"
+          onClick={onRetake}
+          className="btn btn-ghost flex-1 border border-gray-200 bg-white hover:bg-gray-50"
+        >
           <RotateCcw className="h-4 w-4" />
-          다시 촬영
+          다시 촬영하기
         </button>
         <button type="button" onClick={onConfirm} className="btn btn-primary flex-1">
           <Check className="h-4 w-4" />
