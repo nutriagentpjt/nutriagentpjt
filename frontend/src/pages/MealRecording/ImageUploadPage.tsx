@@ -7,6 +7,7 @@ import { useImageUpload } from '@/hooks';
 import { Header } from '@/layouts/Header';
 import { useImageUploadStore } from '@/store';
 import type { MealImageRecognitionCandidate } from '@/types';
+import { convertHighEfficiencyImageToJpeg, isHighEfficiencyImageFile } from '@/utils/imageFile';
 
 function getConfidenceMeta(confidence?: number) {
   if (typeof confidence !== 'number') {
@@ -51,6 +52,7 @@ export default function ImageUploadPage() {
   const [isSourceModalOpen, setIsSourceModalOpen] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [showResultModal, setShowResultModal] = useState(false);
+  const [isPreparingImage, setIsPreparingImage] = useState(false);
   const imageUpload = useImageUpload();
 
   useEffect(() => {
@@ -59,13 +61,56 @@ export default function ImageUploadPage() {
       return;
     }
 
-    const nextPreviewUrl = URL.createObjectURL(selectedFile);
-    setPreviewUrl(nextPreviewUrl);
+    let isCancelled = false;
+    let nextPreviewUrl: string | null = null;
+
+    const preparePreview = async () => {
+      setPreviewUrl(null);
+
+      if (isHighEfficiencyImageFile(selectedFile)) {
+        try {
+          setIsPreparingImage(true);
+          const convertedFile = await convertHighEfficiencyImageToJpeg(selectedFile);
+
+          if (isCancelled) {
+            return;
+          }
+
+          setSelectedFile(convertedFile);
+          return;
+        } catch {
+          if (!isCancelled) {
+            setErrorMessage('이 이미지 형식은 이 기기에서 바로 처리하기 어려워요. JPEG 또는 PNG 이미지로 다시 시도해주세요.');
+          }
+          return;
+        } finally {
+          if (!isCancelled) {
+            setIsPreparingImage(false);
+          }
+        }
+      }
+
+      nextPreviewUrl = URL.createObjectURL(selectedFile);
+
+      if (isCancelled) {
+        URL.revokeObjectURL(nextPreviewUrl);
+        return;
+      }
+
+      setPreviewUrl(nextPreviewUrl);
+      setIsPreparingImage(false);
+    };
+
+    void preparePreview();
 
     return () => {
-      URL.revokeObjectURL(nextPreviewUrl);
+      isCancelled = true;
+
+      if (nextPreviewUrl) {
+        URL.revokeObjectURL(nextPreviewUrl);
+      }
     };
-  }, [navigate, selectedFile]);
+  }, [navigate, selectedFile, setSelectedFile]);
 
   const recognizedFoods = imageUpload.data?.recognizedFoods ?? [];
   const topCandidate = recognizedFoods[0] ?? null;
@@ -136,7 +181,7 @@ export default function ImageUploadPage() {
     });
   };
 
-  if (!selectedFile || !previewUrl) {
+  if (!selectedFile) {
     return null;
   }
 
@@ -182,7 +227,47 @@ export default function ImageUploadPage() {
         <div className="px-5 py-5">
           <p className="mb-4 text-sm text-gray-500">촬영/업로드된 이미지를 분석할 수 있어요.</p>
 
-          <ImagePreview image={previewUrl} onConfirm={handleAnalyze} onRetake={handleRetrySelection} />
+          {previewUrl ? (
+            <ImagePreview
+              image={previewUrl}
+              imageType={selectedFile.type}
+              onConfirm={handleAnalyze}
+              onRetake={handleRetrySelection}
+            />
+          ) : (
+            <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white">
+              <div className="flex aspect-[3/4] w-full flex-col items-center justify-center gap-3 bg-gray-50 px-6 text-center">
+                {isPreparingImage ? (
+                  <>
+                    <Loader2 className="h-10 w-10 animate-spin text-green-500" />
+                    <div className="space-y-1.5">
+                      <p className="text-base font-semibold text-gray-900">이미지를 준비하고 있어요.</p>
+                      <p className="text-sm leading-relaxed text-gray-500">촬영한 사진을 분석하기 쉬운 형식으로 변환하고 있어요.</p>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <AlertCircle className="h-10 w-10 text-gray-400" />
+                    <div className="space-y-1.5">
+                      <p className="text-base font-semibold text-gray-900">이미지를 미리볼 수 없어요.</p>
+                      <p className="text-sm leading-relaxed text-gray-500">다른 이미지를 선택하거나 다시 촬영해보세요.</p>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              <div className="mt-4 flex items-center justify-between gap-3 p-4 pt-0">
+                <button
+                  type="button"
+                  onClick={handleRetrySelection}
+                  className="btn btn-ghost flex-1 border border-gray-200 bg-white hover:bg-gray-50"
+                >
+                  <X className="h-4 w-4" />
+                  다시 선택
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

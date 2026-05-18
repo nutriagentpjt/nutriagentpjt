@@ -1,12 +1,11 @@
 import { useMutation } from '@tanstack/react-query';
 import { mealService } from '@/services';
 import type { MealImageUploadResponse } from '@/types';
+import { isSupportedImageFile } from '@/utils/imageFile';
 
 const DEFAULT_MAX_FILE_SIZE = 10 * 1024 * 1024;
-const DEFAULT_ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif'];
 
 interface UseImageUploadOptions {
-  acceptedTypes?: string[];
   maxFileSize?: number;
 }
 
@@ -16,13 +15,12 @@ interface ValidatedImageUploadPayload {
 
 export function useImageUpload(options: UseImageUploadOptions = {}) {
   const {
-    acceptedTypes = DEFAULT_ACCEPTED_TYPES,
     maxFileSize = DEFAULT_MAX_FILE_SIZE,
   } = options;
 
   return useMutation<MealImageUploadResponse, Error, ValidatedImageUploadPayload>({
     mutationFn: async ({ file }) => {
-      if (!acceptedTypes.includes(file.type)) {
+      if (!isSupportedImageFile(file)) {
         throw new Error('지원하지 않는 이미지 형식입니다.');
       }
 
