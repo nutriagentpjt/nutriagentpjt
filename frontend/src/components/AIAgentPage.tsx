@@ -32,6 +32,7 @@ export default function AIAgentPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isComposingRef = useRef(false);
 
   // 메시지가 추가될 때마다 스크롤을 맨 아래로
   useEffect(() => {
@@ -96,6 +97,10 @@ export default function AIAgentPage() {
 
   // Enter 키로 전송 (Shift+Enter는 줄바꿈)
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.nativeEvent.isComposing || isComposingRef.current || e.keyCode === 229) {
+      return;
+    }
+
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       submitMessage();
@@ -128,6 +133,10 @@ export default function AIAgentPage() {
   };
 
   const submitMessage = () => {
+    if (isComposingRef.current) {
+      return;
+    }
+
     if (!inputValue.trim() || isTyping) {
       return;
     }
@@ -462,6 +471,12 @@ export default function AIAgentPage() {
             ref={inputRef}
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
+            onCompositionStart={() => {
+              isComposingRef.current = true;
+            }}
+            onCompositionEnd={() => {
+              isComposingRef.current = false;
+            }}
             onKeyDown={handleKeyDown}
             placeholder="메시지를 입력하세요..."
             rows={1}

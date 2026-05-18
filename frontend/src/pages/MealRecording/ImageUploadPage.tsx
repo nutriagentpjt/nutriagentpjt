@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { ImagePreview, ImageSourceModal } from '@/components/camera';
 import { ROUTES } from '@/constants/routes';
 import { useImageUpload } from '@/hooks';
+import { Header } from '@/layouts/Header';
 import { useImageUploadStore } from '@/store';
 import type { MealImageRecognitionCandidate } from '@/types';
 
@@ -27,7 +28,7 @@ function getConfidenceMeta(confidence?: number) {
   if (confidence >= 0.5) {
     return {
       badgeClass: 'bg-yellow-100 text-yellow-700',
-      description: '후보를 확인한 뒤 검색으로 이어가는 것이 좋습니다.',
+      description: '이 음식이 맞나요?',
       label: '보통',
     };
   }
@@ -163,23 +164,26 @@ export default function ImageUploadPage() {
         }}
       />
 
-      <div className="min-h-full bg-background px-5 py-5">
-        <div className="mb-5 flex items-center justify-between">
-          <div>
-            <h1 className="text-lg font-semibold text-gray-900">이미지 업로드</h1>
-            <p className="mt-1 text-sm text-gray-500">선택한 이미지를 확인한 뒤 분석을 진행합니다.</p>
-          </div>
-          <button
-            type="button"
-            onClick={handleBack}
-            className="icon-button"
-            aria-label="뒤로 가기"
-          >
-            <X className="h-5 w-5 text-gray-500" />
-          </button>
-        </div>
+      <div className="min-h-full bg-background">
+        <Header
+          title="이미지 업로드"
+          rightSlot={
+            <button
+              type="button"
+              onClick={handleBack}
+              className="icon-button"
+              aria-label="뒤로 가기"
+            >
+              <X className="h-5 w-5 text-gray-500" />
+            </button>
+          }
+        />
 
-        <ImagePreview image={previewUrl} onConfirm={handleAnalyze} onRetake={handleRetrySelection} />
+        <div className="px-5 py-5">
+          <p className="mb-4 text-sm text-gray-500">촬영/업로드된 이미지를 분석할 수 있어요.</p>
+
+          <ImagePreview image={previewUrl} onConfirm={handleAnalyze} onRetake={handleRetrySelection} />
+        </div>
       </div>
 
       {imageUpload.isPending ? (
@@ -204,15 +208,14 @@ export default function ImageUploadPage() {
           <div className="w-full max-w-[360px] rounded-2xl bg-white p-6 shadow-xl" onClick={(event) => event.stopPropagation()}>
             <div className="flex items-start justify-between gap-3">
               <div>
-                <h3 className="text-lg font-bold text-gray-900">분석 결과</h3>
-                <p className="mt-1 text-sm text-gray-500">가장 유력한 인식 결과를 확인해주세요.</p>
+                <h3 className="text-lg font-bold text-gray-900">이미지 분석 결과</h3>
               </div>
               <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${confidenceMeta.badgeClass}`}>
-                신뢰도 {confidenceMeta.label}
+                정확도 {confidenceMeta.label}
               </span>
             </div>
 
-            <div className="mt-5 rounded-2xl border border-gray-100 bg-gray-50 p-4">
+            <div className="mt-5 rounded-2xl border border-gray-200 bg-white p-4">
               <p className="text-sm font-semibold text-gray-900">{topCandidate.name}</p>
               {topCandidate.brand ? <p className="mt-1 text-xs text-gray-500">{topCandidate.brand}</p> : null}
               <p className="mt-3 text-xs text-gray-500">{confidenceMeta.description}</p>
@@ -220,12 +223,13 @@ export default function ImageUploadPage() {
 
             {recognizedFoods.length > 1 ? (
               <div className="mt-4 space-y-2">
+                <p className="px-1 text-xs font-medium text-gray-500">혹은 다음으로 검색하기</p>
                 {recognizedFoods.slice(1, 4).map((candidate, index) => (
                   <button
                     key={`${candidate.name}-${index}`}
                     type="button"
                     onClick={() => handleUseResult(candidate)}
-                    className="flex w-full items-center justify-between rounded-xl border border-gray-100 px-3 py-3 text-left"
+                    className="flex w-full items-center justify-between rounded-xl border border-gray-200 px-3 py-3 text-left"
                   >
                     <div>
                       <p className="text-sm font-medium text-gray-900">{candidate.name}</p>
@@ -243,7 +247,7 @@ export default function ImageUploadPage() {
               </button>
               <button type="button" onClick={() => handleUseResult(topCandidate)} className="btn btn-primary flex-1">
                 <Search className="h-4 w-4" />
-                검색으로 이동
+                검색
               </button>
             </div>
           </div>

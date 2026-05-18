@@ -3,6 +3,9 @@ export interface MealPlateData {
   soup: string;
   sideDish: string;
   description?: string;
+  carbs?: string;
+  protein?: string;
+  fat?: string;
 }
 
 export type MealPlateSegment =
@@ -14,12 +17,18 @@ const RICE_REGEX = /^밥\s*:\s*(.+)$/m;
 const SOUP_REGEX = /^국\s*:\s*(.+)$/m;
 const SIDE_DISH_REGEX = /^반찬\s*:\s*(.+)$/m;
 const DESCRIPTION_REGEX = /^설명\s*:\s*(.+)$/m;
+const CARBS_REGEX = /^탄수화물\s*:\s*(.+)$/m;
+const PROTEIN_REGEX = /^단백질\s*:\s*(.+)$/m;
+const FAT_REGEX = /^지방\s*:\s*(.+)$/m;
 
 function parseMealPlateBlock(block: string): MealPlateData | null {
   const rice = block.match(RICE_REGEX)?.[1]?.trim();
   const soup = block.match(SOUP_REGEX)?.[1]?.trim();
   const sideDish = block.match(SIDE_DISH_REGEX)?.[1]?.trim();
   const description = block.match(DESCRIPTION_REGEX)?.[1]?.trim();
+  const carbs = block.match(CARBS_REGEX)?.[1]?.trim();
+  const protein = block.match(PROTEIN_REGEX)?.[1]?.trim();
+  const fat = block.match(FAT_REGEX)?.[1]?.trim();
 
   if (!rice || !soup || !sideDish) {
     return null;
@@ -30,6 +39,9 @@ function parseMealPlateBlock(block: string): MealPlateData | null {
     soup,
     sideDish,
     description,
+    carbs,
+    protein,
+    fat,
   };
 }
 

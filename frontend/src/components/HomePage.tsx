@@ -79,6 +79,7 @@ export default function HomePage() {
   const weightAdjustIntervalRef = useRef<number | null>(null);
   const weightAdjustTimeoutRef = useRef<number | null>(null);
   const activeWeightAdjustDirectionRef = useRef<number | null>(null);
+  const didTriggerWeightLongPressRef = useRef(false);
 
   const sanitizeLegacyMeals = (rawMealsByDate: { [key: string]: any[] }) => {
     const dates = Object.keys(rawMealsByDate);
@@ -887,16 +888,26 @@ export default function HomePage() {
       return;
     }
 
-    activeWeightAdjustDirectionRef.current = delta;
-    adjustWeightInput(delta);
     stopWeightAdjustment();
     activeWeightAdjustDirectionRef.current = delta;
+    didTriggerWeightLongPressRef.current = false;
 
     weightAdjustTimeoutRef.current = window.setTimeout(() => {
+      didTriggerWeightLongPressRef.current = true;
+      adjustWeightInput(delta);
       weightAdjustIntervalRef.current = window.setInterval(() => {
         adjustWeightInput(delta);
-      }, 120);
-    }, 350);
+      }, 130);
+    }, 420);
+  };
+
+  const handleWeightStepClick = (delta: number) => {
+    if (didTriggerWeightLongPressRef.current) {
+      didTriggerWeightLongPressRef.current = false;
+      return;
+    }
+
+    adjustWeightInput(delta);
   };
 
   useEffect(() => {
@@ -1422,7 +1433,7 @@ export default function HomePage() {
                 <div className="mt-3 grid grid-cols-2 gap-2.5">
                   <button
                     type="button"
-                    onClick={() => adjustWeightInput(-0.1)}
+                    onClick={() => handleWeightStepClick(-0.1)}
                     onMouseDown={() => startWeightAdjustment(-0.1)}
                     onMouseUp={stopWeightAdjustment}
                     onMouseLeave={stopWeightAdjustment}
@@ -1436,7 +1447,7 @@ export default function HomePage() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => adjustWeightInput(0.1)}
+                    onClick={() => handleWeightStepClick(0.1)}
                     onMouseDown={() => startWeightAdjustment(0.1)}
                     onMouseUp={stopWeightAdjustment}
                     onMouseLeave={stopWeightAdjustment}

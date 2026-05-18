@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import {
   Activity,
   Apple,
   Bell,
   Edit2,
+  Pencil,
   LogOut,
   Ruler,
   Scale,
@@ -30,14 +31,19 @@ import { authService } from '@/services/authService';
 import { GUEST_ID_STORAGE_KEY } from '@/services/sessionService';
 import { useAuthStore } from '@/store';
 
+const MAX_PROFILE_IMAGE_FILE_SIZE_BYTES = 2 * 1024 * 1024;
+
 export default function ProfilePage() {
   const navigate = useNavigate();
+  const profileImageInputRef = useRef<HTMLInputElement | null>(null);
+  const profileImageHoldTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [profile, setProfile] = useState<StoredProfile>(() => loadStoredProfile());
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [showEditGoals, setShowEditGoals] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showNotificationSettings, setShowNotificationSettings] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [showProfileImageOverlay, setShowProfileImageOverlay] = useState(false);
 
   const [editWeight, setEditWeight] = useState(profile.weight?.toString() || '');
   const [editHeight, setEditHeight] = useState(profile.height?.toString() || '');
@@ -81,7 +87,7 @@ export default function ProfilePage() {
   }, [authenticatedUser?.name, profile.displayName, profile.hasCustomDisplayName]);
 
   const resolvedProfileImageUrl = useMemo(() => {
-    return authenticatedUser?.photoUrl?.trim() || profile.profileImageUrl || null;
+    return profile.profileImageUrl?.trim() || authenticatedUser?.photoUrl?.trim() || null;
   }, [authenticatedUser?.photoUrl, profile.profileImageUrl]);
 
   const persistProfile = (nextProfile: StoredProfile) => {
@@ -191,7 +197,7 @@ export default function ProfilePage() {
       activityLevel: editActivityLevel,
       displayName: nextDisplayName,
       hasCustomDisplayName,
-      profileImageUrl: authenticatedUser?.photoUrl?.trim() || profile.profileImageUrl || null,
+      profileImageUrl: profile.profileImageUrl?.trim() || authenticatedUser?.photoUrl?.trim() || null,
     };
 
     try {
@@ -237,14 +243,9 @@ export default function ProfilePage() {
     setShowEditGoals(true);
   };
 
+  const macroTotal = editCarbsPercentage + editProteinPercentage + editFatPercentage;
+
   const handleSaveGoals = async () => {
-    const macroTotal = editCarbsPercentage + editProteinPercentage + editFatPercentage;
-
-    if (macroTotal !== 100) {
-      showToast.error('탄수화물, 단백질, 지방 비율 합계를 100%로 맞춰주세요.');
-      return;
-    }
-
     if (!Number.isFinite(editGoalCalories) || editGoalCalories < 800 || editGoalCalories > 6000) {
       showToast.error('목표 칼로리를 올바른 범위로 입력해주세요.');
       return;
@@ -291,6 +292,70 @@ export default function ProfilePage() {
     setShowLogoutConfirm(true);
   };
 
+  const clearProfileImageHoldTimeout = () => {
+    if (profileImageHoldTimeoutRef.current) {
+      clearTimeout(profileImageHoldTimeoutRef.current);
+      profileImageHoldTimeoutRef.current = null;
+    }
+  };
+
+  const handleProfileImageTouchStart = () => {
+    clearProfileImageHoldTimeout();
+    profileImageHoldTimeoutRef.current = setTimeout(() => {
+      setShowProfileImageOverlay(true);
+    }, 350);
+  };
+
+  const handleProfileImageTouchEnd = () => {
+    clearProfileImageHoldTimeout();
+  };
+
+  const handleProfileImageSelection = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+
+    if (!file) {
+      return;
+    }
+
+    if (!file.type.startsWith('image/')) {
+      showToast.error('이미지 파일만 선택할 수 있어요.');
+      return;
+    }
+
+    if (file.size > MAX_PROFILE_IMAGE_FILE_SIZE_BYTES) {
+      showToast.error('프로필 이미지는 2MB 이하 파일만 업로드할 수 있어요.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const nextImageUrl = typeof reader.result === 'string' ? reader.result : null;
+
+      if (!nextImageUrl) {
+        showToast.error('프로필 이미지를 불러오지 못했어요.');
+        return;
+      }
+
+      const nextProfile: StoredProfile = {
+        ...profile,
+        profileImageUrl: nextImageUrl,
+      };
+
+      try {
+        persistProfile(nextProfile);
+        setShowProfileImageOverlay(false);
+        showToast.success('프로필 이미지가 변경되었어요.');
+      } catch {
+        showToast.error('이미지 크기가 너무 커서 저장할 수 없어요.');
+      }
+    };
+    reader.onerror = () => {
+      showToast.error('프로필 이미지를 불러오지 못했어요.');
+    };
+    reader.readAsDataURL(file);
+  };
+
   const confirmLogout = () => {
     try {
       authService.clearAuthenticatedSession();
@@ -306,22 +371,69 @@ export default function ProfilePage() {
     }
   };
 
+  useEffect(() => {
+    return () => {
+      clearProfileImageHoldTimeout();
+    };
+  }, []);
+
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
+      <input
+        ref={profileImageInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={handleProfileImageSelection}
+      />
+
       <div className="relative px-5 pb-24 pt-16" style={{ backgroundColor: '#1cb454' }}>
         <div className="flex flex-col items-center">
-          <div className="relative mb-4">
-            {resolvedProfileImageUrl ? (
-              <img
-                src={resolvedProfileImageUrl}
-                alt="Profile"
-                className="h-24 w-24 rounded-full border-4 border-white object-cover shadow-lg"
-              />
-            ) : (
-              <div className="flex h-24 w-24 items-center justify-center rounded-full border-4 border-white bg-white shadow-lg">
-                <User className="h-12 w-12" style={{ color: '#1cb454' }} />
-              </div>
-            )}
+          <div
+            className="group relative mb-4"
+            onMouseEnter={() => setShowProfileImageOverlay(true)}
+            onMouseLeave={() => setShowProfileImageOverlay(false)}
+            onTouchStart={handleProfileImageTouchStart}
+            onTouchEnd={handleProfileImageTouchEnd}
+            onTouchCancel={handleProfileImageTouchEnd}
+          >
+            <div
+              aria-hidden="true"
+              className={`pointer-events-none absolute -inset-2 z-0 rounded-full bg-black/20 transition-opacity duration-200 ${
+                showProfileImageOverlay
+                  ? 'opacity-100'
+                  : 'opacity-0 group-hover:opacity-100'
+              }`}
+            />
+
+            <div className="relative z-10 h-24 w-24 overflow-hidden rounded-full ring-1 ring-black/[0.03] shadow-md">
+              {resolvedProfileImageUrl ? (
+                <img
+                  src={resolvedProfileImageUrl}
+                  alt="Profile"
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center bg-white">
+                  <User className="h-12 w-12" style={{ color: '#1cb454' }} />
+                </div>
+              )}
+            </div>
+
+            <button
+              type="button"
+              aria-label="프로필 이미지 수정"
+              onClick={() => profileImageInputRef.current?.click()}
+              onFocus={() => setShowProfileImageOverlay(true)}
+              onBlur={() => setShowProfileImageOverlay(false)}
+              className={`absolute -right-1 top-0 z-20 flex h-8 w-8 items-center justify-center rounded-full border border-white/70 bg-white/95 text-gray-700 shadow-md transition-all duration-200 active:scale-95 active:bg-gray-200 ${
+                showProfileImageOverlay
+                  ? 'scale-100 opacity-100'
+                  : 'scale-90 opacity-0 group-hover:scale-100 group-hover:opacity-100'
+              }`}
+            >
+              <Pencil className="h-4 w-4" />
+            </button>
           </div>
 
           <h1 className="mb-1 text-2xl font-bold text-white">{resolvedUserName} 님</h1>
@@ -727,8 +839,16 @@ export default function ProfilePage() {
               <div className="rounded-xl bg-gray-50 p-4">
                 <div className="mb-3 flex items-center justify-between">
                   <p className="text-xs font-semibold text-gray-700">예상 영양소</p>
-                  <span className={`text-xs font-semibold ${editCarbsPercentage + editProteinPercentage + editFatPercentage === 100 ? 'text-green-600' : 'text-red-600'}`}>
-                    총합 {editCarbsPercentage + editProteinPercentage + editFatPercentage}%
+                  <span
+                    className={`text-xs font-semibold ${
+                      macroTotal === 100
+                        ? 'text-green-600'
+                        : macroTotal < 100
+                          ? 'text-orange-500'
+                          : 'text-red-600'
+                    }`}
+                  >
+                    총합 {macroTotal}%
                   </span>
                 </div>
                 <div className="space-y-2">
