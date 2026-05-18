@@ -24,6 +24,10 @@ export default function MainLayout() {
 
   const headerTitle = useMemo(() => headerTitles[location.pathname], [location.pathname]);
   const isRecommendationOverlay = location.pathname === ROUTES.RECOMMENDATION;
+  const hideTabNavigation =
+    isRecommendationOverlay ||
+    location.pathname === ROUTES.MEAL_UPLOAD ||
+    location.pathname === ROUTES.RECOMMENDATION_SETTINGS;
   const hideLayoutHeader =
     isRecommendationOverlay ||
     location.pathname === ROUTES.MEAL_UPLOAD ||
@@ -72,7 +76,7 @@ export default function MainLayout() {
               ? '[&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-300 [&::-webkit-scrollbar-thumb]:opacity-100'
               : '[&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-300 [&::-webkit-scrollbar-thumb]:opacity-0'
           } [&::-webkit-scrollbar-thumb]:transition-opacity [&::-webkit-scrollbar-thumb]:duration-300 ${
-            isRecommendationOverlay ? 'pb-0' : ''
+            hideTabNavigation ? 'pb-0' : ''
           }`}
           onScroll={handleScroll}
           onMouseEnter={handleMouseEnter}
@@ -80,7 +84,7 @@ export default function MainLayout() {
         >
           <Outlet />
         </div>
-        {!isRecommendationOverlay ? <TabNavigation /> : null}
+        {!hideTabNavigation ? <TabNavigation /> : null}
       </div>
     </div>
   );

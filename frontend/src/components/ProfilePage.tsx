@@ -31,6 +31,8 @@ import { authService } from '@/services/authService';
 import { GUEST_ID_STORAGE_KEY } from '@/services/sessionService';
 import { useAuthStore } from '@/store';
 
+const MAX_PROFILE_IMAGE_FILE_SIZE_BYTES = 2 * 1024 * 1024;
+
 export default function ProfilePage() {
   const navigate = useNavigate();
   const profileImageInputRef = useRef<HTMLInputElement | null>(null);
@@ -321,6 +323,11 @@ export default function ProfilePage() {
       return;
     }
 
+    if (file.size > MAX_PROFILE_IMAGE_FILE_SIZE_BYTES) {
+      showToast.error('프로필 이미지는 2MB 이하 파일만 업로드할 수 있어요.');
+      return;
+    }
+
     const reader = new FileReader();
     reader.onload = () => {
       const nextImageUrl = typeof reader.result === 'string' ? reader.result : null;
@@ -335,9 +342,13 @@ export default function ProfilePage() {
         profileImageUrl: nextImageUrl,
       };
 
-      persistProfile(nextProfile);
-      setShowProfileImageOverlay(false);
-      showToast.success('프로필 이미지가 변경되었어요.');
+      try {
+        persistProfile(nextProfile);
+        setShowProfileImageOverlay(false);
+        showToast.success('프로필 이미지가 변경되었어요.');
+      } catch {
+        showToast.error('이미지 크기가 너무 커서 저장할 수 없어요.');
+      }
     };
     reader.onerror = () => {
       showToast.error('프로필 이미지를 불러오지 못했어요.');
