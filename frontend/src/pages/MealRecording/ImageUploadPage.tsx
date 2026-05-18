@@ -65,11 +65,11 @@ export default function ImageUploadPage() {
     let nextPreviewUrl: string | null = null;
 
     const preparePreview = async () => {
+      setIsPreparingImage(true);
       setPreviewUrl(null);
 
-      if (isHighEfficiencyImageFile(selectedFile)) {
-        try {
-          setIsPreparingImage(true);
+      try {
+        if (isHighEfficiencyImageFile(selectedFile)) {
           const convertedFile = await convertHighEfficiencyImageToJpeg(selectedFile);
 
           if (isCancelled) {
@@ -78,27 +78,25 @@ export default function ImageUploadPage() {
 
           setSelectedFile(convertedFile);
           return;
-        } catch {
-          if (!isCancelled) {
-            setErrorMessage('이 이미지 형식은 이 기기에서 바로 처리하기 어려워요. JPEG 또는 PNG 이미지로 다시 시도해주세요.');
-          }
+        }
+
+        nextPreviewUrl = URL.createObjectURL(selectedFile);
+
+        if (isCancelled) {
+          URL.revokeObjectURL(nextPreviewUrl);
           return;
-        } finally {
-          if (!isCancelled) {
-            setIsPreparingImage(false);
-          }
+        }
+
+        setPreviewUrl(nextPreviewUrl);
+      } catch {
+        if (!isCancelled) {
+          setErrorMessage('이 이미지 형식은 이 기기에서 바로 처리하기 어려워요. JPEG 또는 PNG 이미지로 다시 시도해주세요.');
+        }
+      } finally {
+        if (!isCancelled) {
+          setIsPreparingImage(false);
         }
       }
-
-      nextPreviewUrl = URL.createObjectURL(selectedFile);
-
-      if (isCancelled) {
-        URL.revokeObjectURL(nextPreviewUrl);
-        return;
-      }
-
-      setPreviewUrl(nextPreviewUrl);
-      setIsPreparingImage(false);
     };
 
     void preparePreview();
