@@ -8,15 +8,18 @@ import com.NurtiAgent.Onboard.common.exception.UserProfileNotFoundException;
 import com.NurtiAgent.Onboard.food.exception.FoodNotFoundException;
 import com.NurtiAgent.Onboard.food.exception.InvalidSearchQueryException;
 import com.NurtiAgent.Onboard.profile.exception.NutritionTargetNotFoundException;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 import java.util.HashMap;
 import java.util.Map;
 
+@Slf4j
 @ControllerAdvice
 public class GlobalExceptionHandler {
 
@@ -56,8 +59,18 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
     }
 
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<Map<String, String>> handlePayloadTooLarge(MaxUploadSizeExceededException ex) {
+        Map<String, String> error = new HashMap<>();
+        error.put("error", "이미지가 너무 큽니다 (최대 10MB).");
+        return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE).body(error);
+    }
+
+    // catch-all. 이전엔 침묵으로 500만 반환해 iOS 업로드 1MB 초과 진단이 불가능했다.
+    // 재발 방지를 위해 항상 로깅.
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<Map<String, String>> handleInternalError(RuntimeException ex) {
+        log.error("Unhandled runtime exception", ex);
         Map<String, String> error = new HashMap<>();
         error.put("error", "서버 오류가 발생했습니다: " + ex.getMessage());
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
