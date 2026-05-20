@@ -1,12 +1,10 @@
 import { Outlet, useLocation, useNavigate } from "react-router";
 import { Home, Bot, BarChart3, User } from "lucide-react";
-import { useState, useRef, useEffect } from "react";
+import { OverlayScrollArea } from "@/components/common/OverlayScrollArea";
 
 export default function Root() {
   const location = useLocation();
   const navigate = useNavigate();
-  const [isScrolling, setIsScrolling] = useState(false);
-  const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const isActive = (path: string) => {
     if (path === "/") {
@@ -15,59 +13,12 @@ export default function Root() {
     return location.pathname.startsWith(path);
   };
 
-  // 스크롤 이벤트 핸들러
-  const handleScroll = () => {
-    setIsScrolling(true);
-
-    // 이전 타이머 취소
-    if (scrollTimeoutRef.current) {
-      clearTimeout(scrollTimeoutRef.current);
-    }
-
-    // 1초 후 스크롤바 숨기기
-    scrollTimeoutRef.current = setTimeout(() => {
-      setIsScrolling(false);
-    }, 1000);
-  };
-
-  // 마우스 호버 이벤트 핸들러
-  const handleMouseEnter = () => {
-    setIsScrolling(true);
-    // 타이머 취소
-    if (scrollTimeoutRef.current) {
-      clearTimeout(scrollTimeoutRef.current);
-    }
-  };
-
-  const handleMouseLeave = () => {
-    // 마우스가 나가면 즉시 숨김
-    setIsScrolling(false);
-  };
-
-  // 컴포넌트 언마운트 시 타이머 정리
-  useEffect(() => {
-    return () => {
-      if (scrollTimeoutRef.current) {
-        clearTimeout(scrollTimeoutRef.current);
-      }
-    };
-  }, []);
-
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white flex justify-center">
       <div className="w-full max-w-[390px] relative flex flex-col h-screen">
-        <div
-          className={`flex-1 overflow-y-auto pb-[68px] transition-all ${
-            isScrolling
-              ? "[&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-300 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:opacity-100"
-              : "[&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-300 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:opacity-0"
-          } [&::-webkit-scrollbar-thumb]:transition-opacity [&::-webkit-scrollbar-thumb]:duration-300`}
-          onScroll={handleScroll}
-          onMouseEnter={handleMouseEnter}
-          onMouseLeave={handleMouseLeave}
-        >
+        <OverlayScrollArea className="pb-[68px]" containerClassName="flex-1" thumbInsetBottom={84}>
           <Outlet />
-        </div>
+        </OverlayScrollArea>
 
         {/* Bottom Navigation */}
         <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[390px] bg-white/80 backdrop-blur-md border-t border-gray-200/50 z-40 shadow-lg">

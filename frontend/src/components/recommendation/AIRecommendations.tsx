@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { CheckCircle, Sparkles, X } from 'lucide-react';
 import { showToast } from '@/components/common';
+import { OverlayScrollArea } from '@/components/common/OverlayScrollArea';
 import { usePreferences, useRecommendations } from '@/hooks';
 import type { ApiError, MealType } from '@/types';
 import CoachingMessage from './CoachingMessage';
@@ -262,7 +263,7 @@ export default function AIRecommendations({
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto bg-gray-50 px-4 py-5">
+        <OverlayScrollArea className="bg-gray-50 px-4 py-5" containerClassName="flex-1">
           <CoachingMessage message={mergedCoachingMessage} />
 
           {mergedErrorMessage ? (
@@ -312,7 +313,7 @@ export default function AIRecommendations({
                 ))
               : null}
           </div>
-        </div>
+        </OverlayScrollArea>
 
         {showInlineToast ? (
           <div className="fixed bottom-20 left-1/2 z-50 w-[calc(100vw-2rem)] max-w-[340px] -translate-x-1/2 animate-toast-slide-in">

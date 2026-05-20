@@ -26,6 +26,7 @@ import {
   saveStoredProfile,
   type StoredProfile,
 } from '@/components/profile/shared';
+import { OverlayScrollArea } from '@/components/common/OverlayScrollArea';
 import { useNutritionTargets, useProfile } from '@/hooks';
 import { authService } from '@/services/authService';
 import { GUEST_ID_STORAGE_KEY } from '@/services/sessionService';
@@ -223,10 +224,36 @@ export default function ProfilePage() {
     setShowEditProfile(false);
   };
 
-  const applyPreset = (carbs: number, protein: number, fat: number) => {
+  const updateMacroDistribution = ({
+    carbs = editCarbsPercentage,
+    protein = editProteinPercentage,
+    fat = editFatPercentage,
+  }: {
+    carbs?: number;
+    protein?: number;
+    fat?: number;
+  }) => {
+    const currentMacroTotal = Math.max(editCarbsPercentage + editProteinPercentage + editFatPercentage, 0);
+    const nextMacroTotal = Math.max(carbs + protein + fat, 0);
+
     setEditCarbsPercentage(carbs);
     setEditProteinPercentage(protein);
     setEditFatPercentage(fat);
+    setEditGoalCalories((currentGoalCalories) => {
+      if (!Number.isFinite(currentGoalCalories) || currentGoalCalories <= 0) {
+        return currentGoalCalories;
+      }
+
+      if (currentMacroTotal === 0) {
+        return currentGoalCalories;
+      }
+
+      return Math.max(0, Math.round((currentGoalCalories * nextMacroTotal) / currentMacroTotal));
+    });
+  };
+
+  const applyPreset = (carbs: number, protein: number, fat: number) => {
+    updateMacroDistribution({ carbs, protein, fat });
   };
 
   const handleOpenEditGoals = () => {
@@ -704,7 +731,10 @@ export default function ProfilePage() {
 
       {showEditGoals ? (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 sm:items-center">
-          <div className="max-h-[90vh] w-full overflow-y-auto rounded-t-3xl bg-white p-6 shadow-xl sm:max-w-[400px] sm:rounded-3xl">
+          <OverlayScrollArea
+            className="max-h-[90vh] rounded-t-3xl bg-white p-6 shadow-xl sm:rounded-3xl"
+            containerClassName="max-h-[90vh] w-full sm:max-w-[400px]"
+          >
             <div className="mb-5 flex items-center justify-between">
               <h3 className="text-lg font-bold text-gray-900">목표 설정 수정</h3>
               <button
@@ -791,7 +821,7 @@ export default function ProfilePage() {
                     min="0"
                     max="100"
                     value={editCarbsPercentage}
-                    onChange={(event) => setEditCarbsPercentage(Number.parseInt(event.target.value, 10))}
+                  onChange={(event) => updateMacroDistribution({ carbs: Number.parseInt(event.target.value, 10) })}
                     className="onboarding-slider w-full appearance-none cursor-pointer rounded-lg h-2"
                     style={{
                       background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${editCarbsPercentage}%, #e5e7eb ${editCarbsPercentage}%, #e5e7eb 100%)`,
@@ -809,7 +839,7 @@ export default function ProfilePage() {
                     min="0"
                     max="100"
                     value={editProteinPercentage}
-                    onChange={(event) => setEditProteinPercentage(Number.parseInt(event.target.value, 10))}
+                  onChange={(event) => updateMacroDistribution({ protein: Number.parseInt(event.target.value, 10) })}
                     className="onboarding-slider w-full appearance-none cursor-pointer rounded-lg h-2"
                     style={{
                       background: `linear-gradient(to right, #ef4444 0%, #ef4444 ${editProteinPercentage}%, #e5e7eb ${editProteinPercentage}%, #e5e7eb 100%)`,
@@ -827,7 +857,7 @@ export default function ProfilePage() {
                     min="0"
                     max="100"
                     value={editFatPercentage}
-                    onChange={(event) => setEditFatPercentage(Number.parseInt(event.target.value, 10))}
+                  onChange={(event) => updateMacroDistribution({ fat: Number.parseInt(event.target.value, 10) })}
                     className="onboarding-slider w-full appearance-none cursor-pointer rounded-lg h-2"
                     style={{
                       background: `linear-gradient(to right, #eab308 0%, #eab308 ${editFatPercentage}%, #e5e7eb ${editFatPercentage}%, #e5e7eb 100%)`,
@@ -888,7 +918,7 @@ export default function ProfilePage() {
                 저장
               </button>
             </div>
-          </div>
+          </OverlayScrollArea>
         </div>
       ) : null}
 

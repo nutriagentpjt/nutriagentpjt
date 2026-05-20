@@ -6,6 +6,7 @@ import { Camera, Search, ChevronLeft, ChevronRight, Calendar, Star, X, Circle, L
 import { useState, useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { ImageSourceModal } from "@/components/camera";
+import { OverlayScrollArea } from "@/components/common/OverlayScrollArea";
 import { AddFoodModal } from "@/components/food";
 import AIRecommendations from "@/components/recommendation/AIRecommendations";
 import { useFoodAutocomplete, useFoodSearch, useMealSummary } from "@/hooks";
@@ -343,9 +344,9 @@ export default function HomePage() {
   ];
 
   useEffect(() => {
-    const nextState = location.state as { focusSearch?: boolean } | null;
+    const nextState = location.state as { focusSearch?: boolean; initialQuery?: string } | null;
 
-    if (!nextState?.focusSearch) {
+    if (!nextState?.focusSearch && !nextState?.initialQuery) {
       return;
     }
 
@@ -382,6 +383,12 @@ export default function HomePage() {
       }, 0);
     };
 
+    if (nextState?.initialQuery) {
+      setSearchQuery(nextState.initialQuery);
+      setAnalyzedFood(null);
+      setShowRecentSearches(false);
+    }
+
     timerId = window.setTimeout(focusSearchInput, 150);
 
     return () => {
@@ -416,8 +423,10 @@ export default function HomePage() {
     };
 
     document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('touchstart', handleClickOutside);
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
     };
   }, []);
 
@@ -455,6 +464,12 @@ export default function HomePage() {
       if (filtered.length > 0) {
         setShowRecentSearches(true);
       }
+      return;
+    }
+
+    if (!analyzedFood && searchQuery.trim().length > 0 && autocompleteResults.length > 0) {
+      setShowAutocomplete(true);
+      setShowRecentSearches(false);
     }
   };
   // 자동완성 항목 선택
@@ -1044,7 +1059,7 @@ export default function HomePage() {
             </div>
 
             {/* Gallery Grid */}
-            <div className="h-full pt-20 pb-5 px-2.5 overflow-y-auto">
+            <OverlayScrollArea className="pt-20 pb-5 px-2.5" containerClassName="h-full">
               <div className="grid grid-cols-3 gap-1.5">
                 {galleryImages.map((image) => (
                   <button
@@ -1070,7 +1085,7 @@ export default function HomePage() {
                   </button>
                 ))}
               </div>
-            </div>
+            </OverlayScrollArea>
 
             {/* Analyzing Overlay */}
             {isAnalyzing && (
@@ -2130,7 +2145,7 @@ export default function HomePage() {
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto px-5 py-4">
+            <OverlayScrollArea className="px-5 py-4" containerClassName="flex-1">
               {meals.length > 0 ? (
                 <div className="space-y-3">
                   {[
@@ -2199,7 +2214,7 @@ export default function HomePage() {
                   <p className="text-xs text-gray-500">검색 또는 직접 추가로 오늘의 식단을 채워보세요.</p>
                 </div>
               )}
-            </div>
+            </OverlayScrollArea>
           </div>
         </div>
       )}
@@ -2225,7 +2240,7 @@ export default function HomePage() {
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto px-4 py-5 bg-gray-50">
+            <OverlayScrollArea className="bg-gray-50 px-4 py-5" containerClassName="flex-1">
               {favoriteFoods.length > 0 ? (
                 <div className="space-y-2.5">
                   {favoriteFoods.map((food) => (
@@ -2250,7 +2265,7 @@ export default function HomePage() {
                   <button onClick={() => setShowFavorites(false)} className="btn btn-primary">음식 검색하기</button>
                 </div>
               )}
-            </div>
+            </OverlayScrollArea>
           </div>
         </div>
       )}
@@ -2276,7 +2291,7 @@ export default function HomePage() {
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto px-4 py-5 bg-gray-50">
+            <OverlayScrollArea className="bg-gray-50 px-4 py-5" containerClassName="flex-1">
               {getRecentFoods().length > 0 ? (
                 <div className="space-y-2.5">
                   {getRecentFoods().map((food) => (
@@ -2301,7 +2316,7 @@ export default function HomePage() {
                   <button onClick={() => setShowRecentFoods(false)} className="btn btn-primary">음식 검색하기</button>
                 </div>
               )}
-            </div>
+            </OverlayScrollArea>
           </div>
         </div>
       )}

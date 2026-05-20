@@ -1,3 +1,4 @@
+import { X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ImageSourceModal } from '@/components/camera';
@@ -99,24 +100,36 @@ export default function FoodSearchPage() {
         }}
       />
 
-      <div className="space-y-5 px-5 py-5">
-        <FoodSearchInput
-          onCameraClick={() => setShowImageSourceModal(true)}
-          onChange={setQuery}
-          onSuggestionSelect={setQuery}
-          value={query}
-          suggestions={suggestions}
-        />
+      <div className="min-h-full bg-background">
+        <div className="space-y-5 px-5 py-5">
+          <FoodSearchInput
+            onCameraClick={() => setShowImageSourceModal(true)}
+            onChange={setQuery}
+            onSuggestionSelect={setQuery}
+            value={query}
+            suggestions={suggestions}
+            rightAction={(
+            <button
+              type="button"
+              onClick={() => navigate(ROUTES.HOME)}
+              className="icon-button border border-gray-100/60 bg-gradient-to-br from-white to-gray-50 shadow-sm hover:shadow-md"
+              aria-label="홈으로 돌아가기"
+            >
+              <X className="h-5 w-5 text-gray-500" />
+            </button>
+          )}
+          />
 
-        <FoodList
-          foods={foods}
-          isDebouncing={isDebouncing}
-          isFavorite={(id) => favoriteBrands.has(id)}
-          isLoading={isLoading}
-          onAdd={handleAddFood}
-          onToggleFavorite={handleToggleFavorite}
-          query={query}
-        />
+          <FoodList
+            foods={foods}
+            isDebouncing={isDebouncing}
+            isFavorite={(id) => favoriteBrands.has(id)}
+            isLoading={isLoading}
+            onAdd={handleAddFood}
+            onToggleFavorite={handleToggleFavorite}
+            query={query}
+          />
+        </div>
       </div>
 
       <AddFoodModal

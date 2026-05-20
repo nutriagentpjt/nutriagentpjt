@@ -7,7 +7,7 @@ import { useImageUpload } from '@/hooks';
 import { Header } from '@/layouts/Header';
 import { useImageUploadStore } from '@/store';
 import type { MealImageRecognitionCandidate } from '@/types';
-import { convertHighEfficiencyImageToJpeg, isHighEfficiencyImageFile } from '@/utils/imageFile';
+import { normalizeVisionImageFile } from '@/utils/imageFile';
 
 function getConfidenceMeta(confidence?: number) {
   if (typeof confidence !== 'number') {
@@ -69,14 +69,14 @@ export default function ImageUploadPage() {
       setPreviewUrl(null);
 
       try {
-        if (isHighEfficiencyImageFile(selectedFile)) {
-          const convertedFile = await convertHighEfficiencyImageToJpeg(selectedFile);
+        const normalizedFile = await normalizeVisionImageFile(selectedFile);
 
-          if (isCancelled) {
-            return;
-          }
+        if (isCancelled) {
+          return;
+        }
 
-          setSelectedFile(convertedFile);
+        if (normalizedFile !== selectedFile) {
+          setSelectedFile(normalizedFile);
           return;
         }
 
@@ -240,7 +240,7 @@ export default function ImageUploadPage() {
                     <Loader2 className="h-10 w-10 animate-spin text-green-500" />
                     <div className="space-y-1.5">
                       <p className="text-base font-semibold text-gray-900">이미지를 준비하고 있어요.</p>
-                      <p className="text-sm leading-relaxed text-gray-500">촬영한 사진을 분석하기 쉬운 형식으로 변환하고 있어요.</p>
+                      <p className="text-sm leading-relaxed text-gray-500">촬영한 사진을 분석하기 쉬운 크기와 형식으로 맞추고 있어요.</p>
                     </div>
                   </>
                 ) : (
