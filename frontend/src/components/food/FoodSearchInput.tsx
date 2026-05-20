@@ -93,7 +93,7 @@ export function FoodSearchInput({
           <div className="absolute left-0 right-0 top-full z-20 mt-1 overflow-hidden rounded-xl border border-gray-100/50 bg-white shadow-lg">
             {suggestions.map((result, index) => (
               <button
-                key={result}
+                key={`${result}-${index}`}
                 onClick={() => {
                   onSuggestionSelect?.(result);
                   setIsSuggestionsOpen(false);

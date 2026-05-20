@@ -36,6 +36,7 @@ export default function AIAgentPage() {
   const sessionTitleInputRef = useRef<HTMLInputElement>(null);
   const personaPickerRef = useRef<HTMLDivElement>(null);
   const isComposingRef = useRef(false);
+  const inlineRenameBlurGuardRef = useRef(false);
 
   // 메시지가 추가될 때마다 스크롤을 맨 아래로
   useEffect(() => {
@@ -113,6 +114,7 @@ export default function AIAgentPage() {
   };
 
   const startInlineRename = (sessionId: string, currentTitle?: string | null) => {
+    inlineRenameBlurGuardRef.current = false;
     setEditingSessionId(sessionId);
     setEditingSessionTitle(currentTitle?.trim() || "새 대화");
     setActiveMenuSessionId(null);
@@ -123,6 +125,7 @@ export default function AIAgentPage() {
       return;
     }
 
+    inlineRenameBlurGuardRef.current = true;
     const nextTitle = editingSessionTitle.trim();
     if (nextTitle) {
       renameSession(editingSessionId, nextTitle);
@@ -133,8 +136,18 @@ export default function AIAgentPage() {
   };
 
   const cancelInlineRename = () => {
+    inlineRenameBlurGuardRef.current = true;
     setEditingSessionId(null);
     setEditingSessionTitle("");
+  };
+
+  const handleInlineRenameBlur = () => {
+    if (inlineRenameBlurGuardRef.current) {
+      inlineRenameBlurGuardRef.current = false;
+      return;
+    }
+
+    commitInlineRename();
   };
 
   const submitMessage = () => {
@@ -378,7 +391,7 @@ export default function AIAgentPage() {
                                 type="text"
                                 value={editingSessionTitle}
                                 onChange={(event) => setEditingSessionTitle(event.target.value)}
-                                onBlur={commitInlineRename}
+                                onBlur={handleInlineRenameBlur}
                                 onKeyDown={(event) => {
                                   if (event.key === "Enter") {
                                     event.preventDefault();
