@@ -9,7 +9,7 @@ import HomePage from '@/pages/HomePage';
 import AIAgentPage from '@/pages/AIAgentPage';
 import ProfilePage from '@/pages/ProfilePage';
 import StatsPage from '@/pages/StatsPage';
-import { FoodSearchPage, ImageUploadPage, MealSavePage } from '@/pages/MealRecording';
+import { ImageUploadPage, MealSavePage } from '@/pages/MealRecording';
 import { DailyMealViewPage } from '@/pages/MealView';
 import { RecommendationPage, SettingsPage } from '@/pages/Recommendation';
 import { GoalSettingPage, TDEECalculatorPage, WelcomePage } from '@/pages/Onboarding';
@@ -38,7 +38,7 @@ export const router = createBrowserRouter([
       },
       {
         path: ROUTES.MEAL_SEARCH.slice(1),
-        element: withSuspense(<FoodSearchPage />),
+        element: withSuspense(<HomePage />),
       },
       {
         path: ROUTES.MEAL_UPLOAD.slice(1),

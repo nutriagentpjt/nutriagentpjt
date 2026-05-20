@@ -256,6 +256,48 @@
     vertical-align: baseline;
   }
 
+  .app-scrollbar {
+    scrollbar-width: none !important;
+    scrollbar-color: transparent transparent !important;
+  }
+
+  .app-scrollbar::-webkit-scrollbar {
+    width: 0 !important;
+    height: 0 !important;
+    background: transparent !important;
+  }
+
+  .app-scrollbar::-webkit-scrollbar-track {
+    background: transparent !important;
+  }
+
+  .app-scrollbar::-webkit-scrollbar-thumb {
+    border-radius: 9999px;
+    background-color: transparent !important;
+    border: 0 !important;
+  }
+
+  body[data-scrollbar-active="true"] .app-scrollbar,
+  .app-scrollbar:hover,
+  .app-scrollbar:focus-within {
+    scrollbar-color: rgba(156, 163, 175, 0.85) transparent !important;
+    scrollbar-width: thin !important;
+  }
+
+  body[data-scrollbar-active="true"] .app-scrollbar::-webkit-scrollbar-thumb,
+  body[data-scrollbar-active="true"] .app-scrollbar::-webkit-scrollbar,
+  .app-scrollbar:hover::-webkit-scrollbar,
+  .app-scrollbar:focus-within::-webkit-scrollbar {
+    width: 6px !important;
+    height: 6px !important;
+  }
+
+  body[data-scrollbar-active="true"] .app-scrollbar::-webkit-scrollbar-thumb,
+  .app-scrollbar:hover::-webkit-scrollbar-thumb,
+  .app-scrollbar:focus-within::-webkit-scrollbar-thumb {
+    background-color: rgba(156, 163, 175, 0.85) !important;
+  }
+
   summary {
     display: list-item;
   }

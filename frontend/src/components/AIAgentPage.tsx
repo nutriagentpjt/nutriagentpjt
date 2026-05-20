@@ -1,6 +1,7 @@
 import { useRef, useEffect, useState } from "react";
 import { Bot, Check, Ellipsis, MessageSquarePlus, Pencil, Pin, PanelsLeftBottom, Send, Sparkles, Trash2 } from "lucide-react";
 import { MealPlateCard } from "@/components/ai-agent/MealPlateCard";
+import { OverlayScrollArea } from "@/components/common/OverlayScrollArea";
 import { useAIAgentChat } from "@/hooks";
 import { parseMealPlateSegments } from "@/utils/aiMealPlate";
 
@@ -24,15 +25,18 @@ export default function AIAgentPage() {
     setInputValue,
     sendMessage: handleSend,
   } = useAIAgentChat();
-  const [isScrolling, setIsScrolling] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [showPersonaPicker, setShowPersonaPicker] = useState(false);
   const [activeMenuSessionId, setActiveMenuSessionId] = useState<string | null>(null);
+  const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
+  const [editingSessionTitle, setEditingSessionTitle] = useState("");
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
-  const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const sessionTitleInputRef = useRef<HTMLInputElement>(null);
+  const personaPickerRef = useRef<HTMLDivElement>(null);
   const isComposingRef = useRef(false);
+  const inlineRenameBlurGuardRef = useRef(false);
 
   // 메시지가 추가될 때마다 스크롤을 맨 아래로
   useEffect(() => {
@@ -47,43 +51,30 @@ export default function AIAgentPage() {
     });
   }, [messages, isTyping]);
 
-  // 스크롤 이벤트 핸들러
-  const handleScroll = () => {
-    setIsScrolling(true);
-
-    // 이전 타이머 취소
-    if (scrollTimeoutRef.current) {
-      clearTimeout(scrollTimeoutRef.current);
-    }
-
-    // 1초 후 스크롤바 숨기기
-    scrollTimeoutRef.current = setTimeout(() => {
-      setIsScrolling(false);
-    }, 1000);
-  };
-
-  // 마우스 호버 이벤트 핸들러
-  const handleMouseEnter = () => {
-    setIsScrolling(true);
-    // 타이머 취소
-    if (scrollTimeoutRef.current) {
-      clearTimeout(scrollTimeoutRef.current);
-    }
-  };
-
-  const handleMouseLeave = () => {
-    // 마우스가 나가면 즉시 숨김
-    setIsScrolling(false);
-  };
-
-  // 컴포넌트 언마운트 시 타이머 정리
   useEffect(() => {
-    return () => {
-      if (scrollTimeoutRef.current) {
-        clearTimeout(scrollTimeoutRef.current);
+    if (!editingSessionId || !sessionTitleInputRef.current) {
+      return;
+    }
+
+    sessionTitleInputRef.current.focus();
+    sessionTitleInputRef.current.select();
+  }, [editingSessionId]);
+
+  useEffect(() => {
+    const handlePointerOutside = (event: MouseEvent | TouchEvent) => {
+      if (showPersonaPicker && personaPickerRef.current && !personaPickerRef.current.contains(event.target as Node)) {
+        setShowPersonaPicker(false);
       }
     };
-  }, []);
+
+    document.addEventListener("mousedown", handlePointerOutside);
+    document.addEventListener("touchstart", handlePointerOutside);
+
+    return () => {
+      document.removeEventListener("mousedown", handlePointerOutside);
+      document.removeEventListener("touchstart", handlePointerOutside);
+    };
+  }, [showPersonaPicker]);
 
   useEffect(() => {
     if (!inputRef.current) {
@@ -122,14 +113,41 @@ export default function AIAgentPage() {
     }
   };
 
-  const handleRenameSession = (sessionId: string, currentTitle?: string | null) => {
-    const nextTitle = window.prompt('새 대화 이름을 입력해주세요.', currentTitle ?? '');
-    if (!nextTitle || !nextTitle.trim()) {
+  const startInlineRename = (sessionId: string, currentTitle?: string | null) => {
+    inlineRenameBlurGuardRef.current = false;
+    setEditingSessionId(sessionId);
+    setEditingSessionTitle(currentTitle?.trim() || "새 대화");
+    setActiveMenuSessionId(null);
+  };
+
+  const commitInlineRename = () => {
+    if (!editingSessionId) {
       return;
     }
 
-    renameSession(sessionId, nextTitle);
-    setActiveMenuSessionId(null);
+    inlineRenameBlurGuardRef.current = true;
+    const nextTitle = editingSessionTitle.trim();
+    if (nextTitle) {
+      renameSession(editingSessionId, nextTitle);
+    }
+
+    setEditingSessionId(null);
+    setEditingSessionTitle("");
+  };
+
+  const cancelInlineRename = () => {
+    inlineRenameBlurGuardRef.current = true;
+    setEditingSessionId(null);
+    setEditingSessionTitle("");
+  };
+
+  const handleInlineRenameBlur = () => {
+    if (inlineRenameBlurGuardRef.current) {
+      inlineRenameBlurGuardRef.current = false;
+      return;
+    }
+
+    commitInlineRename();
   };
 
   const submitMessage = () => {
@@ -176,7 +194,7 @@ export default function AIAgentPage() {
               </div>
             </div>
 
-            <div className="relative">
+            <div ref={personaPickerRef} className="relative">
               <button
                 type="button"
                 onClick={() => {
@@ -239,16 +257,10 @@ export default function AIAgentPage() {
       </div>
 
       {/* Messages Area - 스크롤 가능 */}
-      <div
-        className={`flex-1 overflow-y-auto px-5 py-5 space-y-4 transition-all ${
-          isScrolling
-            ? "[&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-300 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:opacity-100"
-            : "[&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-300 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:opacity-0"
-        } [&::-webkit-scrollbar-thumb]:transition-opacity [&::-webkit-scrollbar-thumb]:duration-300`}
+      <OverlayScrollArea
+        className="px-5 py-5 space-y-4"
+        containerClassName="flex-1"
         ref={messagesContainerRef}
-        onScroll={handleScroll}
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
       >
         {isLoadingHistory ? (
           <div className="flex justify-center py-6 text-sm text-gray-500">이전 대화를 불러오는 중입니다.</div>
@@ -331,7 +343,7 @@ export default function AIAgentPage() {
           </div>
         )}
         <div ref={messagesEndRef} />
-      </div>
+      </OverlayScrollArea>
 
       {showHistory && (
         <div className="fixed inset-0 z-50 flex justify-center bg-black/40" onClick={() => setShowHistory(false)}>
@@ -359,42 +371,76 @@ export default function AIAgentPage() {
 
               </div>
 
-              <div className="h-[calc(100%-81px)] space-y-2 overflow-y-auto p-3">
+              <OverlayScrollArea className="space-y-2 p-3" containerClassName="h-[calc(100%-81px)]">
                 {sessions.length === 0 ? (
                   <div className="rounded-2xl border border-dashed border-gray-200 bg-gray-50 px-4 py-6 text-center text-sm text-gray-500">
                     아직 저장된 대화가 없습니다.
                   </div>
                 ) : (
                   sessions.map((session) => (
-                    <div
-                      key={session.id}
-                      className="group relative"
-                    >
-                      <button
-                        type="button"
-                        onClick={() => {
-                          void selectSession(session);
-                          setShowHistory(false);
-                        }}
-                        className={`w-full rounded-2xl border border-gray-200 px-4 py-3 text-left transition-colors ${
-                          activeMenuSessionId === session.id ? 'bg-gray-100' : 'bg-white hover:bg-gray-50'
-                        }`}
-                      >
-                        <div className="pr-9">
-                          <div className="flex items-center gap-2">
-                            {sessionUiState[session.id]?.pinned ? (
-                              <Pin className="h-3.5 w-3.5 shrink-0 text-green-600" />
-                            ) : null}
-                            <p className="line-clamp-1 text-sm font-semibold text-gray-900">
-                              {session.title || '새 대화'}
-                            </p>
-                          </div>
-                          <div className="mt-1 flex items-center gap-2 text-[11px] text-gray-500">
-                            <span>{personas.find((persona) => persona.name === session.persona)?.displayName ?? session.persona}</span>
-                            {session.updatedAt ? <span>· {new Date(session.updatedAt).toLocaleDateString("ko-KR")}</span> : null}
+                    <div key={session.id} className="group relative">
+                      {editingSessionId === session.id ? (
+                        <div className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-left">
+                          <div className="pr-9">
+                            <div className="flex items-center gap-2">
+                              {sessionUiState[session.id]?.pinned ? (
+                                <Pin className="h-3.5 w-3.5 shrink-0 text-green-600" />
+                              ) : null}
+                              <input
+                                ref={sessionTitleInputRef}
+                                type="text"
+                                value={editingSessionTitle}
+                                onChange={(event) => setEditingSessionTitle(event.target.value)}
+                                onBlur={handleInlineRenameBlur}
+                                onKeyDown={(event) => {
+                                  if (event.key === "Enter") {
+                                    event.preventDefault();
+                                    commitInlineRename();
+                                  }
+
+                                  if (event.key === "Escape") {
+                                    event.preventDefault();
+                                    cancelInlineRename();
+                                  }
+                                }}
+                                className="w-full rounded-lg border border-gray-200 bg-white px-2 py-1 text-sm font-semibold text-gray-900 outline-none focus:border-gray-400"
+                                maxLength={40}
+                                aria-label="대화 이름 수정"
+                              />
+                            </div>
+                            <div className="mt-1 flex items-center gap-2 text-[11px] text-gray-500">
+                              <span>{personas.find((persona) => persona.name === session.persona)?.displayName ?? session.persona}</span>
+                              {session.updatedAt ? <span>· {new Date(session.updatedAt).toLocaleDateString("ko-KR")}</span> : null}
+                            </div>
                           </div>
                         </div>
-                      </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            void selectSession(session);
+                            setShowHistory(false);
+                          }}
+                          className={`w-full rounded-2xl border border-gray-200 px-4 py-3 text-left transition-colors ${
+                            activeMenuSessionId === session.id ? 'bg-gray-100' : 'bg-white hover:bg-gray-50'
+                          }`}
+                        >
+                          <div className="pr-9">
+                            <div className="flex items-center gap-2">
+                              {sessionUiState[session.id]?.pinned ? (
+                                <Pin className="h-3.5 w-3.5 shrink-0 text-green-600" />
+                              ) : null}
+                              <p className="line-clamp-1 text-sm font-semibold text-gray-900">
+                                {session.title || '새 대화'}
+                              </p>
+                            </div>
+                            <div className="mt-1 flex items-center gap-2 text-[11px] text-gray-500">
+                              <span>{personas.find((persona) => persona.name === session.persona)?.displayName ?? session.persona}</span>
+                              {session.updatedAt ? <span>· {new Date(session.updatedAt).toLocaleDateString("ko-KR")}</span> : null}
+                            </div>
+                          </div>
+                        </button>
+                      )}
 
                       <button
                         type="button"
@@ -416,7 +462,7 @@ export default function AIAgentPage() {
                         <div className="absolute right-3 top-[calc(100%+4px)] z-10 w-40 rounded-2xl border border-gray-200 bg-white p-1.5 shadow-xl">
                           <button
                             type="button"
-                            onClick={() => handleRenameSession(session.id, session.title)}
+                            onClick={() => startInlineRename(session.id, session.title)}
                             className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm text-gray-700 transition hover:bg-gray-50"
                           >
                             <Pencil className="h-4 w-4" />
@@ -449,7 +495,7 @@ export default function AIAgentPage() {
                     </div>
                   ))
                 )}
-              </div>
+              </OverlayScrollArea>
             </div>
 
             <div className="absolute inset-y-0 right-0 w-14">

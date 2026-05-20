@@ -1,5 +1,6 @@
 import { ChevronLeft } from 'lucide-react';
 import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react';
+import { OverlayScrollArea } from '@/components/common/OverlayScrollArea';
 import { Switch } from '@/components/ui/switch';
 import { showToast } from '@/components/common/Toast/Toast';
 import { useSettingsStore } from '@/store';
@@ -230,7 +231,7 @@ export default function NotificationSettings({ onClose }: NotificationSettingsPr
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto bg-gray-50 px-5 py-4">
+        <OverlayScrollArea className="bg-gray-50 px-5 py-4" containerClassName="flex-1">
           <div className="space-y-3">
             <section className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
               <div className="flex items-start justify-between gap-4">
@@ -397,7 +398,7 @@ export default function NotificationSettings({ onClose }: NotificationSettingsPr
               />
             </SettingSection>
           </div>
-        </div>
+        </OverlayScrollArea>
       </div>
     </div>
   );

@@ -1,5 +1,6 @@
 import { Activity, ChevronLeft, ChevronRight, Droplet, HeartPulse, Shield } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { OverlayScrollArea } from '@/components/common/OverlayScrollArea';
 import type { Disease } from '@/types/onboarding';
 import type { StoredProfile } from './shared';
 import AllergiesSettings from './PersonalSettingsAllergies';
@@ -78,7 +79,7 @@ export default function PersonalSettings({ profile, onClose, onProfileUpdate }: 
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto">
+        <OverlayScrollArea containerClassName="flex-1">
           {currentView === 'menu' ? (
             <div className="px-5 py-4">
               <div className="space-y-2">
@@ -186,7 +187,7 @@ export default function PersonalSettings({ profile, onClose, onProfileUpdate }: 
               }
             />
           ) : null}
-        </div>
+        </OverlayScrollArea>
       </div>
     </div>
   );

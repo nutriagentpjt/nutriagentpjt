@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { useNavigate } from 'react-router-dom';
+import { OverlayScrollArea } from '@/components/common/OverlayScrollArea';
 import { showToast } from '@/components/common';
 import { MealTypeSelector, NutritionPreview } from '@/components/meal';
 import { ROUTES } from '@/constants/routes';
@@ -189,7 +190,10 @@ export function AddFoodModal({ food, isOpen, onClose, onSaved, initialDate, redi
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-5">
-      <div className="max-h-[90vh] w-full max-w-[400px] overflow-y-auto rounded-2xl bg-white p-6 shadow-xl">
+      <OverlayScrollArea
+        className="max-h-[90vh] rounded-2xl bg-white p-6 shadow-xl"
+        containerClassName="max-h-[90vh] w-full max-w-[400px]"
+      >
         <div className="mb-5 flex items-start justify-between">
           <div className="min-w-0 flex-1">
             <h3 className="mb-1 text-lg font-bold text-gray-900">식단 추가</h3>
@@ -311,7 +315,7 @@ export function AddFoodModal({ food, isOpen, onClose, onSaved, initialDate, redi
             </button>
           </div>
         </form>
-      </div>
+      </OverlayScrollArea>
     </div>
   );
 }
