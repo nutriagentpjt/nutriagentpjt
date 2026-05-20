@@ -8,14 +8,15 @@ node_modules/
 /playwright-report/
 /blob-report/
 /playwright/.cache/
-dist/
-build/
-*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
+
+# Build outputs
+dist/
+build/
 
 # Python / FastAPI
 __pycache__/
@@ -29,7 +30,6 @@ venv/
 env/
 ENV/
 .venv/
-.venv
 
 # uv package manager
 .uv_cache/
@@ -37,8 +37,6 @@ ENV/
 
 # Python build
 *.egg-info/
-dist/
-build/
 
 # Testing & Coverage
 .pytest_cache/
@@ -60,13 +58,14 @@ htmlcov/
 *.sqlite
 *.sqlite3
 
-# 대용량 데이터 파일 (git 미포함 — EC2에 별도 업로드)
-# vision/data/pgvector_rows.parquet 가 대표 예. cd.yml의 git clean -fd 는 untracked
-# 는 지우지만 ignored는 보존하므로 매 배포마다 parquet이 날아가지 않는다.
+# 대용량 데이터 파일
 *.parquet
 
-# 로컬 테스트 이미지
+# Local test assets
 test_images/
+
+# Vision Search
+Vision_Search/
 
 # OS
 .DS_Store
@@ -88,7 +87,5 @@ backend-spring/.gradle/
 *.gradle.kts.compiled
 gradle-app.setting
 !gradle-wrapper.jar
+!gradle/wrapper/gradle-wrapper.jar
 .gradletasknamecache
-
-# Env
-.env
