@@ -192,6 +192,11 @@ public class ChatProxyController {
                         }
                 );
             } catch (Exception e) {
+                Throwable cause = e.getCause();
+                if (cause instanceof AsyncRequestNotUsableException) {
+                    log.debug("SSE 클라이언트 연결 종료 (응답 완료 후) sessionId={}", sessionId);
+                    return;
+                }
                 log.error("SSE 스트리밍 오류 sessionId={}", sessionId, e);
                 try {
                     String errorEvent = "data: {\"type\":\"error\",\"message\":\"스트리밍 오류가 발생했습니다\"}\n\n";
