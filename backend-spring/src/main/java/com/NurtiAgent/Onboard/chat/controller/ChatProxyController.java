@@ -191,8 +191,6 @@ public class ChatProxyController {
                             return null;
                         }
                 );
-            } catch (AsyncRequestNotUsableException e) {
-                log.debug("SSE async request 완료 후 write 시도 sessionId={}", sessionId);
             } catch (Exception e) {
                 log.error("SSE 스트리밍 오류 sessionId={}", sessionId, e);
                 try {
