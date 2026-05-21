@@ -14,7 +14,7 @@ public class ProfileController {
 
     private final ProfileService profileService;
 
-    @PostMapping("/onboarding")
+    @PostMapping("/api/onboarding")
     public ResponseEntity<OnboardingResponse> saveOnboarding(
             @GuestId String guestId,
             @Valid @RequestBody OnboardingRequest request) {
@@ -22,13 +22,13 @@ public class ProfileController {
         return ResponseEntity.ok(response);
     }
 
-    @GetMapping("/profile")
+    @GetMapping("/api/profile")
     public ResponseEntity<ProfileResponse> getProfile(@GuestId String guestId) {
         ProfileResponse response = profileService.getProfile(guestId);
         return ResponseEntity.ok(response);
     }
 
-    @PutMapping("/profile")
+    @PutMapping("/api/profile")
     public ResponseEntity<ProfileResponse> updateProfile(
             @GuestId String guestId,
             @Valid @RequestBody ProfileUpdateRequest request) {
@@ -36,13 +36,13 @@ public class ProfileController {
         return ResponseEntity.ok(response);
     }
 
-    @GetMapping("/profiles/targets")
+    @GetMapping("/api/profiles/targets")
     public ResponseEntity<NutritionTargetResponse> getNutritionTargets(@GuestId String guestId) {
         NutritionTargetResponse response = profileService.getNutritionTargets(guestId);
         return ResponseEntity.ok(response);
     }
 
-    @PatchMapping("/profiles/targets")
+    @PatchMapping("/api/profiles/targets")
     public ResponseEntity<NutritionTargetResponse> updateNutritionTargets(
             @GuestId String guestId,
             @Valid @RequestBody NutritionTargetUpdateRequest request) {

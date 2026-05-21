@@ -95,7 +95,7 @@ function normalizeMealItem(response: ApiMealItemResponse, date: string): Meal {
 
 export const mealService = {
   async getMeals(date: string): Promise<MealListResponse> {
-    const response = await api.get<ApiMealListResponse>('/meals', {
+    const response = await api.get<ApiMealListResponse>('/api/meals', {
       params: { date },
     });
 
@@ -107,14 +107,14 @@ export const mealService = {
   },
 
   async getMealSummary(date: string): Promise<MealSummaryResponse> {
-    const response = await api.get<MealSummaryResponse>('/meals/summary', {
+    const response = await api.get<MealSummaryResponse>('/api/meals/summary', {
       params: { date },
     });
     return response.data;
   },
 
   async createMeal(data: CreateMealRequest): Promise<Meal> {
-    const response = await api.post<ApiMealResponse>('/meals', {
+    const response = await api.post<ApiMealResponse>('/api/meals', {
       foodName: data.foodName,
       amount: data.amount,
       mealType: toApiMealType(data.mealType),
@@ -126,7 +126,7 @@ export const mealService = {
   },
 
   async updateMeal(id: number, data: UpdateMealRequest): Promise<Meal> {
-    const response = await api.put<ApiMealResponse>(`/meals/${id}`, {
+    const response = await api.put<ApiMealResponse>(`/api/meals/${id}`, {
       ...(typeof data.amount === 'number' ? { amount: data.amount } : {}),
       ...(data.mealType ? { mealType: toApiMealType(data.mealType) } : {}),
       ...(data.date ? { date: data.date } : {}),
@@ -135,14 +135,14 @@ export const mealService = {
   },
 
   async deleteMeal(id: number): Promise<void> {
-    await api.delete(`/meals/${id}`);
+    await api.delete(`/api/meals/${id}`);
   },
 
   async uploadImage(file: File): Promise<MealImageUploadResponse> {
     const formData = new FormData();
     formData.append('image', file);
 
-    const response = await api.post<MealImageUploadResponse>('/meals/upload/image', formData, {
+    const response = await api.post<MealImageUploadResponse>('/api/meals/upload/image', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
 

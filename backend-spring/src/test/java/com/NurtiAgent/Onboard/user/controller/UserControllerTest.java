@@ -44,7 +44,7 @@ class UserControllerTest {
         void normal_returnsGuestId() throws Exception {
             when(userService.saveUser(any())).thenReturn("guest_abc-123");
 
-            mockMvc.perform(post("/guest/session"))
+            mockMvc.perform(post("/api/guest/session"))
                     .andExpect(status().isOk())
                     .andExpect(content().string("guest_abc-123"));
         }
@@ -54,7 +54,7 @@ class UserControllerTest {
         void saveUser_calledOnce() throws Exception {
             when(userService.saveUser(any())).thenReturn("guest_abc-123");
 
-            mockMvc.perform(post("/guest/session"));
+            mockMvc.perform(post("/api/guest/session"));
 
             verify(userService, times(1)).saveUser(any());
         }
@@ -74,7 +74,7 @@ class UserControllerTest {
             String body = objectMapper.writeValueAsString(
                     new com.NurtiAgent.Onboard.user.dto.GuestIdData("guest_existing-id"));
 
-            mockMvc.perform(post("/renew/session")
+            mockMvc.perform(post("/api/renew/session")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(body))
                     .andExpect(status().isOk())
@@ -90,7 +90,7 @@ class UserControllerTest {
             String body = objectMapper.writeValueAsString(
                     new com.NurtiAgent.Onboard.user.dto.GuestIdData("unknown"));
 
-            mockMvc.perform(post("/renew/session")
+            mockMvc.perform(post("/api/renew/session")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(body))
                     .andExpect(status().isBadRequest())
