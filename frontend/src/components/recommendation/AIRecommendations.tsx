@@ -27,6 +27,7 @@ interface AIRecommendationsProps {
   coachingMessage?: string;
   isLoading?: boolean;
   errorMessage?: string | null;
+  shouldFetchRecommendations?: boolean;
 }
 
 function getApiErrorMessage(error: ApiError | null): string | null {
@@ -61,6 +62,7 @@ export default function AIRecommendations({
   coachingMessage,
   isLoading = false,
   errorMessage = null,
+  shouldFetchRecommendations = recommendations == null,
 }: AIRecommendationsProps) {
   const [preferenceOverrides, setPreferenceOverrides] = useState<
     Record<number, 'liked' | 'disliked' | null>
@@ -75,7 +77,6 @@ export default function AIRecommendations({
     addFoodAsync,
     removeFoodAsync,
   } = usePreferences();
-  const shouldFetchRecommendations = recommendations == null;
   const recommendationQuery = useRecommendations({
     mealType,
     date,

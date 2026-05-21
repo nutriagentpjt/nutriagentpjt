@@ -3,7 +3,7 @@ import { useMemo, useRef, useState } from 'react';
 import { showToast } from '@/components/common';
 import { MealTypeSelector, MealTimeline, NutritionPreview, NutritionSummaryCard, type MealCardItem } from '@/components/meal';
 import { useDeleteMeal, useMeals, useUpdateMeal } from '@/hooks';
-import { deleteStoredMeal, getStoredMeals, updateStoredMeal } from '@/utils';
+import { deleteStoredMeal, getMealTypeFromTimeString, getStoredMeals, updateStoredMeal } from '@/utils';
 import type { Meal, MealListSummary, MealType } from '@/types';
 
 interface EditMealState extends MealCardItem {
@@ -44,11 +44,7 @@ function isToday(date: Date) {
 }
 
 function inferMealTypeByTime(time: string): MealType {
-  const hour = Number(time.split(':')[0] ?? '0');
-  if (hour >= 6 && hour < 11) return 'breakfast';
-  if (hour >= 11 && hour < 14) return 'lunch';
-  if (hour >= 14 && hour < 20) return 'dinner';
-  return 'snack';
+  return getMealTypeFromTimeString(time);
 }
 
 function toBaseNutrient(value: number, amount: number) {

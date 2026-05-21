@@ -119,6 +119,7 @@ export default function RecommendationPage() {
         onClose={() => navigate(ROUTES.HOME)}
         mealType={mealType}
         date={currentDate}
+        shouldFetchRecommendations={false}
         recommendations={mappedRecommendations}
         coachingMessage={data?.coachingMessage}
         isLoading={isLoading}
