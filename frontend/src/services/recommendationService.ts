@@ -66,7 +66,7 @@ export const recommendationService = {
     date?: string,
     limit?: number,
   ): Promise<RecommendationResponse> {
-    const response = await api.get<BackendRecommendationResponse>('/recommendations', {
+    const response = await api.get<BackendRecommendationResponse>('/api/recommendations', {
       params: { mealType: toApiMealType(mealType), date, limit },
     });
 
@@ -97,7 +97,7 @@ export const recommendationService = {
     }),
 
   async getSettings(): Promise<RecommendationSettings> {
-    const response = await api.get<RecommendationSettings>('/recommendations/settings');
+    const response = await api.get<RecommendationSettings>('/api/recommendations/settings');
     return response.data;
   },
 

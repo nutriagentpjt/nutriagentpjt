@@ -33,7 +33,7 @@ import java.util.List;
 
 @Slf4j
 @RestController
-@RequestMapping("/meals")
+@RequestMapping("/api/meals")
 public class MealImageUploadController {
 
     private static final String REQUEST_ID_HEADER = "X-Request-ID";
