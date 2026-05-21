@@ -51,7 +51,7 @@ class FoodControllerTest {
             when(foodService.searchFoods(eq("닭"), anyInt(), anyInt()))
                     .thenReturn(FoodSearchResponse.builder().foods(List.of(food)).total(1).build());
 
-            mockMvc.perform(get("/foods/search").param("query", "닭"))
+            mockMvc.perform(get("/api/foods/search").param("query", "닭"))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$[0].name").value("닭가슴살"))
                     .andExpect(jsonPath("$[0].calories").value(165.0));
@@ -63,7 +63,7 @@ class FoodControllerTest {
             when(foodService.searchFoods(any(), anyInt(), anyInt()))
                     .thenReturn(FoodSearchResponse.builder().foods(List.of()).total(0).build());
 
-            mockMvc.perform(get("/foods/search").param("query", "xyz없는음식"))
+            mockMvc.perform(get("/api/foods/search").param("query", "xyz없는음식"))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$").isArray())
                     .andExpect(jsonPath("$").isEmpty());
@@ -72,7 +72,7 @@ class FoodControllerTest {
         @Test
         @DisplayName("limit=0: 400 BAD_REQUEST (컨트롤러 검증)")
         void invalidLimit_returns400() throws Exception {
-            mockMvc.perform(get("/foods/search")
+            mockMvc.perform(get("/api/foods/search")
                             .param("query", "닭")
                             .param("limit", "0"))
                     .andExpect(status().isBadRequest());
@@ -81,7 +81,7 @@ class FoodControllerTest {
         @Test
         @DisplayName("limit=101: 400 BAD_REQUEST (컨트롤러 검증)")
         void limitOver100_returns400() throws Exception {
-            mockMvc.perform(get("/foods/search")
+            mockMvc.perform(get("/api/foods/search")
                             .param("query", "닭")
                             .param("limit", "101"))
                     .andExpect(status().isBadRequest());
@@ -90,7 +90,7 @@ class FoodControllerTest {
         @Test
         @DisplayName("offset=-1: 400 BAD_REQUEST (컨트롤러 검증)")
         void negativeOffset_returns400() throws Exception {
-            mockMvc.perform(get("/foods/search")
+            mockMvc.perform(get("/api/foods/search")
                             .param("query", "닭")
                             .param("offset", "-1"))
                     .andExpect(status().isBadRequest());
@@ -102,7 +102,7 @@ class FoodControllerTest {
             when(foodService.searchFoods(any(), anyInt(), anyInt()))
                     .thenThrow(new InvalidSearchQueryException("검색어를 입력해주세요"));
 
-            mockMvc.perform(get("/foods/search").param("query", " "))
+            mockMvc.perform(get("/api/foods/search").param("query", " "))
                     .andExpect(status().isBadRequest())
                     .andExpect(jsonPath("$.error").value("검색어를 입력해주세요"));
         }
@@ -122,7 +122,7 @@ class FoodControllerTest {
                     .variants(2).build();
             when(foodService.getFoodByName("닭가슴살")).thenReturn(food);
 
-            mockMvc.perform(get("/foods/detail").param("name", "닭가슴살"))
+            mockMvc.perform(get("/api/foods/detail").param("name", "닭가슴살"))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.name").value("닭가슴살"))
                     .andExpect(jsonPath("$.protein").value(31.0));
@@ -134,7 +134,7 @@ class FoodControllerTest {
             when(foodService.getFoodByName("없는음식"))
                     .thenThrow(new FoodNotFoundException("해당 자료를 찾을 수 없습니다"));
 
-            mockMvc.perform(get("/foods/detail").param("name", "없는음식"))
+            mockMvc.perform(get("/api/foods/detail").param("name", "없는음식"))
                     .andExpect(status().isNotFound())
                     .andExpect(jsonPath("$.error").value("해당 자료를 찾을 수 없습니다"));
         }
@@ -152,7 +152,7 @@ class FoodControllerTest {
             when(foodService.autocomplete(eq("닭"), anyInt()))
                     .thenReturn(List.of("닭가슴살", "닭갈비"));
 
-            mockMvc.perform(get("/foods/autocomplete").param("query", "닭"))
+            mockMvc.perform(get("/api/foods/autocomplete").param("query", "닭"))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$[0].id").value(1))
                     .andExpect(jsonPath("$[0].name").value("닭가슴살"))
@@ -165,7 +165,7 @@ class FoodControllerTest {
         void noResult_returnsEmpty() throws Exception {
             when(foodService.autocomplete(any(), anyInt())).thenReturn(List.of());
 
-            mockMvc.perform(get("/foods/autocomplete").param("query", "xyz"))
+            mockMvc.perform(get("/api/foods/autocomplete").param("query", "xyz"))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$").isEmpty());
         }
@@ -176,7 +176,7 @@ class FoodControllerTest {
             when(foodService.autocomplete(any(), anyInt()))
                     .thenThrow(new InvalidSearchQueryException("검색어를 입력해주세요"));
 
-            mockMvc.perform(get("/foods/autocomplete").param("query", ""))
+            mockMvc.perform(get("/api/foods/autocomplete").param("query", ""))
                     .andExpect(status().isBadRequest());
         }
     }

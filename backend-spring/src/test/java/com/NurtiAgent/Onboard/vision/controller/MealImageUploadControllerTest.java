@@ -70,7 +70,7 @@ class MealImageUploadControllerTest {
     private static final String GUEST_ID = "guest_test-001";
     private static final String INTERNAL_KEY = "test-internal-key";
     private static final String VISION_BASE = "http://mock-vision:8001";
-    private static final String ENDPOINT = "/meals/upload/image";
+    private static final String ENDPOINT = "/api/meals/upload/image";
 
     private MockHttpSession authSession;
 
