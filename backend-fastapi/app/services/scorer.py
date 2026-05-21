@@ -1,20 +1,21 @@
 import math
 
 from app.models.food import Food
-from app.schemas.enums import Disease, HealthGoal
+from app.schemas.enums import Disease, HealthGoal, MealType
 from app.schemas.response import ScoreBreakdown
 from app.services.nutrition_calculator import DailyNutritionPlan, NutrientTarget
 
 # 기본 가중치 (합 = 100)
 DEFAULT_WEIGHTS: dict[str, int] = {
-    "gap_match": 35,
-    "goal_alignment": 12,
+    "gap_match": 30,        # 35 → 30
+    "goal_alignment": 10,   # 12 → 10
     "disease_compliance": 18,
     "preference": 8,
     "feedback": 7,
     "micro_fit": 10,
     "gi_gl": 5,
     "leucine": 5,
+    "meal_time_fit": 7,     # 끼니 적합도
 }
 
 
@@ -44,6 +45,7 @@ def calculate_score(
     feedback_map: dict[int, str],
     daily_plan: DailyNutritionPlan | None = None,
     weight: float = 0.0,
+    meal_type: MealType | None = None,
 ) -> ScoreBreakdown:
     w = _resolve_weights(health_goal, diseases)
 
@@ -59,6 +61,7 @@ def calculate_score(
         micro_fit=scale(_micro_fit_score(food, daily_plan, meal_target), "micro_fit"),
         gi_gl=scale(_gi_gl_score(food, diseases), "gi_gl"),
         leucine=scale(_leucine_score(food, gap.protein, weight), "leucine"),
+        meal_time_fit=scale(_meal_time_fit_score(food, meal_type), "meal_time_fit"),
     )
 
 
@@ -316,3 +319,60 @@ def _feedback_score(food_id: int, feedback_map: dict[int, str]) -> float:
     if fb_type and fb_type in _FEEDBACK_DELTA:
         score += _FEEDBACK_DELTA[fb_type]
     return round(max(0.0, min(score, 10.0)), 2)
+
+
+# ---------------------------------------------------------------------------
+# Meal-Time Fit Score — [0-10] (끼니별 음식 적합도)
+# ---------------------------------------------------------------------------
+
+def _meal_time_fit_score(food: Food, meal_type: MealType | None) -> float:
+    if meal_type is None:
+        return 5.0
+
+    profile = getattr(food, "profile", None)
+    role = (profile.dish_role if profile else None) or "UNKNOWN"
+    category = food.category or ""
+    cal = food.calories or 0
+
+    if meal_type == MealType.BREAKFAST:
+        # 죽·스프: 아침에 최적
+        if "죽" in category or "스프" in category:
+            return 9.0
+        # 맑은국: 아침 국으로 이상적 (고칼로리 보양식 제외)
+        if "국 및 탕류" in category and cal < 400:
+            return 9.0
+        # 달걀류: 아침 단백질 공급원
+        if category == "난류":
+            return 8.0
+        # 두부류: 가벼운 단백질
+        if "두류" in category:
+            return 7.0
+        # 찌개·전골: 아침에 강한 패널티
+        if "찌개" in category or "전골" in category:
+            return 0.0
+        # 고칼로리 주반찬: 아침에 부담
+        if role == "MAIN" and cal > 350:
+            return 3.0
+        return 5.0
+
+    if meal_type == MealType.DINNER:
+        # 저녁: 저칼로리 음식 선호
+        if cal < 200:
+            return 7.5
+        if cal < 350:
+            return 5.5
+        if cal > 500:
+            return 2.5
+        return 5.0
+
+    if meal_type == MealType.SNACK:
+        # 간식: 스낵·유제품·과일 선호, 밥·국·주반찬 비적합
+        if role in ("SNACK", "BEVERAGE"):
+            return 9.0
+        if category in ("과일류", "우유 및 그 제품"):
+            return 8.0
+        if role in ("RICE", "SOUP", "MAIN"):
+            return 1.0
+        return 5.0
+
+    return 5.0  # LUNCH: 중립

@@ -97,6 +97,7 @@ async def run_recommendation(req: RecommendRequest, db: AsyncSession) -> Recomme
             feedback_map=feedback_map,
             daily_plan=daily,
             weight=user.weight,
+            meal_type=req.meal_type,
         )
         total = (
             breakdown.gap_match
@@ -308,12 +309,38 @@ async def _run_set_mode(
             health_goal=user.health_goal, diseases=user.diseases,
             preferred_foods=user.preferred_foods, disliked_foods=user.disliked_foods,
             feedback_map=feedback_map, daily_plan=daily, weight=user.weight,
+            meal_type=req.meal_type,
         )
         total = (bd.gap_match + bd.goal_alignment + bd.disease_compliance
-                 + bd.preference + bd.feedback + bd.micro_fit + bd.gi_gl + bd.leucine)
+                 + bd.preference + bd.feedback + bd.micro_fit + bd.gi_gl + bd.leucine
+                 + bd.meal_time_fit
+                 + random.uniform(-_SCORE_NOISE_RANGE, _SCORE_NOISE_RANGE))
         scored_candidates.append((food, total))
 
-    role_top = _group_by_role(scored_candidates, top_n=5)
+    # 끼니별 다양성: 상위 pool에서 랜덤 선택
+    role_top = _group_by_role(scored_candidates, top_n=8)
+    for _role in ("RICE", "SIDE", "KIMCHI"):
+        pool = role_top.get(_role, [])
+        if len(pool) > 5:
+            random.shuffle(pool)
+            role_top[_role] = pool[:5]
+    for _role in ("SOUP", "MAIN"):
+        pool = role_top.get(_role, [])
+        if len(pool) > 3:
+            random.shuffle(pool)
+            role_top[_role] = pool[:3]
+
+    # 아침: 죽·스프 카테고리 ONE_DISH만 RICE 버킷에 합산
+    if req.meal_type == MealType.BREAKFAST:
+        one_dish_juk = [
+            (f, s) for f, s in role_top.get("ONE_DISH", [])
+            if "죽" in (f.category or "") or "스프" in (f.category or "")
+        ]
+        rice = role_top.get("RICE", [])
+        merged = sorted(rice + one_dish_juk, key=lambda x: x[1], reverse=True)[:5]
+        if merged:
+            role_top["RICE"] = merged
+
     meal_sets = _compose_plates(role_top, meal_target, daily, user.diseases, top_k=req.top_n)
     return _build_response(req.meal_type, daily, meal_target, [], "set", meal_sets)
 
