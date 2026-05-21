@@ -10,8 +10,12 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 # 의존성을 먼저 설치해 코드 변경 시 캐시 재활용
+# torch/torchvision: CPU-only wheel (~250MB vs CUDA ~750MB). EC2 t3.medium GPU 없음.
+# --mount=type=cache: pip wheel을 호스트에 영속화 → layer cache miss 시에도 재다운로드 없음.
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu \
+    && pip install -r requirements.txt
 
 # 앱 코드 복사
 COPY app/ ./app/
