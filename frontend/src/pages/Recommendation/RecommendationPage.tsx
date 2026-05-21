@@ -6,27 +6,7 @@ import { ROUTES } from '@/constants/routes';
 import { useRecommendations } from '@/hooks';
 import HomePage from '@/pages/HomePage';
 import type { ApiError, Food } from '@/types';
-
-function getApiErrorMessage(error: ApiError | null): string | null {
-  if (!error) {
-    return null;
-  }
-
-  if (typeof error.data === 'object' && error.data !== null) {
-    const payload = error.data as { error?: unknown; detail?: unknown; message?: unknown };
-    if (typeof payload.error === 'string' && payload.error.trim()) {
-      return payload.error;
-    }
-    if (typeof payload.detail === 'string' && payload.detail.trim()) {
-      return payload.detail;
-    }
-    if (typeof payload.message === 'string' && payload.message.trim()) {
-      return payload.message;
-    }
-  }
-
-  return null;
-}
+import { getApiErrorMessage } from '@/utils';
 
 interface RecommendedFoodPayload {
   id: number;
@@ -119,6 +99,7 @@ export default function RecommendationPage() {
         onClose={() => navigate(ROUTES.HOME)}
         mealType={mealType}
         date={currentDate}
+        shouldFetchRecommendations={false}
         recommendations={mappedRecommendations}
         coachingMessage={data?.coachingMessage}
         isLoading={isLoading}

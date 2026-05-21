@@ -1,11 +1,13 @@
-﻿import { Plus, Trash2, Utensils } from 'lucide-react';
+import { Coffee, Moon, PencilLine, Plus, Sun, Trash2, Utensils } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import { getMealTypeFromTimeString } from '@/utils';
 
 interface Meal {
   id: number;
   name: string;
   calories: number;
   time: string;
+  mealType?: 'breakfast' | 'lunch' | 'dinner' | 'snack';
 }
 
 interface MealListProps {
@@ -138,6 +140,25 @@ export function MealList({ meals, onRemoveMeal, onEditMeal, onAddCustomMeal, onH
     }
   };
 
+  const getMealIcon = (mealType?: Meal['mealType']) => {
+    switch (mealType) {
+      case 'breakfast':
+        return Sun;
+      case 'lunch':
+        return Utensils;
+      case 'dinner':
+        return Moon;
+      case 'snack':
+        return Coffee;
+      default:
+        return Utensils;
+    }
+  };
+
+  const getEffectiveMealType = (meal: Meal): Meal['mealType'] => {
+    return meal.mealType ?? getMealTypeFromTimeString(meal.time);
+  };
+
   return (
     <div
       className={`overflow-hidden rounded-2xl border border-gray-100/50 bg-white shadow-sm transition-all ${
@@ -156,6 +177,7 @@ export function MealList({ meals, onRemoveMeal, onEditMeal, onAddCustomMeal, onH
           <div className="flex items-center gap-1.5">
             <Utensils className="h-3.5 w-3.5 text-green-500" />
             <p className="text-xs font-semibold text-gray-700">오늘의 식단</p>
+            <PencilLine className="h-3.5 w-3.5 text-gray-400" aria-hidden="true" />
           </div>
           <div className="flex items-center gap-2">
             <p className="text-xs text-gray-500">{meals.length}개</p>
@@ -210,9 +232,15 @@ export function MealList({ meals, onRemoveMeal, onEditMeal, onAddCustomMeal, onH
               handleClick(meal);
             }}
           >
-            <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-green-50">
-              <Utensils className="h-4.5 w-4.5 text-green-500" />
-            </div>
+            {(() => {
+              const MealIcon = getMealIcon(getEffectiveMealType(meal));
+
+              return (
+                <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-green-50">
+                  <MealIcon className="h-4.5 w-4.5 text-green-500" />
+                </div>
+              );
+            })()}
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-medium text-gray-900">{meal.name}</p>
               <p className="text-xs text-gray-500">{meal.time}</p>

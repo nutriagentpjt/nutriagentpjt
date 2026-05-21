@@ -202,6 +202,9 @@ html {
   -ms-overflow-style: none;
   scrollbar-width: none;
   scrollbar-color: transparent transparent;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+  touch-action: pan-y pinch-zoom;
 }
 
 .app-scrollbar::-webkit-scrollbar {

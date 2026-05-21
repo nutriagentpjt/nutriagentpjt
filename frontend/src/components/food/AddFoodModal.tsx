@@ -10,7 +10,7 @@ import { ROUTES } from '@/constants/routes';
 import { useAddMeal } from '@/hooks';
 import { useMealStore } from '@/store';
 import type { Food, MealType } from '@/types';
-import { appendStoredMeal, calculateNutrients } from '@/utils';
+import { appendStoredMeal, calculateNutrients, formatDate, getApiErrorMessage, getMealTypeFromDate } from '@/utils';
 
 interface AddFoodModalProps {
   food: Food | null;
@@ -30,12 +30,7 @@ const mealSaveSchema = z.object({
 type MealSaveFormValues = z.infer<typeof mealSaveSchema>;
 
 function getInitialMealType(): MealType {
-  const hour = new Date().getHours();
-
-  if (hour >= 6 && hour < 11) return 'breakfast';
-  if (hour >= 11 && hour < 14) return 'lunch';
-  if (hour >= 14 && hour < 20) return 'dinner';
-  return 'snack';
+  return getMealTypeFromDate(new Date());
 }
 
 function formatDateLabel(date: Date) {
@@ -73,7 +68,7 @@ export function AddFoodModal({ food, isOpen, onClose, onSaved, initialDate, redi
     defaultValues: {
       amount: baseAmount,
       mealType: getInitialMealType(),
-      date: fallbackDate.toISOString().split('T')[0] ?? '',
+      date: formatDate(fallbackDate),
     },
   });
 
@@ -86,7 +81,7 @@ export function AddFoodModal({ food, isOpen, onClose, onSaved, initialDate, redi
     reset({
       amount: baseAmount,
       mealType: getInitialMealType(),
-      date: nextDate.toISOString().split('T')[0] ?? '',
+      date: formatDate(nextDate),
     });
   }, [baseAmount, initialDate, isOpen, reset]);
 
@@ -139,10 +134,6 @@ export function AddFoodModal({ food, isOpen, onClose, onSaved, initialDate, redi
     const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
     const mealName = food.brand ? `${food.name} | ${food.brand}` : food.name;
 
-    setAmount(parsed.data.amount);
-    setSelectedDate(nextDateKey);
-    setSelectedMealType(parsed.data.mealType);
-
     try {
       await addMealMutation.mutateAsync({
         foodName: food.name,
@@ -152,7 +143,14 @@ export function AddFoodModal({ food, isOpen, onClose, onSaved, initialDate, redi
       });
     } catch (error) {
       console.error('Failed to save meal to API:', error);
+      const errorMessage = getApiErrorMessage(error);
+      showToast.error(errorMessage ? `식단을 저장하지 못했어요.\n${errorMessage}` : '식단을 저장하지 못했어요.\n잠시 후 다시 시도해주세요.');
+      return;
     }
+
+    setAmount(parsed.data.amount);
+    setSelectedDate(nextDateKey);
+    setSelectedMealType(parsed.data.mealType);
 
     appendStoredMeal(nextDateKey, {
       id: Date.now(),
@@ -264,7 +262,7 @@ export function AddFoodModal({ food, isOpen, onClose, onSaved, initialDate, redi
                 onClick={() => {
                   const nextDate = new Date(selectedDateObject);
                   nextDate.setDate(nextDate.getDate() - 1);
-                  setValue('date', nextDate.toISOString().split('T')[0] ?? '', { shouldValidate: true, shouldDirty: true });
+                  setValue('date', formatDate(nextDate), { shouldValidate: true, shouldDirty: true });
                 }}
                 className="icon-button flex-shrink-0"
                 aria-label="이전 날짜"
@@ -287,7 +285,7 @@ export function AddFoodModal({ food, isOpen, onClose, onSaved, initialDate, redi
                 onClick={() => {
                   const nextDate = new Date(selectedDateObject);
                   nextDate.setDate(nextDate.getDate() + 1);
-                  setValue('date', nextDate.toISOString().split('T')[0] ?? '', { shouldValidate: true, shouldDirty: true });
+                  setValue('date', formatDate(nextDate), { shouldValidate: true, shouldDirty: true });
                 }}
                 className="icon-button flex-shrink-0"
                 aria-label="다음 날짜"
@@ -297,7 +295,7 @@ export function AddFoodModal({ food, isOpen, onClose, onSaved, initialDate, redi
             </div>
             <button
               type="button"
-              onClick={() => setValue('date', new Date().toISOString().split('T')[0] ?? '', { shouldValidate: true, shouldDirty: true })}
+              onClick={() => setValue('date', formatDate(new Date()), { shouldValidate: true, shouldDirty: true })}
               className="mt-2 text-xs font-medium text-green-600 hover:text-green-700"
             >
               오늘로 이동

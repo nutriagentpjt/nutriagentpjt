@@ -4,6 +4,7 @@ import { showToast } from '@/components/common';
 import { OverlayScrollArea } from '@/components/common/OverlayScrollArea';
 import { usePreferences, useRecommendations } from '@/hooks';
 import type { ApiError, MealType } from '@/types';
+import { getApiErrorMessage } from '@/utils';
 import CoachingMessage from './CoachingMessage';
 import RecommendationCard, { type RecommendationCardItem } from './RecommendationCard';
 
@@ -27,27 +28,7 @@ interface AIRecommendationsProps {
   coachingMessage?: string;
   isLoading?: boolean;
   errorMessage?: string | null;
-}
-
-function getApiErrorMessage(error: ApiError | null): string | null {
-  if (!error) {
-    return null;
-  }
-
-  if (typeof error.data === 'object' && error.data !== null) {
-    const payload = error.data as { error?: unknown; detail?: unknown; message?: unknown };
-    if (typeof payload.error === 'string' && payload.error.trim()) {
-      return payload.error;
-    }
-    if (typeof payload.detail === 'string' && payload.detail.trim()) {
-      return payload.detail;
-    }
-    if (typeof payload.message === 'string' && payload.message.trim()) {
-      return payload.message;
-    }
-  }
-
-  return null;
+  shouldFetchRecommendations?: boolean;
 }
 
 export default function AIRecommendations({
@@ -61,6 +42,7 @@ export default function AIRecommendations({
   coachingMessage,
   isLoading = false,
   errorMessage = null,
+  shouldFetchRecommendations = recommendations == null,
 }: AIRecommendationsProps) {
   const [preferenceOverrides, setPreferenceOverrides] = useState<
     Record<number, 'liked' | 'disliked' | null>
@@ -75,7 +57,6 @@ export default function AIRecommendations({
     addFoodAsync,
     removeFoodAsync,
   } = usePreferences();
-  const shouldFetchRecommendations = recommendations == null;
   const recommendationQuery = useRecommendations({
     mealType,
     date,
