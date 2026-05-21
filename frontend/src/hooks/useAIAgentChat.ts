@@ -41,6 +41,26 @@ function saveSessionUiState(state: SessionUiState) {
   localStorage.setItem(SESSION_UI_STORAGE_KEY, JSON.stringify(state));
 }
 
+function mergeServerHistoryWithPendingMessages(
+  serverHistory: AIAgentMessage[],
+  localMessages: AIAgentMessage[],
+): AIAgentMessage[] {
+  const merged = [...serverHistory];
+  const serverUserContents = new Set(
+    serverHistory
+      .filter((message) => message.role === 'user')
+      .map((message) => message.content.trim()),
+  );
+
+  const pendingUserMessages = localMessages.filter(
+    (message) =>
+      message.role === 'user' &&
+      !serverUserContents.has(message.content.trim()),
+  );
+
+  return [...merged, ...pendingUserMessages];
+}
+
 export function useAIAgentChat() {
   const [conversation, setConversation] = useState<AIAgentConversation>(() => ({
     messages: [createAssistantMessage(aiAgentService.getInitialGreeting())],
@@ -94,9 +114,14 @@ export function useAIAgentChat() {
   const syncConversationFromServer = useCallback(
     async (threadId: string) => {
       const history = await aiAgentService.getMessages(threadId);
-      setConversation({
-        threadId,
-        messages: history.length > 0 ? history : [createAssistantMessage(aiAgentService.getInitialGreeting())],
+      setConversation((current) => {
+        const fallbackMessages =
+          history.length > 0 ? history : [createAssistantMessage(aiAgentService.getInitialGreeting())];
+
+        return {
+          threadId,
+          messages: mergeServerHistoryWithPendingMessages(fallbackMessages, current.messages),
+        };
       });
       return history;
     },

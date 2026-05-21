@@ -2190,7 +2190,7 @@ export default function HomePage() {
 
             <div className="flex-shrink-0 px-5 py-3 bg-gray-50 border-b border-gray-100">
               <div className="grid grid-cols-4 gap-2">
-                {[ 
+                {[
                   { type: 'breakfast', label: '아침', icon: Sun },
                   { type: 'lunch', label: '점심', icon: Utensils },
                   { type: 'dinner', label: '저녁', icon: Moon },
@@ -2213,7 +2213,7 @@ export default function HomePage() {
             <div className="app-scrollbar flex-1 min-h-0 overflow-y-auto px-5 pt-4 pb-8">
               {meals.length > 0 ? (
                 <div className="space-y-3">
-                  {[ 
+                  {[
                     { type: 'breakfast', label: '아침', icon: Sun, timeText: mealTypeDisplayRanges.breakfast },
                     { type: 'lunch', label: '점심', icon: Utensils, timeText: mealTypeDisplayRanges.lunch },
                     { type: 'dinner', label: '저녁', icon: Moon, timeText: mealTypeDisplayRanges.dinner },

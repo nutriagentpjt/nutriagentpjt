@@ -156,7 +156,7 @@ export function MealList({ meals, onRemoveMeal, onEditMeal, onAddCustomMeal, onH
   };
 
   const getEffectiveMealType = (meal: Meal): Meal['mealType'] => {
-    return getMealTypeFromTimeString(meal.time);
+    return meal.mealType ?? getMealTypeFromTimeString(meal.time);
   };
 
   return (

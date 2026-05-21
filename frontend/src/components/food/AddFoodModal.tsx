@@ -9,8 +9,8 @@ import { MealTypeSelector, NutritionPreview } from '@/components/meal';
 import { ROUTES } from '@/constants/routes';
 import { useAddMeal } from '@/hooks';
 import { useMealStore } from '@/store';
-import type { ApiError, Food, MealType } from '@/types';
-import { appendStoredMeal, calculateNutrients, formatDate, getMealTypeFromDate } from '@/utils';
+import type { Food, MealType } from '@/types';
+import { appendStoredMeal, calculateNutrients, formatDate, getApiErrorMessage, getMealTypeFromDate } from '@/utils';
 
 interface AddFoodModalProps {
   food: Food | null;
@@ -43,25 +43,6 @@ function formatDateLabel(date: Date) {
 
 function parseDateString(date: string) {
   return new Date(`${date}T00:00:00`);
-}
-
-function getApiErrorMessage(error: unknown) {
-  if (!error || typeof error !== 'object') {
-    return null;
-  }
-
-  const apiError = error as ApiError;
-  const data = apiError.data;
-
-  if (data && typeof data === 'object' && 'error' in data && typeof data.error === 'string') {
-    return data.error;
-  }
-
-  if (typeof apiError.message === 'string' && apiError.message.trim()) {
-    return apiError.message;
-  }
-
-  return null;
 }
 
 export function AddFoodModal({ food, isOpen, onClose, onSaved, initialDate, redirectTo = ROUTES.HOME }: AddFoodModalProps) {
@@ -153,10 +134,6 @@ export function AddFoodModal({ food, isOpen, onClose, onSaved, initialDate, redi
     const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
     const mealName = food.brand ? `${food.name} | ${food.brand}` : food.name;
 
-    setAmount(parsed.data.amount);
-    setSelectedDate(nextDateKey);
-    setSelectedMealType(parsed.data.mealType);
-
     try {
       await addMealMutation.mutateAsync({
         foodName: food.name,
@@ -170,6 +147,10 @@ export function AddFoodModal({ food, isOpen, onClose, onSaved, initialDate, redi
       showToast.error(errorMessage ? `식단을 저장하지 못했어요.\n${errorMessage}` : '식단을 저장하지 못했어요.\n잠시 후 다시 시도해주세요.');
       return;
     }
+
+    setAmount(parsed.data.amount);
+    setSelectedDate(nextDateKey);
+    setSelectedMealType(parsed.data.mealType);
 
     appendStoredMeal(nextDateKey, {
       id: Date.now(),
