@@ -36,11 +36,11 @@ export default function MainLayout() {
 
   return (
     <div className="flex min-h-screen justify-center bg-gradient-to-b from-gray-50 to-white">
-      <div className="relative flex h-screen w-full max-w-[390px] flex-col">
+      <div className="relative flex h-[100dvh] w-full max-w-[390px] min-h-0 flex-col">
         {!hideLayoutHeader ? <Header title={headerTitle} /> : null}
         <OverlayScrollArea
           className={hideTabNavigation ? 'pb-0' : 'pb-[68px]'}
-          containerClassName="flex-1"
+          containerClassName="flex-1 min-h-0"
           thumbInsetBottom={hideTabNavigation ? 4 : 84}
         >
           <Outlet />

@@ -2174,7 +2174,7 @@ export default function HomePage() {
       {/* Meal Edit Modal */}
       {showMealEditModal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-end justify-center sm:items-center" onClick={() => setShowMealEditModal(false)}>
-          <div className="w-full sm:max-w-[390px] bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl max-h-[85vh] min-h-0 overflow-hidden flex flex-col animate-slide-up" onClick={(e) => e.stopPropagation()}>
+          <div className="w-full h-[85dvh] sm:h-auto sm:max-h-[85vh] sm:max-w-[390px] bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl min-h-0 overflow-hidden flex flex-col animate-slide-up" onClick={(e) => e.stopPropagation()}>
             <div className="flex-shrink-0 px-5 pt-4 pb-3 border-b border-gray-100">
               <div className="w-12 h-1 bg-gray-300 rounded-full mx-auto mb-4"></div>
               <div className="flex items-center justify-between">
@@ -2210,7 +2210,7 @@ export default function HomePage() {
               </div>
             </div>
 
-            <div className="app-scrollbar flex-1 min-h-0 overflow-y-auto px-5 pt-4 pb-8">
+            <div className="app-scrollbar flex-1 min-h-0 touch-pan-y overflow-y-auto px-5 pt-4 pb-8">
               {meals.length > 0 ? (
                 <div className="space-y-3">
                   {[
