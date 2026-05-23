@@ -1,6 +1,5 @@
 ﻿import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { useQueryClient } from '@tanstack/react-query';
 import {
   Activity,
   Carrot,
@@ -14,7 +13,6 @@ import {
   TrendingUp,
 } from 'lucide-react';
 import { ROUTES } from '@/constants/routes';
-import { queryKeys } from '@/constants/queryKeys';
 import { useOnboarding, useSaveOnboarding } from '@/hooks';
 import { authService, preferenceService, profileService } from '@/services';
 import { sessionService } from '@/services/sessionService';
@@ -217,10 +215,8 @@ interface OnboardingFlowProps {
 export default function OnboardingFlow({ fallbackStep }: OnboardingFlowProps) {
   const navigate = useNavigate();
   const location = useLocation();
-  const queryClient = useQueryClient();
   const draft = loadOnboardingDraft();
   const hasHydratedFromServerRef = useRef(false);
-  const scrollViewportRef = useRef<HTMLDivElement | null>(null);
   const beginGoogleLinking = useAuthStore((state) => state.beginGoogleLinking);
   const setGuestSession = useAuthStore((state) => state.setGuestSession);
 
@@ -267,10 +263,6 @@ export default function OnboardingFlow({ fallbackStep }: OnboardingFlowProps) {
   const carbsGrams = useMemo(() => Math.round((goalCalories * (carbsPercentage / 100)) / 4), [carbsPercentage, goalCalories]);
   const proteinGrams = useMemo(() => Math.round((goalCalories * (proteinPercentage / 100)) / 4), [goalCalories, proteinPercentage]);
   const fatGrams = useMemo(() => Math.round((goalCalories * (fatPercentage / 100)) / 9), [fatPercentage, goalCalories]);
-
-  useEffect(() => {
-    scrollViewportRef.current?.scrollTo({ top: 0 });
-  }, [step]);
 
   useEffect(() => {
     if (!onboardingData || hasHydratedFromServerRef.current) {
@@ -570,23 +562,13 @@ export default function OnboardingFlow({ fallbackStep }: OnboardingFlowProps) {
           fat: localProfile.goalFat,
         }),
       ]);
-
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: queryKeys.profile.current() }),
-        queryClient.invalidateQueries({ queryKey: queryKeys.preferences.current() }),
-        queryClient.invalidateQueries({ queryKey: queryKeys.goals.current() }),
-      ]);
     };
-
-    const hasExistingOnboardingProfile = onboardingData?.completed === true;
 
     try {
       const ensuredGuestId = await sessionService.ensureSession();
       setGuestSession(ensuredGuestId);
 
-      if (!hasExistingOnboardingProfile) {
-        await saveOnboardingMutation.mutateAsync(onboardingPayload);
-      }
+      await saveOnboardingMutation.mutateAsync(onboardingPayload);
       await persistSupplementalOnboardingData();
     } catch (error) {
       const backendMessage = getBackendErrorMessage(error);
@@ -672,8 +654,9 @@ export default function OnboardingFlow({ fallbackStep }: OnboardingFlowProps) {
 
   const transitionClass = direction > 0 ? 'animate-onboarding-slide-in-right' : 'animate-onboarding-slide-in-left';
 
-  const viewportContent = (
-    <>
+  return (
+    <div className="flex h-[100dvh] min-h-0 justify-center overflow-hidden bg-gradient-to-b from-gray-50 to-white">
+      <div className="app-scrollbar h-full min-h-0 w-full max-w-[390px] touch-pan-y overflow-y-auto overflow-x-hidden bg-white shadow-sm">
         {step === 0 ? (
           <div
             key="step-0"
@@ -1139,29 +1122,7 @@ export default function OnboardingFlow({ fallbackStep }: OnboardingFlowProps) {
             </div>
           </div>
         </div>
-        ) : null}
-    </>
-  );
-
-  const handleViewportWheel = (event: { deltaY: number; preventDefault: () => void }) => {
-    const viewport = scrollViewportRef.current;
-
-    if (!viewport || viewport.scrollHeight <= viewport.clientHeight) {
-      return;
-    }
-
-    viewport.scrollTop += event.deltaY;
-    event.preventDefault();
-  };
-
-  return (
-    <div className="flex h-[100dvh] min-h-0 justify-center overflow-hidden bg-gradient-to-b from-gray-50 to-white">
-      <div
-        ref={scrollViewportRef}
-        onWheel={handleViewportWheel}
-        className="app-scrollbar h-full min-h-0 w-full max-w-[390px] touch-pan-y overflow-y-auto overflow-x-hidden bg-white shadow-sm"
-      >
-        {viewportContent}
+      ) : null}
       </div>
     </div>
   );
