@@ -217,6 +217,7 @@ export default function OnboardingFlow({ fallbackStep }: OnboardingFlowProps) {
   const location = useLocation();
   const draft = loadOnboardingDraft();
   const hasHydratedFromServerRef = useRef(false);
+  const scrollViewportRef = useRef<HTMLDivElement | null>(null);
   const beginGoogleLinking = useAuthStore((state) => state.beginGoogleLinking);
   const setGuestSession = useAuthStore((state) => state.setGuestSession);
 
@@ -654,9 +655,8 @@ export default function OnboardingFlow({ fallbackStep }: OnboardingFlowProps) {
 
   const transitionClass = direction > 0 ? 'animate-onboarding-slide-in-right' : 'animate-onboarding-slide-in-left';
 
-  return (
-    <div className="flex h-[100dvh] min-h-0 justify-center overflow-hidden bg-gradient-to-b from-gray-50 to-white">
-      <div className="app-scrollbar h-full min-h-0 w-full max-w-[390px] touch-pan-y overflow-y-auto overflow-x-hidden bg-white shadow-sm">
+  const viewportContent = (
+    <>
         {step === 0 ? (
           <div
             key="step-0"
@@ -1122,7 +1122,29 @@ export default function OnboardingFlow({ fallbackStep }: OnboardingFlowProps) {
             </div>
           </div>
         </div>
-      ) : null}
+        ) : null}
+    </>
+  );
+
+  const handleViewportWheel = (event: { deltaY: number; preventDefault: () => void }) => {
+    const viewport = scrollViewportRef.current;
+
+    if (!viewport || viewport.scrollHeight <= viewport.clientHeight) {
+      return;
+    }
+
+    viewport.scrollTop += event.deltaY;
+    event.preventDefault();
+  };
+
+  return (
+    <div className="flex h-[100dvh] min-h-0 justify-center overflow-hidden bg-gradient-to-b from-gray-50 to-white">
+      <div
+        ref={scrollViewportRef}
+        onWheel={handleViewportWheel}
+        className="app-scrollbar h-full min-h-0 w-full max-w-[390px] touch-pan-y overflow-y-auto overflow-x-hidden bg-white shadow-sm"
+      >
+        {viewportContent}
       </div>
     </div>
   );
