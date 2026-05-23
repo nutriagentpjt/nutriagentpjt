@@ -6,6 +6,7 @@ import { Camera, Search, ChevronLeft, ChevronRight, Calendar, Star, X, Circle, L
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { ImageSourceModal } from "@/components/camera";
+import { showToast } from "@/components/common";
 import { OverlayScrollArea } from "@/components/common/OverlayScrollArea";
 import { AddFoodModal } from "@/components/food";
 import AIRecommendations from "@/components/recommendation/AIRecommendations";
@@ -14,7 +15,15 @@ import type { RecommendationCardItem } from "@/components/recommendation";
 import type { ApiError, Food } from "@/types";
 import { ROUTES } from "@/constants/routes";
 import { useImageUploadStore } from "@/store";
-import { formatDate, getMealTypeFromDate, getMealTypeFromTimeString, getStoredMeals, mealTypeDisplayRanges } from "@/utils";
+import {
+  formatDate,
+  getMealTypeFromDate,
+  getMealTypeFromTimeString,
+  getOnboardingAccessBlockMessage,
+  getStoredMeals,
+  hasCompleteOnboardingProfile,
+  mealTypeDisplayRanges,
+} from "@/utils";
 
 function getApiErrorMessage(error: ApiError | null): string | null {
   if (!error) {
@@ -233,6 +242,7 @@ export default function HomePage() {
   });
   const mealsQuery = useMeals(selectedDate);
   const recommendationMealType = getRecommendationMealType(selectedDate);
+  const canOpenOnboardingDependentFeatures = hasCompleteOnboardingProfile();
   const recommendationQuery = useRecommendations({
     mealType: recommendationMealType,
     date: currentDateKey,
@@ -1458,7 +1468,14 @@ export default function HomePage() {
         {!showSearchResults && (
           <div>
             <button
-              onClick={() => setShowAIRecommendations(true)}
+              onClick={() => {
+                if (!canOpenOnboardingDependentFeatures) {
+                  showToast.info(getOnboardingAccessBlockMessage());
+                  return;
+                }
+
+                setShowAIRecommendations(true);
+              }}
               className="w-full mb-3 bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200 rounded-2xl p-4 flex items-center justify-between active:scale-[0.98] transition-transform"
             >
               <div className="flex items-center gap-3">
