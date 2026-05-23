@@ -217,6 +217,7 @@ export default function OnboardingFlow({ fallbackStep }: OnboardingFlowProps) {
   const location = useLocation();
   const draft = loadOnboardingDraft();
   const hasHydratedFromServerRef = useRef(false);
+  const scrollViewportRef = useRef<HTMLDivElement | null>(null);
   const beginGoogleLinking = useAuthStore((state) => state.beginGoogleLinking);
   const setGuestSession = useAuthStore((state) => state.setGuestSession);
 
@@ -263,6 +264,10 @@ export default function OnboardingFlow({ fallbackStep }: OnboardingFlowProps) {
   const carbsGrams = useMemo(() => Math.round((goalCalories * (carbsPercentage / 100)) / 4), [carbsPercentage, goalCalories]);
   const proteinGrams = useMemo(() => Math.round((goalCalories * (proteinPercentage / 100)) / 4), [goalCalories, proteinPercentage]);
   const fatGrams = useMemo(() => Math.round((goalCalories * (fatPercentage / 100)) / 9), [fatPercentage, goalCalories]);
+
+  useEffect(() => {
+    scrollViewportRef.current?.scrollTo({ top: 0 });
+  }, [step]);
 
   useEffect(() => {
     if (!onboardingData || hasHydratedFromServerRef.current) {
@@ -656,7 +661,10 @@ export default function OnboardingFlow({ fallbackStep }: OnboardingFlowProps) {
 
   return (
     <div className="flex h-[100dvh] min-h-0 justify-center overflow-hidden bg-gradient-to-b from-gray-50 to-white">
-      <div className="app-scrollbar h-full min-h-0 w-full max-w-[390px] touch-pan-y overflow-y-auto overflow-x-hidden bg-white shadow-sm">
+      <div
+        ref={scrollViewportRef}
+        className="app-scrollbar h-full min-h-0 w-full max-w-[390px] touch-pan-y overflow-y-auto overflow-x-hidden bg-white shadow-sm"
+      >
         {step === 0 ? (
           <div
             key="step-0"
