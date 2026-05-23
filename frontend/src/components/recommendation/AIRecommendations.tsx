@@ -212,6 +212,12 @@ export default function AIRecommendations({
           ? '온보딩 또는 목표 영양소 설정이 필요합니다.'
           : '추천 식단을 불러오지 못했습니다.'
       : null);
+  const didReceiveEmptyRecommendationResponse =
+    shouldFetchRecommendations &&
+    recommendationQuery.isSuccess &&
+    !mergedIsLoading &&
+    !mergedErrorMessage &&
+    (fetchedRecommendations?.length ?? 0) === 0;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
@@ -262,7 +268,9 @@ export default function AIRecommendations({
           <div className="space-y-3 pb-6">
             {!mergedIsLoading && recommendationsToRender.length === 0 ? (
               <div className="rounded-2xl border border-gray-200 bg-white p-5 text-center text-sm text-gray-500 shadow-sm">
-                추천 가능한 식단이 아직 없습니다.
+                {didReceiveEmptyRecommendationResponse
+                  ? '추천 응답은 도착했지만 식단 목록이 비어 있어요.'
+                  : '추천 가능한 식단이 아직 없습니다.'}
               </div>
             ) : null}
 

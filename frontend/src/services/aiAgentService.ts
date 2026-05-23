@@ -63,18 +63,6 @@ function isUnauthorizedError(error: unknown) {
   return false;
 }
 
-function getErrorStatus(error: unknown) {
-  if (axios.isAxiosError(error)) {
-    return error.response?.status;
-  }
-
-  if (typeof error === 'object' && error !== null && 'status' in error) {
-    return (error as { status?: number }).status;
-  }
-
-  return undefined;
-}
-
 async function withSessionRetry<T>(task: () => Promise<T>, canRetry = true): Promise<T> {
   try {
     return await task();
@@ -194,41 +182,27 @@ export const aiAgentService = {
       });
     }
 
-    try {
-      const threadId = request.threadId;
+    const threadId = request.threadId;
 
-      if (!threadId) {
-        throw new Error('threadId is required for /api/v1/chat messages');
-      }
-
-      await sessionService.ensureSession();
-
-      const response = await withSessionRetry(() =>
-        api.post<{ response: string }>(`/api/v1/chat/sessions/${threadId}/messages`, {
-          message: request.message,
-        }),
-      );
-
-      return {
-        threadId,
-        message: {
-          role: 'assistant',
-          content: response.data.response,
-        },
-      };
-    } catch (error) {
-      if ([404, 501, 502, 503, 504].includes(getErrorStatus(error) ?? 0)) {
-        return {
-          threadId: request.threadId,
-          message: {
-            role: 'assistant',
-            content: generateMockResponse(request.message),
-          },
-        };
-      }
-
-      throw error;
+    if (!threadId) {
+      throw new Error('threadId is required for /api/v1/chat messages');
     }
+
+    await sessionService.ensureSession();
+
+    const response = await withSessionRetry(() =>
+      api.post<{ response: string }>(`/api/v1/chat/sessions/${threadId}/messages`, {
+        message: request.message,
+      }),
+    );
+
+    return {
+      threadId,
+      message: {
+        role: 'assistant',
+        content: response.data.response,
+      },
+    };
   },
 
   async streamMessage(
