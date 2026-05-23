@@ -1,5 +1,6 @@
 ﻿import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   Activity,
   Carrot,
@@ -13,6 +14,7 @@ import {
   TrendingUp,
 } from 'lucide-react';
 import { ROUTES } from '@/constants/routes';
+import { queryKeys } from '@/constants/queryKeys';
 import { useOnboarding, useSaveOnboarding } from '@/hooks';
 import { authService, preferenceService, profileService } from '@/services';
 import { sessionService } from '@/services/sessionService';
@@ -215,6 +217,7 @@ interface OnboardingFlowProps {
 export default function OnboardingFlow({ fallbackStep }: OnboardingFlowProps) {
   const navigate = useNavigate();
   const location = useLocation();
+  const queryClient = useQueryClient();
   const draft = loadOnboardingDraft();
   const hasHydratedFromServerRef = useRef(false);
   const scrollViewportRef = useRef<HTMLDivElement | null>(null);
@@ -264,6 +267,10 @@ export default function OnboardingFlow({ fallbackStep }: OnboardingFlowProps) {
   const carbsGrams = useMemo(() => Math.round((goalCalories * (carbsPercentage / 100)) / 4), [carbsPercentage, goalCalories]);
   const proteinGrams = useMemo(() => Math.round((goalCalories * (proteinPercentage / 100)) / 4), [goalCalories, proteinPercentage]);
   const fatGrams = useMemo(() => Math.round((goalCalories * (fatPercentage / 100)) / 9), [fatPercentage, goalCalories]);
+
+  useEffect(() => {
+    scrollViewportRef.current?.scrollTo({ top: 0 });
+  }, [step]);
 
   useEffect(() => {
     if (!onboardingData || hasHydratedFromServerRef.current) {
@@ -562,6 +569,12 @@ export default function OnboardingFlow({ fallbackStep }: OnboardingFlowProps) {
           protein: localProfile.goalProtein,
           fat: localProfile.goalFat,
         }),
+      ]);
+
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.profile.current() }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.preferences.current() }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.goals.current() }),
       ]);
     };
 

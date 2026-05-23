@@ -79,6 +79,7 @@ export default function HomePage() {
   const navigate = useNavigate();
   const cameraInputRef = useRef<HTMLInputElement | null>(null);
   const galleryInputRef = useRef<HTMLInputElement | null>(null);
+  const authMode = useAuthStore((state) => state.authMode);
   const setGuestSession = useAuthStore((state) => state.setGuestSession);
   const setImageUploadFile = useImageUploadStore((state) => state.setSelectedFile);
   const [searchQuery, setSearchQuery] = useState("");
@@ -607,6 +608,10 @@ export default function HomePage() {
       : null;
 
   const handleOpenAIRecommendations = async () => {
+    if (isPreparingRecommendations) {
+      return;
+    }
+
     if (!canOpenOnboardingDependentFeatures) {
       showToast.info(getOnboardingAccessBlockMessage());
       return;
@@ -616,7 +621,9 @@ export default function HomePage() {
 
     try {
       const guestId = await sessionService.ensureSession();
-      setGuestSession(guestId);
+      if (authMode === "guest") {
+        setGuestSession(guestId);
+      }
       setShowAIRecommendations(true);
     } catch {
       showToast.error("추천 세션을 준비하지 못했어요.\n잠시 후 다시 시도해주세요.");
@@ -1493,11 +1500,13 @@ export default function HomePage() {
         {!showSearchResults && (
           <div>
             <button
-                onClick={() => {
-                  void handleOpenAIRecommendations();
-                }}
-                className="w-full mb-3 bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200 rounded-2xl p-4 flex items-center justify-between active:scale-[0.98] transition-transform"
-              >
+              type="button"
+              onClick={() => {
+                void handleOpenAIRecommendations();
+              }}
+              disabled={isPreparingRecommendations}
+              className="mb-3 flex w-full items-center justify-between rounded-2xl border border-purple-200 bg-gradient-to-r from-purple-50 to-indigo-50 p-4 transition-transform active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 disabled:active:scale-100"
+            >
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-xl flex items-center justify-center">
                   <Star className="w-5 h-5 text-white" />

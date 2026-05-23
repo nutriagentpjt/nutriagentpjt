@@ -190,11 +190,12 @@ export default function AIRecommendations({
   };
 
   const fetchedRecommendations = recommendationQuery.data?.recommendations;
+  const activeRecommendations = recommendations ?? fetchedRecommendations ?? [];
   const shouldHideRecommendation = (recommendation: RecommendationCardItem) => {
     return hiddenRecommendationIds.includes(recommendation.foodId);
   };
 
-  const recommendationsToRender = (recommendations ?? fetchedRecommendations ?? [])
+  const recommendationsToRender = activeRecommendations
     .filter((recommendation) => !shouldHideRecommendation(recommendation))
     .slice(0, 6);
   const mergedCoachingMessage = coachingMessage ?? null;
@@ -213,11 +214,10 @@ export default function AIRecommendations({
           : '추천 식단을 불러오지 못했습니다.'
       : null);
   const didReceiveEmptyRecommendationResponse =
-    shouldFetchRecommendations &&
-    recommendationQuery.isSuccess &&
     !mergedIsLoading &&
     !mergedErrorMessage &&
-    (fetchedRecommendations?.length ?? 0) === 0;
+    activeRecommendations.length === 0 &&
+    ((shouldFetchRecommendations && recommendationQuery.isSuccess) || recommendations != null);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
@@ -266,7 +266,7 @@ export default function AIRecommendations({
           ) : null}
 
           <div className="space-y-3 pb-6">
-            {!mergedIsLoading && recommendationsToRender.length === 0 ? (
+            {!mergedIsLoading && !mergedErrorMessage && recommendationsToRender.length === 0 ? (
               <div className="rounded-2xl border border-gray-200 bg-white p-5 text-center text-sm text-gray-500 shadow-sm">
                 {didReceiveEmptyRecommendationResponse
                   ? '추천 응답은 도착했지만 식단 목록이 비어 있어요.'
