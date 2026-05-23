@@ -655,8 +655,8 @@ export default function OnboardingFlow({ fallbackStep }: OnboardingFlowProps) {
   const transitionClass = direction > 0 ? 'animate-onboarding-slide-in-right' : 'animate-onboarding-slide-in-left';
 
   return (
-    <div className="flex h-[100dvh] justify-center overflow-hidden bg-gradient-to-b from-gray-50 to-white">
-      <div className="app-scrollbar h-full w-full max-w-[390px] touch-pan-y overflow-y-auto overflow-x-hidden bg-white shadow-sm">
+    <div className="flex h-[100dvh] min-h-0 justify-center overflow-hidden bg-gradient-to-b from-gray-50 to-white">
+      <div className="app-scrollbar h-full min-h-0 w-full max-w-[390px] touch-pan-y overflow-y-auto overflow-x-hidden bg-white shadow-sm">
         {step === 0 ? (
           <div
             key="step-0"
