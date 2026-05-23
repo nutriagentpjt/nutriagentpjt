@@ -32,11 +32,9 @@ public class ProfileService {
 
     @Transactional
     public OnboardingResponse saveOnboarding(String guestId, OnboardingRequest request) {
-        // 1. User 조회 또는 생성
         User user = userRepository.findByGuestId(guestId)
                 .orElseThrow(() -> new UnauthorizedException("인증 실패 (세션 없음)"));
 
-        // 2. 선호/비선호 음식 중복 검증
         if (request.getPreferredFoods() != null && request.getDislikedFoods() != null) {
             for (String preferred : request.getPreferredFoods()) {
                 boolean isDuplicate = request.getDislikedFoods().stream()
@@ -47,23 +45,23 @@ public class ProfileService {
             }
         }
 
-        // 3. UserProfile 생성 및 저장
-        UserProfile userProfile = UserProfile.builder()
-                .user(user)
-                .age(request.getAge())
-                .gender(request.getGender())
-                .height(request.getHeight())
-                .weight(request.getWeight())
-                .healthGoal(request.getHealthGoal())
-                .activityLevel(request.getActivityLevel())
-                .exerciseFrequency(request.getExerciseFrequency())
-                .exerciseTime(request.getExerciseTime())
-                .diseases(request.getDiseases() != null ? request.getDiseases() : new ArrayList<>())
-                .onboardingCompleted(true)
-                .build();
+        UserProfile userProfile = userProfileRepository.findByUser(user)
+                .orElse(UserProfile.builder()
+                        .user(user)
+                        .build());
+
+        userProfile.setAge(request.getAge());
+        userProfile.setGender(request.getGender());
+        userProfile.setHeight(request.getHeight());
+        userProfile.setWeight(request.getWeight());
+        userProfile.setHealthGoal(request.getHealthGoal());
+        userProfile.setActivityLevel(request.getActivityLevel());
+        userProfile.setExerciseFrequency(request.getExerciseFrequency());
+        userProfile.setExerciseTime(request.getExerciseTime());
+        userProfile.setDiseases(request.getDiseases() != null ? request.getDiseases() : new ArrayList<>());
+        userProfile.setOnboardingCompleted(true);
         userProfileRepository.save(userProfile);
 
-        // 4. DietaryPreference 생성 및 저장
         DietaryPreference.DietaryConstraints constraints = null;
         if (request.getConstraints() != null) {
             constraints = DietaryPreference.DietaryConstraints.builder()
@@ -73,38 +71,40 @@ public class ProfileService {
                     .build();
         }
 
-        DietaryPreference dietaryPreference = DietaryPreference.builder()
-                .user(user)
-                .mealPattern(request.getMealPattern())
-                .preferredFoods(request.getPreferredFoods() != null ? request.getPreferredFoods() : new ArrayList<>())
-                .dislikedFoods(request.getDislikedFoods() != null ?
-                        request.getDislikedFoods().stream()
-                                .map(dto -> new DietaryPreference.DislikedFoodItem(dto.getFoodName(), dto.getReason()))
-                                .collect(Collectors.toList()) : new ArrayList<>())
-                .allergies(request.getAllergies() != null ? request.getAllergies() : new ArrayList<>())
-                .dietStyles(request.getDietStyles() != null ? request.getDietStyles() : new ArrayList<>())
-                .waterIntakeGoal(request.getWaterIntakeGoal())
-                .constraints(constraints)
-                .build();
+        DietaryPreference dietaryPreference = dietaryPreferenceRepository.findByUser(user)
+                .orElse(DietaryPreference.builder()
+                        .user(user)
+                        .build());
+
+        dietaryPreference.setMealPattern(request.getMealPattern());
+        dietaryPreference.setPreferredFoods(request.getPreferredFoods() != null ? request.getPreferredFoods() : new ArrayList<>());
+        dietaryPreference.setDislikedFoods(request.getDislikedFoods() != null ?
+                request.getDislikedFoods().stream()
+                        .map(dto -> new DietaryPreference.DislikedFoodItem(dto.getFoodName(), dto.getReason()))
+                        .collect(Collectors.toList()) : new ArrayList<>());
+        dietaryPreference.setAllergies(request.getAllergies() != null ? request.getAllergies() : new ArrayList<>());
+        dietaryPreference.setDietStyles(request.getDietStyles() != null ? request.getDietStyles() : new ArrayList<>());
+        dietaryPreference.setWaterIntakeGoal(request.getWaterIntakeGoal());
+        dietaryPreference.setConstraints(constraints);
         dietaryPreferenceRepository.save(dietaryPreference);
 
-        // 5. BMR/TDEE 계산 및 NutritionTarget 생성
         NutritionCalculatorService.NutritionResult nutritionResult =
                 nutritionCalculatorService.calculateNutritionTargets(userProfile);
 
-        NutritionTarget nutritionTarget = NutritionTarget.builder()
-                .user(user)
-                .calories(nutritionResult.getTargetCalories())
-                .protein(nutritionResult.getProtein())
-                .carbs(nutritionResult.getCarbs())
-                .fat(nutritionResult.getFat())
-                .bmr(nutritionResult.getBmr())
-                .tdee(nutritionResult.getTdee())
-                .manualOverride(false)  // 온보딩 시에는 자동 계산
-                .build();
+        NutritionTarget nutritionTarget = nutritionTargetRepository.findByUser(user)
+                .orElse(NutritionTarget.builder()
+                        .user(user)
+                        .build());
+
+        nutritionTarget.setCalories(nutritionResult.getTargetCalories());
+        nutritionTarget.setProtein(nutritionResult.getProtein());
+        nutritionTarget.setCarbs(nutritionResult.getCarbs());
+        nutritionTarget.setFat(nutritionResult.getFat());
+        nutritionTarget.setBmr(nutritionResult.getBmr());
+        nutritionTarget.setTdee(nutritionResult.getTdee());
+        nutritionTarget.setManualOverride(false);
         nutritionTargetRepository.save(nutritionTarget);
 
-        // 6. Response 생성
         return buildOnboardingResponse(user, userProfile, dietaryPreference);
     }
 
