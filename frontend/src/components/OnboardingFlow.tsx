@@ -655,12 +655,12 @@ export default function OnboardingFlow({ fallbackStep }: OnboardingFlowProps) {
   const transitionClass = direction > 0 ? 'animate-onboarding-slide-in-right' : 'animate-onboarding-slide-in-left';
 
   return (
-    <div className="flex min-h-screen justify-center bg-gradient-to-b from-gray-50 to-white">
-      <div className="w-full max-w-[390px] overflow-hidden bg-white shadow-sm">
+    <div className="flex min-h-[100dvh] justify-center bg-gradient-to-b from-gray-50 to-white">
+      <div className="w-full max-w-[390px] overflow-x-hidden bg-white shadow-sm">
       {step === 0 ? (
         <div
           key="step-0"
-          className={`min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-white via-green-50/30 to-green-50 p-6 ${transitionClass}`}
+          className={`min-h-[100dvh] flex flex-col items-center justify-center bg-gradient-to-b from-white via-green-50/30 to-green-50 p-6 ${transitionClass}`}
         >
           <div className="flex-1 flex flex-col items-center justify-center w-full max-w-md">
             <div className="mb-8 relative">
@@ -687,7 +687,7 @@ export default function OnboardingFlow({ fallbackStep }: OnboardingFlowProps) {
       ) : null}
 
       {step > 0 && step < 9 ? (
-        <div key={`step-shell-${step}`} className={`min-h-screen p-6 pt-12 pb-24 ${transitionClass}`}>
+        <div key={`step-shell-${step}`} className={`min-h-[100dvh] p-6 pt-12 pb-24 ${transitionClass}`}>
           <div className="max-w-md mx-auto">
             <div className="mb-8">
               <div className="flex items-center justify-between mb-2">
@@ -1010,7 +1010,7 @@ export default function OnboardingFlow({ fallbackStep }: OnboardingFlowProps) {
       ) : null}
 
       {step === 9 ? (
-        <div key="step-9" className={`min-h-screen bg-white p-6 pt-12 pb-24 ${transitionClass}`}>
+        <div key="step-9" className={`min-h-[100dvh] bg-white p-6 pt-12 pb-24 ${transitionClass}`}>
           <div className="mx-auto max-w-md">
             <div className="mb-8">
               <div className="mb-2 flex items-center justify-between">
@@ -1095,7 +1095,7 @@ export default function OnboardingFlow({ fallbackStep }: OnboardingFlowProps) {
       ) : null}
 
       {step === 10 ? (
-        <div key="step-10" className={`min-h-screen flex flex-col items-center justify-center bg-white p-6 ${transitionClass}`}>
+        <div key="step-10" className={`min-h-[100dvh] flex flex-col items-center justify-center bg-white p-6 ${transitionClass}`}>
           <div className="flex-1 flex flex-col items-center justify-center w-full max-w-md">
             <div className="mb-8 relative">
               <div className="absolute inset-0 bg-green-100 rounded-full blur-3xl opacity-40 scale-150 animate-pulse" />
