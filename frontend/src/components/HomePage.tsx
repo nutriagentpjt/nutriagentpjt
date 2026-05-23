@@ -26,6 +26,8 @@ import {
   mealTypeDisplayRanges,
 } from "@/utils";
 
+const EMPTY_AUTOCOMPLETE_RESULTS: string[] = [];
+
 function getApiErrorMessage(error: ApiError | null): string | null {
   if (!error) {
     return null;
@@ -399,10 +401,11 @@ export default function HomePage() {
     data: searchedFoods = [],
     error: searchError,
   } = useFoodSearch(activeSearchKeyword, activeSearchKeyword.length > 0);
-  const { data: foodAutocompleteSuggestions = [] } = useFoodAutocomplete(
+  const { data: rawFoodAutocompleteSuggestions } = useFoodAutocomplete(
     searchQuery,
     !analyzedFood && searchQuery.trim().length > 0,
   );
+  const foodAutocompleteSuggestions = rawFoodAutocompleteSuggestions ?? EMPTY_AUTOCOMPLETE_RESULTS;
 
   const macros = [
     { name: "단백질", current: totalProtein, goal: Math.round(mealsQuery.data?.summary.targetProtein ?? 150), unit: "g", color: "#10b981" },
