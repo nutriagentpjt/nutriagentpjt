@@ -99,7 +99,8 @@ public class RecommendationService {
         Map<String, Object> body = Map.of(
                 "guest_id", guestId,
                 "meal_type", mealType.name(),
-                "top_n", topN
+                "top_n", topN,
+                "mode", "single"
         );
 
         HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
