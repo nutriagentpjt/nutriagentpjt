@@ -565,11 +565,15 @@ export default function OnboardingFlow({ fallbackStep }: OnboardingFlowProps) {
       ]);
     };
 
+    const hasExistingOnboardingProfile = onboardingData?.completed === true;
+
     try {
       const ensuredGuestId = await sessionService.ensureSession();
       setGuestSession(ensuredGuestId);
 
-      await saveOnboardingMutation.mutateAsync(onboardingPayload);
+      if (!hasExistingOnboardingProfile) {
+        await saveOnboardingMutation.mutateAsync(onboardingPayload);
+      }
       await persistSupplementalOnboardingData();
     } catch (error) {
       const backendMessage = getBackendErrorMessage(error);
