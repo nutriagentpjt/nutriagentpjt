@@ -12,9 +12,10 @@ import { AddFoodModal } from "@/components/food";
 import AIRecommendations from "@/components/recommendation/AIRecommendations";
 import { useFoodAutocomplete, useFoodSearch, useMealSummary, useMeals, useRecommendations } from "@/hooks";
 import type { RecommendationCardItem } from "@/components/recommendation";
+import { sessionService } from "@/services/sessionService";
 import type { ApiError, Food } from "@/types";
 import { ROUTES } from "@/constants/routes";
-import { useImageUploadStore } from "@/store";
+import { useAuthStore, useImageUploadStore } from "@/store";
 import {
   formatDate,
   getMealTypeFromDate,
@@ -24,6 +25,8 @@ import {
   hasCompleteOnboardingProfile,
   mealTypeDisplayRanges,
 } from "@/utils";
+
+const EMPTY_AUTOCOMPLETE_RESULTS: string[] = [];
 
 function getApiErrorMessage(error: ApiError | null): string | null {
   if (!error) {
@@ -76,6 +79,8 @@ export default function HomePage() {
   const navigate = useNavigate();
   const cameraInputRef = useRef<HTMLInputElement | null>(null);
   const galleryInputRef = useRef<HTMLInputElement | null>(null);
+  const authMode = useAuthStore((state) => state.authMode);
+  const setGuestSession = useAuthStore((state) => state.setGuestSession);
   const setImageUploadFile = useImageUploadStore((state) => state.setSelectedFile);
   const [searchQuery, setSearchQuery] = useState("");
   const [showAutocomplete, setShowAutocomplete] = useState(false);
@@ -124,6 +129,7 @@ export default function HomePage() {
   const [selectedSearchFood, setSelectedSearchFood] = useState<Food | null>(null);
   const [addFoodModalSource, setAddFoodModalSource] = useState<'search' | 'ai' | null>(null);
   const [showAIRecommendations, setShowAIRecommendations] = useState(false);
+  const [isPreparingRecommendations, setIsPreparingRecommendations] = useState(false);
   const [showRecentFoods, setShowRecentFoods] = useState(false);
   const [showMealEditModal, setShowMealEditModal] = useState(false);
   const [hoveredMealType, setHoveredMealType] = useState<string | null>(null);
@@ -247,7 +253,7 @@ export default function HomePage() {
     mealType: recommendationMealType,
     date: currentDateKey,
     limit: 6,
-    enabled: showAIRecommendations,
+    enabled: showAIRecommendations && !isPreparingRecommendations,
   });
 
   // 이전 날짜의 몸무게 가져오기
@@ -396,10 +402,11 @@ export default function HomePage() {
     data: searchedFoods = [],
     error: searchError,
   } = useFoodSearch(activeSearchKeyword, activeSearchKeyword.length > 0);
-  const { data: foodAutocompleteSuggestions = [] } = useFoodAutocomplete(
+  const { data: rawFoodAutocompleteSuggestions } = useFoodAutocomplete(
     searchQuery,
     !analyzedFood && searchQuery.trim().length > 0,
   );
+  const foodAutocompleteSuggestions = rawFoodAutocompleteSuggestions ?? EMPTY_AUTOCOMPLETE_RESULTS;
 
   const macros = [
     { name: "단백질", current: totalProtein, goal: Math.round(mealsQuery.data?.summary.targetProtein ?? 150), unit: "g", color: "#10b981" },
@@ -599,6 +606,31 @@ export default function HomePage() {
           ? "추천 조건이 아직 준비되지 않아 추천 식단을 불러오지 못했습니다."
           : "추천 식단을 불러오지 못해 기본 추천을 표시합니다."
       : null;
+
+  const handleOpenAIRecommendations = async () => {
+    if (isPreparingRecommendations) {
+      return;
+    }
+
+    if (!canOpenOnboardingDependentFeatures) {
+      showToast.info(getOnboardingAccessBlockMessage());
+      return;
+    }
+
+    setIsPreparingRecommendations(true);
+
+    try {
+      const guestId = await sessionService.ensureSession();
+      if (authMode === "guest") {
+        setGuestSession(guestId);
+      }
+      setShowAIRecommendations(true);
+    } catch {
+      showToast.error("추천 세션을 준비하지 못했어요.\n잠시 후 다시 시도해주세요.");
+    } finally {
+      setIsPreparingRecommendations(false);
+    }
+  };
 
   const addFavoriteFoodToMeal = (food: { id: number; name: string; calories: number; protein: number; carbs: number; fat: number }) => {
     const now = new Date();
@@ -1468,15 +1500,12 @@ export default function HomePage() {
         {!showSearchResults && (
           <div>
             <button
+              type="button"
               onClick={() => {
-                if (!canOpenOnboardingDependentFeatures) {
-                  showToast.info(getOnboardingAccessBlockMessage());
-                  return;
-                }
-
-                setShowAIRecommendations(true);
+                void handleOpenAIRecommendations();
               }}
-              className="w-full mb-3 bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200 rounded-2xl p-4 flex items-center justify-between active:scale-[0.98] transition-transform"
+              disabled={isPreparingRecommendations}
+              className="mb-3 flex w-full items-center justify-between rounded-2xl border border-purple-200 bg-gradient-to-r from-purple-50 to-indigo-50 p-4 transition-transform active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 disabled:active:scale-100"
             >
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-xl flex items-center justify-center">
@@ -2159,16 +2188,16 @@ export default function HomePage() {
         </div>      )}
 
       {/* AI Recommendations Screen */}
-      {showAIRecommendations && (
-        <AIRecommendations
-          onClose={() => setShowAIRecommendations(false)}
-          mealType={recommendationMealType}
-          date={currentDateKey}
-          shouldFetchRecommendations={false}
-          recommendations={mappedRecommendations}
-          isLoading={recommendationQuery.isLoading}
-          errorMessage={recommendationErrorMessage}
-          onSaveFood={(food: RecommendationCardItem) => {
+        {showAIRecommendations && (
+          <AIRecommendations
+            onClose={() => setShowAIRecommendations(false)}
+            mealType={recommendationMealType}
+            date={currentDateKey}
+            shouldFetchRecommendations={false}
+            recommendations={mappedRecommendations}
+            isLoading={isPreparingRecommendations || recommendationQuery.isLoading}
+            errorMessage={recommendationErrorMessage}
+            onSaveFood={(food: RecommendationCardItem) => {
             setSelectedSearchFood({
               id: food.foodId,
               name: food.foodName,
