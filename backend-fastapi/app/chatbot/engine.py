@@ -1,6 +1,7 @@
 import asyncio
 import json
 import logging
+import re
 from collections.abc import AsyncGenerator
 from weakref import WeakValueDictionary
 
@@ -34,6 +35,37 @@ async def _bedrock_call_with_backoff(fn, *args, **kwargs):
             logger.warning("Bedrock throttled, retry %d/%d in %.1fs", attempt + 1, _THROTTLE_RETRIES, delay)
             await asyncio.sleep(delay)
             delay *= 2
+
+
+def _sanitize_tool_input(raw: str) -> dict:
+    """Claude Sonnet 4가 JSON 문자열 값 안에 XML 마크업을 섞는 버그를 방어한다.
+
+    예: {"mode": "set</parameter>\n<parameter name=\"top_n\">5</parameter>\n</invoke>"}
+    각 문자열 값에서 첫 번째 '<' 이후를 잘라낸다.
+    """
+    if not raw:
+        return {}
+    try:
+        parsed = json.loads(raw)
+    except json.JSONDecodeError:
+        match = re.search(r'\{.*\}', raw, re.DOTALL)
+        if not match:
+            logger.warning("tool input JSON 파싱 실패, 빈 dict 반환: %r", raw[:200])
+            return {}
+        try:
+            parsed = json.loads(match.group())
+        except json.JSONDecodeError:
+            logger.warning("tool input JSON 재파싱도 실패, 빈 dict 반환: %r", raw[:200])
+            return {}
+
+    cleaned = {}
+    for k, v in parsed.items():
+        if isinstance(v, str) and '<' in v:
+            cleaned[k] = v[:v.index('<')].strip()
+            logger.warning("tool input '%s' XML 잔재 제거: %r → %r", k, v[:80], cleaned[k])
+        else:
+            cleaned[k] = v
+    return cleaned
 
 
 class ConversationEngine:
@@ -317,11 +349,8 @@ class ConversationEngine:
 
                 elif "contentBlockStop" in event:
                     if current_tool_use:
-                        # input을 JSON 파싱
                         raw_input = current_tool_use["toolUse"]["input"]
-                        current_tool_use["toolUse"]["input"] = (
-                            json.loads(raw_input) if raw_input else {}
-                        )
+                        current_tool_use["toolUse"]["input"] = _sanitize_tool_input(raw_input)
                         tool_call_blocks.append(current_tool_use)
                         current_tool_use = None
 
