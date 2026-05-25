@@ -511,7 +511,7 @@ export default function AIAgentPage() {
       )}
 
       {/* Input Area - 하단 고정 */}
-      <div className="shrink-0 border-t border-gray-200 bg-white px-5 pb-[calc(0.75rem+68px+env(safe-area-inset-bottom))] pt-3">
+      <div className="shrink-0 border-t border-gray-200 bg-white px-5 pb-4 pt-3 [@media(pointer:coarse)]:pb-[calc(1rem+68px+env(safe-area-inset-bottom))]">
         <div className="flex items-end gap-2.5">
           <textarea
             ref={inputRef}

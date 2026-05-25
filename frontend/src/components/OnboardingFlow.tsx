@@ -131,13 +131,27 @@ const ONBOARDING_VALIDATION = {
   age: { min: 1, max: 120 },
   weight: { min: 20, max: 300 },
   height: { min: 80, max: 250 },
-  goalCalories: { min: 800, max: 6000 },
+  goalCalories: { min: 100, max: 5000 },
   waterGoal: { min: 0.5, max: 10 },
   maxCaloriesPerMeal: { min: 100, max: 3000 },
 } as const;
 
 function isFiniteNumberInRange(value: number, min: number, max: number) {
   return Number.isFinite(value) && value >= min && value <= max;
+}
+
+function toIntegerInputValue(value: number | null | undefined) {
+  return value == null ? '' : String(Math.round(value));
+}
+
+function parseIntegerInput(value: string) {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  const parsed = Number.parseInt(trimmed, 10);
+  return Number.isFinite(parsed) ? parsed : null;
 }
 
 function getValidatedBodyMetrics(age: string, weight: string, height: string) {
@@ -234,7 +248,9 @@ export default function OnboardingFlow({ fallbackStep }: OnboardingFlowProps) {
   const [weight, setWeight] = useState(String(draft.weight || ''));
   const [height, setHeight] = useState(String(draft.height || ''));
   const [activityLevel, setActivityLevel] = useState<ActivityLevel>(draft.activityLevel);
-  const [goalCalories, setGoalCalories] = useState(draft.goalCalories || draft.tdee || defaultOnboardingDraft.goalCalories);
+  const [goalCaloriesInput, setGoalCaloriesInput] = useState(
+    toIntegerInputValue(draft.goalCalories || draft.tdee || defaultOnboardingDraft.goalCalories),
+  );
   const [carbsPercentage, setCarbsPercentage] = useState(50);
   const [proteinPercentage, setProteinPercentage] = useState(25);
   const [fatPercentage, setFatPercentage] = useState(25);
@@ -245,7 +261,7 @@ export default function OnboardingFlow({ fallbackStep }: OnboardingFlowProps) {
   const [diseases, setDiseases] = useState<Disease[]>(draft.diseases);
   const [lowSodium, setLowSodium] = useState(draft.lowSodium);
   const [lowSugar, setLowSugar] = useState(draft.lowSugar);
-  const [maxCaloriesPerMeal, setMaxCaloriesPerMeal] = useState(draft.maxCaloriesPerMeal);
+  const [maxCaloriesPerMealInput, setMaxCaloriesPerMealInput] = useState(toIntegerInputValue(draft.maxCaloriesPerMeal));
 
   const hasLocalDraft =
     typeof window !== 'undefined' && Boolean(window.localStorage.getItem(ONBOARDING_DRAFT_KEY));
@@ -253,6 +269,8 @@ export default function OnboardingFlow({ fallbackStep }: OnboardingFlowProps) {
 
   const { data: onboardingData } = useOnboarding({ enabled: !hasLocalDraft });
   const saveOnboardingMutation = useSaveOnboarding();
+  const goalCalories = useMemo(() => parseIntegerInput(goalCaloriesInput) ?? 0, [goalCaloriesInput]);
+  const maxCaloriesPerMeal = useMemo(() => parseIntegerInput(maxCaloriesPerMealInput) ?? 0, [maxCaloriesPerMealInput]);
 
   const calculatedTDEE = useMemo(() => {
     const metrics = getValidatedBodyMetrics(age, weight, height);
@@ -288,7 +306,9 @@ export default function OnboardingFlow({ fallbackStep }: OnboardingFlowProps) {
     setSelectedDietStyle(onboardingData.dietStyles?.[0] ?? null);
     setLowSodium(onboardingData.constraints?.lowSodium ?? false);
     setLowSugar(onboardingData.constraints?.lowSugar ?? false);
-    setMaxCaloriesPerMeal(onboardingData.constraints?.maxCaloriesPerMeal ?? defaultOnboardingDraft.maxCaloriesPerMeal);
+    setMaxCaloriesPerMealInput(
+      toIntegerInputValue(onboardingData.constraints?.maxCaloriesPerMeal ?? defaultOnboardingDraft.maxCaloriesPerMeal),
+    );
 
     const hydratedTDEE = getHydratedTDEE({
       age: onboardingData.age,
@@ -301,7 +321,7 @@ export default function OnboardingFlow({ fallbackStep }: OnboardingFlowProps) {
     const nextGoalCalories = onboardingData.constraints?.maxCaloriesPerMeal
       ? onboardingData.constraints.maxCaloriesPerMeal * mealsCount
       : hydratedTDEE || defaultOnboardingDraft.goalCalories;
-    setGoalCalories(nextGoalCalories);
+    setGoalCaloriesInput(toIntegerInputValue(nextGoalCalories));
 
     if (onboardingData.dietStyles?.includes('KETO') || onboardingData.dietStyles?.includes('LOW_CARB')) {
       setCarbsPercentage(5);
@@ -351,7 +371,7 @@ export default function OnboardingFlow({ fallbackStep }: OnboardingFlowProps) {
       weight !== String(defaultOnboardingDraft.weight) ||
       height !== String(defaultOnboardingDraft.height) ||
       activityLevel !== defaultOnboardingDraft.activityLevel ||
-      goalCalories !== defaultOnboardingDraft.goalCalories ||
+      goalCaloriesInput !== toIntegerInputValue(defaultOnboardingDraft.goalCalories) ||
       carbsGrams !== defaultOnboardingDraft.goalCarbs ||
       proteinGrams !== defaultOnboardingDraft.goalProtein ||
       fatGrams !== defaultOnboardingDraft.goalFat ||
@@ -362,7 +382,7 @@ export default function OnboardingFlow({ fallbackStep }: OnboardingFlowProps) {
       diseases.length > 0 ||
       lowSodium !== defaultOnboardingDraft.lowSodium ||
       lowSugar !== defaultOnboardingDraft.lowSugar ||
-      maxCaloriesPerMeal !== defaultOnboardingDraft.maxCaloriesPerMeal;
+      maxCaloriesPerMealInput !== toIntegerInputValue(defaultOnboardingDraft.maxCaloriesPerMeal);
 
     if (!shouldPersistDraft) {
       return;
@@ -407,11 +427,13 @@ export default function OnboardingFlow({ fallbackStep }: OnboardingFlowProps) {
     fatGrams,
     gender,
     goalCalories,
+    goalCaloriesInput,
     height,
     lowSodium,
     lowSugar,
     mealsPerDay,
     maxCaloriesPerMeal,
+    maxCaloriesPerMealInput,
     proteinGrams,
     selectedDietStyle,
     step,
@@ -457,25 +479,27 @@ export default function OnboardingFlow({ fallbackStep }: OnboardingFlowProps) {
 
   const handleStep4Continue = () => {
     if (!calculatedTDEE) return;
-    setGoalCalories(calculatedTDEE);
+    setGoalCaloriesInput(toIntegerInputValue(calculatedTDEE));
     goToStep(5);
   };
 
-  const handleComplete = async () => {
-    const metrics = getValidatedBodyMetrics(age, weight, height);
-
-    if (!metrics) {
-      showToast.error('기본 신체 정보를 다시 확인해주세요.');
+  const handleStep6Continue = () => {
+    if (!goalCaloriesInput.trim()) {
+      showToast.error('목표 일일 칼로리는 필수 입력란입니다.');
       return;
     }
 
     if (!isFiniteNumberInRange(goalCalories, ONBOARDING_VALIDATION.goalCalories.min, ONBOARDING_VALIDATION.goalCalories.max)) {
-      showToast.error('목표 칼로리를 올바른 범위로 입력해주세요.');
+      showToast.error('목표 일일 칼로리를 올바른 범위로 입력해주세요. (100~5000)');
       return;
     }
 
-    if (!isFiniteNumberInRange(waterGoal, ONBOARDING_VALIDATION.waterGoal.min, ONBOARDING_VALIDATION.waterGoal.max)) {
-      showToast.error('물 섭취 목표를 올바른 범위로 입력해주세요.');
+    goToStep(7);
+  };
+
+  const handleStep9Continue = () => {
+    if (!maxCaloriesPerMealInput.trim()) {
+      showToast.error('식사 당 최대 칼로리를 입력해주세요.');
       return;
     }
 
@@ -486,7 +510,49 @@ export default function OnboardingFlow({ fallbackStep }: OnboardingFlowProps) {
         ONBOARDING_VALIDATION.maxCaloriesPerMeal.max,
       )
     ) {
-      showToast.error('식사 당 목표 최대 칼로리를 올바른 범위로 입력해주세요.');
+      showToast.error('식사 당 목표 최대 칼로리를 올바른 범위로 입력해주세요. (100~3000)');
+      return;
+    }
+
+    goToStep(10);
+  };
+
+  const handleComplete = async () => {
+    const metrics = getValidatedBodyMetrics(age, weight, height);
+
+    if (!metrics) {
+      showToast.error('기본 신체 정보를 다시 확인해주세요.');
+      return;
+    }
+
+    if (!goalCaloriesInput.trim()) {
+      showToast.error('목표 일일 칼로리는 필수 입력란입니다.');
+      return;
+    }
+
+    if (!isFiniteNumberInRange(goalCalories, ONBOARDING_VALIDATION.goalCalories.min, ONBOARDING_VALIDATION.goalCalories.max)) {
+      showToast.error('목표 일일 칼로리를 올바른 범위로 입력해주세요. (100~5000)');
+      return;
+    }
+
+    if (!isFiniteNumberInRange(waterGoal, ONBOARDING_VALIDATION.waterGoal.min, ONBOARDING_VALIDATION.waterGoal.max)) {
+      showToast.error('물 섭취 목표를 올바른 범위로 입력해주세요.');
+      return;
+    }
+
+    if (!maxCaloriesPerMealInput.trim()) {
+      showToast.error('식사 당 최대 칼로리를 입력해주세요.');
+      return;
+    }
+
+    if (
+      !isFiniteNumberInRange(
+        maxCaloriesPerMeal,
+        ONBOARDING_VALIDATION.maxCaloriesPerMeal.min,
+        ONBOARDING_VALIDATION.maxCaloriesPerMeal.max,
+      )
+    ) {
+      showToast.error('식사 당 목표 최대 칼로리를 올바른 범위로 입력해주세요. (100~3000)');
       return;
     }
 
@@ -905,7 +971,7 @@ export default function OnboardingFlow({ fallbackStep }: OnboardingFlowProps) {
                 </div>
                 <div className="mb-8">
                   <label className="input-label">목표 일일 칼로리</label>
-                  <div className="relative"><input type="number" inputMode="numeric" value={goalCalories} onChange={(e) => setGoalCalories(parseInt(e.target.value, 10) || 0)} className="input-primary pr-16" /><div className="absolute right-4 top-1/2 -translate-y-1/2"><span className="text-sm text-gray-500 font-medium">kcal</span></div></div>
+                  <div className="relative"><input type="number" inputMode="numeric" value={goalCaloriesInput} onChange={(e) => setGoalCaloriesInput(e.target.value.replace(/\D/g, ''))} className="input-primary pr-16" /><div className="absolute right-4 top-1/2 -translate-y-1/2"><span className="text-sm text-gray-500 font-medium">kcal</span></div></div>
                   <p className="input-help">체중 감량: TDEE - 500kcal | 유지: TDEE | 증량: TDEE + 500kcal</p>
                 </div>
                 <div className="mb-8">
@@ -935,7 +1001,7 @@ export default function OnboardingFlow({ fallbackStep }: OnboardingFlowProps) {
                   <div className="p-4 bg-gray-50 rounded-xl border border-gray-200"><div className="flex items-center justify-between"><span className="text-sm text-gray-600">총 합계</span><span className={`number-sm ${carbsPercentage + proteinPercentage + fatPercentage === 100 ? 'text-green-600' : 'text-red-600'}`}>{carbsPercentage + proteinPercentage + fatPercentage}%</span></div></div>
                 </div>
                 <div className="text-center">
-                  <button onClick={() => goToStep(7)} className="btn-primary w-full min-touch flex items-center justify-center gap-2" disabled={carbsPercentage + proteinPercentage + fatPercentage !== 100}>다음<ChevronRight className="w-5 h-5" /></button>
+                  <button onClick={handleStep6Continue} className="btn-primary w-full min-touch flex items-center justify-center gap-2" disabled={carbsPercentage + proteinPercentage + fatPercentage !== 100}>다음<ChevronRight className="w-5 h-5" /></button>
                   <button onClick={() => goToStep(5)} className="mt-3 text-sm text-gray-400 hover:text-gray-600 transition-colors flex items-center justify-center gap-1 w-full py-2"><ChevronRight className="w-3 h-3 rotate-180" />이전으로</button>
                 </div>
               </>
@@ -1076,8 +1142,8 @@ export default function OnboardingFlow({ fallbackStep }: OnboardingFlowProps) {
                 <input
                   type="number"
                   inputMode="numeric"
-                  value={maxCaloriesPerMeal}
-                  onChange={(e) => setMaxCaloriesPerMeal(parseInt(e.target.value, 10) || defaultOnboardingDraft.maxCaloriesPerMeal)}
+                  value={maxCaloriesPerMealInput}
+                  onChange={(e) => setMaxCaloriesPerMealInput(e.target.value.replace(/\D/g, ''))}
                   className="input-primary pr-16"
                   aria-label="식사 당 목표 최대 칼로리 입력"
                 />
@@ -1089,7 +1155,7 @@ export default function OnboardingFlow({ fallbackStep }: OnboardingFlowProps) {
             </div>
 
             <div className="text-center">
-              <button onClick={() => goToStep(10)} className="btn-primary flex w-full min-touch items-center justify-center gap-2">
+              <button onClick={handleStep9Continue} className="btn-primary flex w-full min-touch items-center justify-center gap-2">
                 다음
                 <ChevronRight className="w-5 h-5" />
               </button>

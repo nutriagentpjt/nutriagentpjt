@@ -2,11 +2,14 @@ import { AlertCircle, ChevronRight, Loader2, Search, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ImagePreview, ImageSourceModal } from '@/components/camera';
+import { AddFoodModal } from '@/components/food';
+import { showToast } from '@/components/common';
 import { ROUTES } from '@/constants/routes';
 import { useImageUpload } from '@/hooks';
 import { Header } from '@/layouts/Header';
 import { useImageUploadStore } from '@/store';
-import type { MealImageRecognitionCandidate } from '@/types';
+import { foodService } from '@/services';
+import type { Food, MealImageRecognitionCandidate } from '@/types';
 import { normalizeVisionImageFile } from '@/utils/imageFile';
 
 function getConfidenceMeta(confidence?: number) {
@@ -45,6 +48,7 @@ export default function ImageUploadPage() {
   const navigate = useNavigate();
   const cameraInputRef = useRef<HTMLInputElement | null>(null);
   const galleryInputRef = useRef<HTMLInputElement | null>(null);
+  const didSaveFromAddFoodModalRef = useRef(false);
   const clearSelectedFile = useImageUploadStore((state) => state.clearSelectedFile);
   const selectedFile = useImageUploadStore((state) => state.selectedFile);
   const setSelectedFile = useImageUploadStore((state) => state.setSelectedFile);
@@ -53,6 +57,9 @@ export default function ImageUploadPage() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [showResultModal, setShowResultModal] = useState(false);
   const [isPreparingImage, setIsPreparingImage] = useState(false);
+  const [isResolvingCandidate, setIsResolvingCandidate] = useState(false);
+  const [activeFood, setActiveFood] = useState<Food | null>(null);
+  const [showAddFoodModal, setShowAddFoodModal] = useState(false);
   const imageUpload = useImageUpload();
 
   useEffect(() => {
@@ -139,14 +146,42 @@ export default function ImageUploadPage() {
     navigate(-1);
   };
 
-  const handleUseResult = (candidate: MealImageRecognitionCandidate) => {
-    clearSelectedFile();
-    navigate(ROUTES.MEAL_SEARCH, {
-      replace: true,
-      state: {
-        initialQuery: candidate.name,
-      },
-    });
+  const handleUseResult = async (candidate: MealImageRecognitionCandidate) => {
+    setIsResolvingCandidate(true);
+
+    try {
+      const response = await foodService.searchFoods(candidate.name);
+      const matchedFood =
+        response.foods.find((food) => food.name === candidate.name)
+        ?? response.foods[0]
+        ?? null;
+
+      if (!matchedFood) {
+        clearSelectedFile();
+        navigate(ROUTES.MEAL_SEARCH, {
+          replace: true,
+          state: {
+            initialQuery: candidate.name,
+          },
+        });
+        return;
+      }
+
+      setActiveFood(matchedFood);
+      setShowResultModal(false);
+      setShowAddFoodModal(true);
+    } catch {
+      showToast.error('저장 가능한 음식 정보를 찾지 못했어요.\n검색 화면에서 다시 선택해주세요.');
+      clearSelectedFile();
+      navigate(ROUTES.MEAL_SEARCH, {
+        replace: true,
+        state: {
+          initialQuery: candidate.name,
+        },
+      });
+    } finally {
+      setIsResolvingCandidate(false);
+    }
   };
 
   const handleRetrySelection = () => {
@@ -312,6 +347,7 @@ export default function ImageUploadPage() {
                     key={`${candidate.name}-${index}`}
                     type="button"
                     onClick={() => handleUseResult(candidate)}
+                    disabled={isResolvingCandidate}
                     className="flex w-full items-center justify-between rounded-xl border border-gray-200 px-3 py-3 text-left"
                   >
                     <div>
@@ -328,14 +364,42 @@ export default function ImageUploadPage() {
               <button type="button" onClick={() => setShowResultModal(false)} className="btn btn-ghost flex-1">
                 닫기
               </button>
-              <button type="button" onClick={() => handleUseResult(topCandidate)} className="btn btn-primary flex-1">
-                <Search className="h-4 w-4" />
-                검색
+              <button
+                type="button"
+                onClick={() => handleUseResult(topCandidate)}
+                disabled={isResolvingCandidate}
+                className="btn btn-primary flex-1 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isResolvingCandidate ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                선택
               </button>
             </div>
           </div>
         </div>
       ) : null}
+
+      <AddFoodModal
+        food={activeFood}
+        isOpen={showAddFoodModal}
+        onClose={() => {
+          setShowAddFoodModal(false);
+          setActiveFood(null);
+
+          if (didSaveFromAddFoodModalRef.current) {
+            didSaveFromAddFoodModalRef.current = false;
+            return;
+          }
+
+          setShowResultModal(true);
+        }}
+        onSaved={() => {
+          didSaveFromAddFoodModalRef.current = true;
+          clearSelectedFile();
+          setShowAddFoodModal(false);
+          setActiveFood(null);
+        }}
+        redirectTo={ROUTES.HOME}
+      />
 
       {errorMessage ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-5" onClick={() => setErrorMessage(null)}>

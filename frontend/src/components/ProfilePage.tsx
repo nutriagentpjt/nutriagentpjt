@@ -33,6 +33,24 @@ import { GUEST_ID_STORAGE_KEY } from '@/services/sessionService';
 import { useAuthStore } from '@/store';
 
 const MAX_PROFILE_IMAGE_FILE_SIZE_BYTES = 2 * 1024 * 1024;
+const GOAL_CALORIES_RANGE = {
+  min: 100,
+  max: 5000,
+} as const;
+
+function toIntegerInputValue(value: number | null | undefined) {
+  return value == null ? '' : String(Math.round(value));
+}
+
+function parseIntegerInput(value: string) {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  const parsed = Number.parseInt(trimmed, 10);
+  return Number.isFinite(parsed) ? parsed : null;
+}
 
 export default function ProfilePage() {
   const navigate = useNavigate();
@@ -51,7 +69,9 @@ export default function ProfilePage() {
   const [editAge, setEditAge] = useState(profile.age?.toString() || '');
   const [editDisplayName, setEditDisplayName] = useState(profile.displayName || '');
   const [editActivityLevel, setEditActivityLevel] = useState(profile.activityLevel || defaultProfile.activityLevel);
-  const [editGoalCalories, setEditGoalCalories] = useState(profile.goalCalories || defaultProfile.goalCalories || 2000);
+  const [editGoalCaloriesInput, setEditGoalCaloriesInput] = useState(
+    toIntegerInputValue(profile.goalCalories || defaultProfile.goalCalories || 2000),
+  );
   const [editCarbsPercentage, setEditCarbsPercentage] = useState(50);
   const [editProteinPercentage, setEditProteinPercentage] = useState(25);
   const [editFatPercentage, setEditFatPercentage] = useState(25);
@@ -59,6 +79,7 @@ export default function ProfilePage() {
   const { data: nutritionTargets, updateNutritionTargetsAsync } = useNutritionTargets();
   const authenticatedUser = useAuthStore((state) => state.user);
   const clearAuth = useAuthStore((state) => state.clearAuth);
+  const editGoalCalories = useMemo(() => parseIntegerInput(editGoalCaloriesInput) ?? 0, [editGoalCaloriesInput]);
 
   const formatDecimal = (value: number | null | undefined) => {
     if (value == null || Number.isNaN(value)) {
@@ -239,16 +260,18 @@ export default function ProfilePage() {
     setEditCarbsPercentage(carbs);
     setEditProteinPercentage(protein);
     setEditFatPercentage(fat);
-    setEditGoalCalories((currentGoalCalories) => {
+    setEditGoalCaloriesInput((currentGoalCaloriesInput) => {
+      const currentGoalCalories = parseIntegerInput(currentGoalCaloriesInput);
+
       if (!Number.isFinite(currentGoalCalories) || currentGoalCalories <= 0) {
-        return currentGoalCalories;
+        return currentGoalCaloriesInput;
       }
 
       if (currentMacroTotal === 0) {
-        return currentGoalCalories;
+        return currentGoalCaloriesInput;
       }
 
-      return Math.max(0, Math.round((currentGoalCalories * nextMacroTotal) / currentMacroTotal));
+      return String(Math.max(0, Math.round((currentGoalCalories * nextMacroTotal) / currentMacroTotal)));
     });
   };
 
@@ -263,7 +286,7 @@ export default function ProfilePage() {
     const proteinPercentage = Math.round((((profile.goalProtein || defaultProfile.goalProtein || 125) * 4) / totalCalories) * 100);
     const fatPercentage = Math.max(0, 100 - carbsPercentage - proteinPercentage);
 
-    setEditGoalCalories(goalCalories);
+    setEditGoalCaloriesInput(toIntegerInputValue(goalCalories));
     setEditCarbsPercentage(carbsPercentage);
     setEditProteinPercentage(proteinPercentage);
     setEditFatPercentage(fatPercentage);
@@ -273,8 +296,17 @@ export default function ProfilePage() {
   const macroTotal = editCarbsPercentage + editProteinPercentage + editFatPercentage;
 
   const handleSaveGoals = async () => {
-    if (!Number.isFinite(editGoalCalories) || editGoalCalories < 800 || editGoalCalories > 6000) {
-      showToast.error('목표 칼로리를 올바른 범위로 입력해주세요.');
+    if (!editGoalCaloriesInput.trim()) {
+      showToast.error('목표 일일 칼로리는 필수 입력란입니다.');
+      return;
+    }
+
+    if (
+      !Number.isFinite(editGoalCalories)
+      || editGoalCalories < GOAL_CALORIES_RANGE.min
+      || editGoalCalories > GOAL_CALORIES_RANGE.max
+    ) {
+      showToast.error('목표 일일 칼로리를 올바른 범위로 입력해주세요. (100~5000)');
       return;
     }
 
@@ -755,8 +787,8 @@ export default function ProfilePage() {
                   min="800"
                   max="6000"
                   step="1"
-                  value={editGoalCalories}
-                  onChange={(event) => setEditGoalCalories(Number.parseInt(event.target.value, 10) || 0)}
+                  value={editGoalCaloriesInput}
+                  onChange={(event) => setEditGoalCaloriesInput(event.target.value.replace(/\D/g, ''))}
                   className="w-full appearance-none rounded-xl border border-gray-200 bg-white px-4 py-3 text-gray-900 transition-all focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-500/50 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                   placeholder="예: 2000"
                 />
