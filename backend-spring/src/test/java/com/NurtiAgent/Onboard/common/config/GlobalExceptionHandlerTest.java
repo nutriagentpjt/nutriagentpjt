@@ -131,7 +131,7 @@ class GlobalExceptionHandlerTest {
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
         assertThat(response.getBody()).containsKey("error");
-        assertThat(response.getBody().get("error")).contains("예기치 못한 오류");
+        assertThat(response.getBody().get("error")).isEqualTo("서버 오류가 발생했습니다.");
     }
 
     @Test
