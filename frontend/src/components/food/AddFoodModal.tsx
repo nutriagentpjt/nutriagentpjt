@@ -8,6 +8,7 @@ import { showToast } from '@/components/common';
 import { MealTypeSelector, NutritionPreview } from '@/components/meal';
 import { ROUTES } from '@/constants/routes';
 import { useAddMeal } from '@/hooks';
+import { foodService } from '@/services';
 import { useMealStore } from '@/store';
 import type { Food, MealType } from '@/types';
 import { appendStoredMeal, calculateNutrients, formatDate, getApiErrorMessage, getMealTypeFromDate } from '@/utils';
@@ -133,19 +134,46 @@ export function AddFoodModal({ food, isOpen, onClose, onSaved, initialDate, redi
     const now = new Date();
     const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
     const mealName = food.brand ? `${food.name} | ${food.brand}` : food.name;
+    const baseMealPayload = {
+      mealType: parsed.data.mealType,
+      amount: parsed.data.amount,
+      date: nextDateKey,
+    } as const;
 
     try {
       await addMealMutation.mutateAsync({
         foodName: food.name,
-        mealType: parsed.data.mealType,
-        amount: parsed.data.amount,
-        date: nextDateKey,
+        ...baseMealPayload,
       });
     } catch (error) {
-      console.error('Failed to save meal to API:', error);
       const errorMessage = getApiErrorMessage(error);
-      showToast.error(errorMessage ? `식단을 저장하지 못했어요.\n${errorMessage}` : '식단을 저장하지 못했어요.\n잠시 후 다시 시도해주세요.');
-      return;
+      const shouldRetryWithResolvedFood = errorMessage?.includes('해당 자료를 찾을 수 없습니다') ?? false;
+
+      if (shouldRetryWithResolvedFood) {
+        try {
+          const resolvedFoods = await foodService.searchFoods(food.name);
+          const resolvedFoodName = resolvedFoods.foods.find((candidate) => candidate.name === food.name)?.name
+            ?? resolvedFoods.foods[0]?.name;
+
+          if (resolvedFoodName) {
+            await addMealMutation.mutateAsync({
+              foodName: resolvedFoodName,
+              ...baseMealPayload,
+            });
+          } else {
+            throw error;
+          }
+        } catch (retryError) {
+          console.error('Failed to save meal after resolving food name:', retryError);
+          const retryErrorMessage = getApiErrorMessage(retryError) ?? errorMessage;
+          showToast.error(retryErrorMessage ? `식단을 저장하지 못했어요.\n${retryErrorMessage}` : '식단을 저장하지 못했어요.\n잠시 후 다시 시도해주세요.');
+          return;
+        }
+      } else {
+        console.error('Failed to save meal to API:', error);
+        showToast.error(errorMessage ? `식단을 저장하지 못했어요.\n${errorMessage}` : '식단을 저장하지 못했어요.\n잠시 후 다시 시도해주세요.');
+        return;
+      }
     }
 
     setAmount(parsed.data.amount);

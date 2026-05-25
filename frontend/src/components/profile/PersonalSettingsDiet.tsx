@@ -1,5 +1,6 @@
 import { AlertCircle, Check } from 'lucide-react';
 import { useState } from 'react';
+import { showToast } from '@/components/common/Toast/Toast';
 
 interface DietSettingsProps {
   initialLowSodium: boolean;
@@ -16,7 +17,9 @@ export default function DietSettings({
 }: DietSettingsProps) {
   const [lowSodium, setLowSodium] = useState(initialLowSodium);
   const [lowSugar, setLowSugar] = useState(initialLowSugar);
-  const [maxCaloriesPerMeal, setMaxCaloriesPerMeal] = useState(initialMaxCaloriesPerMeal);
+  const [maxCaloriesPerMealInput, setMaxCaloriesPerMealInput] = useState(String(initialMaxCaloriesPerMeal));
+
+  const parsedMaxCaloriesPerMeal = Number.parseInt(maxCaloriesPerMealInput, 10);
 
   return (
     <>
@@ -67,8 +70,8 @@ export default function DietSettings({
             <input
               type="number"
               inputMode="numeric"
-              value={maxCaloriesPerMeal}
-              onChange={(event) => setMaxCaloriesPerMeal(Number.parseInt(event.target.value, 10) || 500)}
+              value={maxCaloriesPerMealInput}
+              onChange={(event) => setMaxCaloriesPerMealInput(event.target.value.replace(/\D/g, ''))}
               className="input-primary pr-16"
               aria-label="식사 당 목표 최대 칼로리 입력"
             />
@@ -82,7 +85,19 @@ export default function DietSettings({
 
       <div className="absolute bottom-14 left-0 right-0 border-t border-gray-200 bg-white p-5">
         <button
-          onClick={() => onSave({ lowSodium, lowSugar, maxCaloriesPerMeal })}
+          onClick={() => {
+            if (!maxCaloriesPerMealInput.trim()) {
+              showToast.error('식사 당 최대 칼로리를 입력해주세요.');
+              return;
+            }
+
+            if (!Number.isFinite(parsedMaxCaloriesPerMeal)) {
+              showToast.error('식사 당 목표 최대 칼로리를 다시 확인해주세요.');
+              return;
+            }
+
+            onSave({ lowSodium, lowSugar, maxCaloriesPerMeal: parsedMaxCaloriesPerMeal });
+          }}
           className="btn-primary flex w-full min-touch items-center justify-center gap-2"
         >
           <Check className="h-5 w-5" />

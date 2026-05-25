@@ -10,7 +10,7 @@ import { showToast } from "@/components/common";
 import { OverlayScrollArea } from "@/components/common/OverlayScrollArea";
 import { AddFoodModal } from "@/components/food";
 import AIRecommendations from "@/components/recommendation/AIRecommendations";
-import { useFoodAutocomplete, useFoodSearch, useMealSummary, useMeals, useRecommendations } from "@/hooks";
+import { useFoodAutocomplete, useFoodSearch, useMeals, useRecommendations } from "@/hooks";
 import type { RecommendationCardItem } from "@/components/recommendation";
 import { sessionService } from "@/services/sessionService";
 import type { ApiError, Food } from "@/types";
@@ -106,6 +106,10 @@ export default function HomePage() {
   const [editingMeal, setEditingMeal] = useState<any | null>(null);
   const [editAmount, setEditAmount] = useState("");
   const [editUnit, setEditUnit] = useState<"serving" | "gram">("gram");
+  const [editCalories, setEditCalories] = useState("");
+  const [editProtein, setEditProtein] = useState("");
+  const [editCarbs, setEditCarbs] = useState("");
+  const [editFat, setEditFat] = useState("");
   const [editHour, setEditHour] = useState(12);
   const [editMinute, setEditMinute] = useState(0);
   const [showAmountWarning, setShowAmountWarning] = useState(false);
@@ -242,10 +246,6 @@ export default function HomePage() {
   // 현재 선택된 날짜의 식단
   const currentDateKey = getDateKey(selectedDate);
   const meals = mealsByDate[currentDateKey] || [];
-  const { data: mealSummary } = useMealSummary({
-    date: currentDateKey,
-    enabled: Boolean(currentDateKey),
-  });
   const mealsQuery = useMeals(selectedDate);
   const recommendationMealType = getRecommendationMealType(selectedDate);
   const canOpenOnboardingDependentFeatures = hasCompleteOnboardingProfile();
@@ -390,10 +390,12 @@ export default function HomePage() {
   const localTotalCarbs = meals.reduce((sum, meal) => sum + meal.carbs, 0);
   const localTotalFat = meals.reduce((sum, meal) => sum + meal.fat, 0);
 
-  const caloriesConsumed = mealSummary?.consumed.calories ?? localCaloriesConsumed;
-  const totalProtein = mealSummary?.consumed.protein ?? localTotalProtein;
-  const totalCarbs = mealSummary?.consumed.carbs ?? localTotalCarbs;
-  const totalFat = mealSummary?.consumed.fat ?? localTotalFat;
+  // Home 화면은 식단 목록과 동일한 localStorage 소스를 기준으로 보여주도록 맞춘다.
+  // 직접 추가(custom) 식단은 현재 서버 summary에 반영되지 않아도 홈/통계와 일관되게 집계된다.
+  const caloriesConsumed = localCaloriesConsumed;
+  const totalProtein = localTotalProtein;
+  const totalCarbs = localTotalCarbs;
+  const totalFat = localTotalFat;
 
   const caloriesGoal = Math.max(1, Math.round(mealsQuery.data?.summary.targetCalories ?? 2000));
   const percentage = Math.round((caloriesConsumed / caloriesGoal) * 100);
@@ -687,6 +689,10 @@ export default function HomePage() {
     setEditingMeal(meal);
     setEditAmount("100");
     setEditUnit("gram");
+    setEditCalories(String(meal.calories ?? ""));
+    setEditProtein(String(meal.protein ?? ""));
+    setEditCarbs(String(meal.carbs ?? ""));
+    setEditFat(String(meal.fat ?? ""));
     const [hour, minute] = meal.time.split(":").map(Number);
     setEditHour(hour);
     setEditMinute(minute);
@@ -694,10 +700,21 @@ export default function HomePage() {
 
   const handleSaveEdit = () => {
     const amount = parseFloat(editAmount);
+    const calories = parseFloat(editCalories);
+    const protein = parseFloat(editProtein);
+    const carbs = parseFloat(editCarbs);
+    const fat = parseFloat(editFat);
 
     // 섭취량 유효성 검사
     if (isNaN(amount) || amount < 1 || amount > 10000) {
       setShowAmountWarning(true);
+      return;
+    }
+
+    if (
+      [calories, protein, carbs, fat].some((value) => Number.isNaN(value) || value < 0)
+    ) {
+      setShowCustomFoodWarning(true);
       return;
     }
 
@@ -710,10 +727,10 @@ export default function HomePage() {
         if (meal.id === editingMeal.id) {
           return {
             ...meal,
-            calories: Math.round((editingMeal.calories * ratio)),
-            protein: Math.round((editingMeal.protein * ratio)),
-            carbs: Math.round((editingMeal.carbs * ratio)),
-            fat: Math.round((editingMeal.fat * ratio)),
+            calories: Math.round(calories * ratio),
+            protein: Math.round(protein * ratio),
+            carbs: Math.round(carbs * ratio),
+            fat: Math.round(fat * ratio),
             mealType: editingMeal.mealType,
             time: `${editHour.toString().padStart(2, '0')}:${editMinute.toString().padStart(2, '0')}`,
           };
@@ -1848,9 +1865,57 @@ export default function HomePage() {
               {/* 음식 이름 */}
               <div className="mb-4">
                 <p className="text-sm font-medium text-gray-700 mb-2">{editingMeal.name}</p>
-                <p className="text-xs text-gray-500">
-                  기본 영양소 (100g 기준): {editingMeal.calories}kcal · 단백질 {editingMeal.protein}g · 탄수화물 {editingMeal.carbs}g · 지방 {editingMeal.fat}g
-                </p>
+              </div>
+
+              {/* 기준 영양소 입력 */}
+              <div className="mb-4">
+                <label className="text-sm font-medium text-gray-700 mb-3 block">영양소 (100g 기준)</label>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="mb-1.5 block text-xs font-medium text-gray-500">칼로리 (kcal)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={editCalories}
+                      onChange={(e) => setEditCalories(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                      placeholder="칼로리"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1.5 block text-xs font-medium text-gray-500">단백질 (g)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={editProtein}
+                      onChange={(e) => setEditProtein(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                      placeholder="단백질"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1.5 block text-xs font-medium text-gray-500">탄수화물 (g)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={editCarbs}
+                      onChange={(e) => setEditCarbs(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                      placeholder="탄수화물"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1.5 block text-xs font-medium text-gray-500">지방 (g)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={editFat}
+                      onChange={(e) => setEditFat(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                      placeholder="지방"
+                    />
+                  </div>
+                </div>
               </div>
 
               {/* 섭취량 입력 */}
