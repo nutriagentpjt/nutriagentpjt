@@ -98,7 +98,9 @@ async def get_messages(
     )
     rows = result.scalars().all()
     return [
-        MessageHistoryItem(id=r.id, role=r.role, content=r.content, created_at=r.created_at)
+        MessageHistoryItem(
+            id=r.id, role=r.role, content=r.content, created_at=r.created_at
+        )
         for r in rows
     ]
 

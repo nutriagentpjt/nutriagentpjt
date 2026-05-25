@@ -17,6 +17,7 @@
     python scripts/test_inference.py --image /path/to/food.jpg --mode api
     python scripts/test_inference.py --image /path/to/food.jpg --mode api --url http://localhost:8000
 """
+
 from __future__ import annotations
 
 import argparse
@@ -44,6 +45,7 @@ def _check_image_file(path: str) -> None:
 # -----------------------------------------------------------------------
 # 모드 1: encode
 # -----------------------------------------------------------------------
+
 
 def test_encode(image_path: str) -> None:
     """
@@ -90,7 +92,7 @@ def test_encode(image_path: str) -> None:
     has_nan = not bool(np.isfinite(embedding).all())
 
     print()
-    print(f"[결과]")
+    print("[결과]")
     print(f"  소요 시간  : {elapsed:.2f}s")
     print(f"  shape      : {embedding.shape}  (기대값: (768,))")
     print(f"  dtype      : {embedding.dtype}   (기대값: float32)")
@@ -123,10 +125,11 @@ def test_encode(image_path: str) -> None:
 # 모드 2: api
 # -----------------------------------------------------------------------
 
+
 def _check_server_ready(server_url: str) -> None:
     ready_url = f"{server_url.rstrip('/')}/health/ready"
     try:
-        with urllib.request.urlopen(ready_url, timeout=5) as resp:
+        with urllib.request.urlopen(ready_url, timeout=5):
             print(f"[OK] 서버 준비 완료 ({ready_url})")
     except urllib.error.HTTPError as e:
         body = e.read().decode()
@@ -156,10 +159,14 @@ def _build_multipart_body(image_path: str) -> tuple[bytes, str]:
         image_bytes = f.read()
 
     body = (
-        f"--{boundary}\r\n"
-        f'Content-Disposition: form-data; name="file"; filename="{filename}"\r\n'
-        f"Content-Type: {file_ct}\r\n\r\n"
-    ).encode() + image_bytes + f"\r\n--{boundary}--\r\n".encode()
+        (
+            f"--{boundary}\r\n"
+            f'Content-Disposition: form-data; name="file"; filename="{filename}"\r\n'
+            f"Content-Type: {file_ct}\r\n\r\n"
+        ).encode()
+        + image_bytes
+        + f"\r\n--{boundary}--\r\n".encode()
+    )
 
     return body, boundary
 
@@ -225,11 +232,11 @@ def test_api(image_path: str, server_url: str) -> None:
 
     if result.get("matched"):
         pred = result.get("prediction", {})
-        print(f"\n  [예측]")
+        print("\n  [예측]")
         print(f"    top1_food_name  : {pred.get('top1_food_name')}")
         print(f"    top1_similarity : {pred.get('top1_similarity', 0):.4f}")
 
-        print(f"\n  [후보 목록]")
+        print("\n  [후보 목록]")
         for c in result.get("candidates", []):
             nut = c.get("nutrition", {})
             kcal = nut.get("calories_kcal")
@@ -250,6 +257,7 @@ def test_api(image_path: str, server_url: str) -> None:
 # -----------------------------------------------------------------------
 # CLI
 # -----------------------------------------------------------------------
+
 
 def main() -> None:
     parser = argparse.ArgumentParser(
