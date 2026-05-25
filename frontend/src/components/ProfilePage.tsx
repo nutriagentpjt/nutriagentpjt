@@ -33,6 +33,10 @@ import { GUEST_ID_STORAGE_KEY } from '@/services/sessionService';
 import { useAuthStore } from '@/store';
 
 const MAX_PROFILE_IMAGE_FILE_SIZE_BYTES = 2 * 1024 * 1024;
+const GOAL_CALORIES_RANGE = {
+  min: 100,
+  max: 5000,
+} as const;
 
 function toIntegerInputValue(value: number | null | undefined) {
   return value == null ? '' : String(Math.round(value));
@@ -297,8 +301,12 @@ export default function ProfilePage() {
       return;
     }
 
-    if (!Number.isFinite(editGoalCalories) || editGoalCalories < 800 || editGoalCalories > 6000) {
-      showToast.error('목표 칼로리를 올바른 범위로 입력해주세요.');
+    if (
+      !Number.isFinite(editGoalCalories)
+      || editGoalCalories < GOAL_CALORIES_RANGE.min
+      || editGoalCalories > GOAL_CALORIES_RANGE.max
+    ) {
+      showToast.error('목표 일일 칼로리를 올바른 범위로 입력해주세요. (100~5000)');
       return;
     }
 

@@ -106,7 +106,7 @@ export default function DietSettings({
               || parsedMaxCaloriesPerMeal < MAX_CALORIES_PER_MEAL_RANGE.min
               || parsedMaxCaloriesPerMeal > MAX_CALORIES_PER_MEAL_RANGE.max
             ) {
-              showToast.error('식사 당 목표 최대 칼로리를 올바른 범위로 입력해주세요.');
+              showToast.error('식사 당 목표 최대 칼로리를 올바른 범위로 입력해주세요. (100~3000)');
               return;
             }
 

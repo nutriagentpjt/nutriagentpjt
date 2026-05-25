@@ -131,7 +131,7 @@ const ONBOARDING_VALIDATION = {
   age: { min: 1, max: 120 },
   weight: { min: 20, max: 300 },
   height: { min: 80, max: 250 },
-  goalCalories: { min: 800, max: 6000 },
+  goalCalories: { min: 100, max: 5000 },
   waterGoal: { min: 0.5, max: 10 },
   maxCaloriesPerMeal: { min: 100, max: 3000 },
 } as const;
@@ -490,7 +490,7 @@ export default function OnboardingFlow({ fallbackStep }: OnboardingFlowProps) {
     }
 
     if (!isFiniteNumberInRange(goalCalories, ONBOARDING_VALIDATION.goalCalories.min, ONBOARDING_VALIDATION.goalCalories.max)) {
-      showToast.error('목표 칼로리를 올바른 범위로 입력해주세요.');
+      showToast.error('목표 일일 칼로리를 올바른 범위로 입력해주세요. (100~5000)');
       return;
     }
 
@@ -510,7 +510,7 @@ export default function OnboardingFlow({ fallbackStep }: OnboardingFlowProps) {
         ONBOARDING_VALIDATION.maxCaloriesPerMeal.max,
       )
     ) {
-      showToast.error('식사 당 목표 최대 칼로리를 올바른 범위로 입력해주세요.');
+      showToast.error('식사 당 목표 최대 칼로리를 올바른 범위로 입력해주세요. (100~3000)');
       return;
     }
 
@@ -531,7 +531,7 @@ export default function OnboardingFlow({ fallbackStep }: OnboardingFlowProps) {
     }
 
     if (!isFiniteNumberInRange(goalCalories, ONBOARDING_VALIDATION.goalCalories.min, ONBOARDING_VALIDATION.goalCalories.max)) {
-      showToast.error('목표 칼로리를 올바른 범위로 입력해주세요.');
+      showToast.error('목표 일일 칼로리를 올바른 범위로 입력해주세요. (100~5000)');
       return;
     }
 
@@ -552,7 +552,7 @@ export default function OnboardingFlow({ fallbackStep }: OnboardingFlowProps) {
         ONBOARDING_VALIDATION.maxCaloriesPerMeal.max,
       )
     ) {
-      showToast.error('식사 당 목표 최대 칼로리를 올바른 범위로 입력해주세요.');
+      showToast.error('식사 당 목표 최대 칼로리를 올바른 범위로 입력해주세요. (100~3000)');
       return;
     }
 
