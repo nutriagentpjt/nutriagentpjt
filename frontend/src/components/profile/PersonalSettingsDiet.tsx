@@ -9,6 +9,11 @@ interface DietSettingsProps {
   onSave: (payload: { lowSodium: boolean; lowSugar: boolean; maxCaloriesPerMeal: number }) => void;
 }
 
+const MAX_CALORIES_PER_MEAL_RANGE = {
+  min: 100,
+  max: 3000,
+} as const;
+
 export default function DietSettings({
   initialLowSodium,
   initialLowSugar,
@@ -93,6 +98,15 @@ export default function DietSettings({
 
             if (!Number.isFinite(parsedMaxCaloriesPerMeal)) {
               showToast.error('식사 당 목표 최대 칼로리를 다시 확인해주세요.');
+              return;
+            }
+
+            if (
+              !Number.isSafeInteger(parsedMaxCaloriesPerMeal)
+              || parsedMaxCaloriesPerMeal < MAX_CALORIES_PER_MEAL_RANGE.min
+              || parsedMaxCaloriesPerMeal > MAX_CALORIES_PER_MEAL_RANGE.max
+            ) {
+              showToast.error('식사 당 목표 최대 칼로리를 올바른 범위로 입력해주세요.');
               return;
             }
 

@@ -139,9 +139,10 @@ export function AddFoodModal({ food, isOpen, onClose, onSaved, initialDate, redi
       amount: parsed.data.amount,
       date: nextDateKey,
     } as const;
+    let savedMeal: Awaited<ReturnType<typeof addMealMutation.mutateAsync>> | null = null;
 
     try {
-      await addMealMutation.mutateAsync({
+      savedMeal = await addMealMutation.mutateAsync({
         foodName: food.name,
         ...baseMealPayload,
       });
@@ -156,7 +157,7 @@ export function AddFoodModal({ food, isOpen, onClose, onSaved, initialDate, redi
             ?? resolvedFoods.foods[0]?.name;
 
           if (resolvedFoodName) {
-            await addMealMutation.mutateAsync({
+            savedMeal = await addMealMutation.mutateAsync({
               foodName: resolvedFoodName,
               ...baseMealPayload,
             });
@@ -181,14 +182,15 @@ export function AddFoodModal({ food, isOpen, onClose, onSaved, initialDate, redi
     setSelectedMealType(parsed.data.mealType);
 
     appendStoredMeal(nextDateKey, {
-      id: Date.now(),
-      name: mealName,
-      calories: previewNutrition.calories,
+      id: savedMeal?.id ?? Date.now(),
+      name: savedMeal?.foodName ?? mealName,
+      calories: savedMeal?.calories ?? previewNutrition.calories,
       time: currentTime,
-      protein: previewNutrition.protein,
-      carbs: previewNutrition.carbs,
-      fat: previewNutrition.fat,
+      protein: savedMeal?.protein ?? previewNutrition.protein,
+      carbs: savedMeal?.carbs ?? previewNutrition.carbs,
+      fat: savedMeal?.fat ?? previewNutrition.fat,
       mealType: parsed.data.mealType,
+      amount: savedMeal?.amount ?? parsed.data.amount,
     });
 
     clearSelection();
