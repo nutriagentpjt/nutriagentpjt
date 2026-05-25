@@ -113,9 +113,7 @@ def fetch_one(
     return row
 
 
-def execute(
-    query: str, params: dict[str, Any] | tuple[Any, ...] | None = None
-) -> None:
+def execute(query: str, params: dict[str, Any] | tuple[Any, ...] | None = None) -> None:
     with get_connection() as conn:
         with conn.cursor() as cur:
             cur.execute(query, params)

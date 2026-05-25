@@ -31,6 +31,7 @@ repos:
         language: system
         types: [python]
         files: ^backend-fastapi/
+        pass_filenames: false
 
       # Python formatting (backend-fastapi)
       - id: local-ruff-format
@@ -40,3 +41,4 @@ repos:
         language: system
         types: [python]
         files: ^backend-fastapi/
+        pass_filenames: false

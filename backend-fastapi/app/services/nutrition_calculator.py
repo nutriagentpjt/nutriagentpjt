@@ -73,15 +73,15 @@ KDRI_AMDR_PROTEIN = (0.07, 0.20)
 KDRI_SAT_FAT_MAX_RATIO = 0.08
 KDRI_ADDED_SUGAR_MAX_RATIO = 0.10
 KDRI_FIBER_AI: dict[Gender, float] = {Gender.MALE: 30.0, Gender.FEMALE: 20.0}
-KDRI_K_AI = 3500.0       # mg/day 충분섭취량
-KDRI_NA_CDRR = 2300.0    # mg/day 만성질환위험감소섭취량
+KDRI_K_AI = 3500.0  # mg/day 충분섭취량
+KDRI_NA_CDRR = 2300.0  # mg/day 만성질환위험감소섭취량
 
 # 운동 후 단백질 보강이 필요한 끼니 (exercise_time → MealType)
 _POST_WORKOUT_MEAL: dict[str, MealType] = {
-    "MORNING":   MealType.LUNCH,
+    "MORNING": MealType.LUNCH,
     "AFTERNOON": MealType.LUNCH,
-    "EVENING":   MealType.DINNER,
-    "NIGHT":     MealType.DINNER,
+    "EVENING": MealType.DINNER,
+    "NIGHT": MealType.DINNER,
 }
 
 
@@ -96,6 +96,7 @@ class NutrientTarget:
 @dataclass
 class DailyNutritionPlan:
     """일일 영양 목표 (KDRI 기반 마이크로뉴트리언트 포함)"""
+
     calories: float
     protein: float
     carbs: float

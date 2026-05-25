@@ -3,7 +3,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from io import BytesIO
 from threading import Lock
-from typing import Any
 
 import numpy as np
 from PIL import Image, UnidentifiedImageError

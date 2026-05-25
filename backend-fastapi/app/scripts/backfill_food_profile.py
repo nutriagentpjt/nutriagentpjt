@@ -24,61 +24,53 @@ log = logging.getLogger(__name__)
 # 매핑에 없는 카테고리는 (NULL, NULL) 로 기록
 _CATEGORY_MAP: dict[str, tuple[str | None, str | None]] = {
     # 밥 / 곡류
-    "밥류":                    ("RICE",     "GRAINS"),
-    "죽 및 스프류":             ("ONE_DISH", "GRAINS"),
-    "면 및 만두류":             ("ONE_DISH", "GRAINS"),
-    "빵 및 과자류":             ("SNACK",    "GRAINS"),
-    "곡류 및 그 제품":          ("RAW",      "GRAINS"),
-    "곡류·서류 제품":           ("RAW",      "GRAINS"),
-    "감자류 및 전분류":         ("RAW",      "GRAINS"),
-
+    "밥류": ("RICE", "GRAINS"),
+    "죽 및 스프류": ("ONE_DISH", "GRAINS"),
+    "면 및 만두류": ("ONE_DISH", "GRAINS"),
+    "빵 및 과자류": ("SNACK", "GRAINS"),
+    "곡류 및 그 제품": ("RAW", "GRAINS"),
+    "곡류·서류 제품": ("RAW", "GRAINS"),
+    "감자류 및 전분류": ("RAW", "GRAINS"),
     # 국 / 탕 / 찌개
-    "국 및 탕류":               ("SOUP",     "VEGETABLES"),
-    "찌개 및 전골류":           ("SOUP",     "VEGETABLES"),
-
+    "국 및 탕류": ("SOUP", "VEGETABLES"),
+    "찌개 및 전골류": ("SOUP", "VEGETABLES"),
     # 주반찬
-    "구이류":                   ("MAIN",     "MEAT_FISH_EGG_BEAN"),
-    "찜류":                     ("MAIN",     "MEAT_FISH_EGG_BEAN"),
-    "볶음류":                   ("MAIN",     "MEAT_FISH_EGG_BEAN"),
-    "전·적 및 부침류":          ("MAIN",     "MEAT_FISH_EGG_BEAN"),
-    "조리가공식품류":            ("MAIN",     "MEAT_FISH_EGG_BEAN"),
-
+    "구이류": ("MAIN", "MEAT_FISH_EGG_BEAN"),
+    "찜류": ("MAIN", "MEAT_FISH_EGG_BEAN"),
+    "볶음류": ("MAIN", "MEAT_FISH_EGG_BEAN"),
+    "전·적 및 부침류": ("MAIN", "MEAT_FISH_EGG_BEAN"),
+    "조리가공식품류": ("MAIN", "MEAT_FISH_EGG_BEAN"),
     # 부반찬
-    "조림류":                   ("SIDE",     "MEAT_FISH_EGG_BEAN"),
-    "나물·숙채류":              ("SIDE",     "VEGETABLES"),
-    "생채·무침류":              ("SIDE",     "VEGETABLES"),
-    "장아찌·절임류":            ("SIDE",     "VEGETABLES"),
-    "젓갈류":                   ("SIDE",     "MEAT_FISH_EGG_BEAN"),
-    "튀김류":                   ("SIDE",     "MEAT_FISH_EGG_BEAN"),
-
+    "조림류": ("SIDE", "MEAT_FISH_EGG_BEAN"),
+    "나물·숙채류": ("SIDE", "VEGETABLES"),
+    "생채·무침류": ("SIDE", "VEGETABLES"),
+    "장아찌·절임류": ("SIDE", "VEGETABLES"),
+    "젓갈류": ("SIDE", "MEAT_FISH_EGG_BEAN"),
+    "튀김류": ("SIDE", "MEAT_FISH_EGG_BEAN"),
     # 김치
-    "김치류":                   ("KIMCHI",   "VEGETABLES"),
-
+    "김치류": ("KIMCHI", "VEGETABLES"),
     # 원재료 (is_plate_candidate 역할 없음)
-    "육류 및 그 제품":          ("RAW",      "MEAT_FISH_EGG_BEAN"),
-    "수·조·어·육류":            ("RAW",      "MEAT_FISH_EGG_BEAN"),
-    "동물성가공식품류":          ("RAW",      "MEAT_FISH_EGG_BEAN"),
-    "두류":                     ("RAW",      "MEAT_FISH_EGG_BEAN"),
-    "두류·견과 및 종실류":      ("RAW",      "MEAT_FISH_EGG_BEAN"),
-    "난류":                     ("RAW",      "MEAT_FISH_EGG_BEAN"),
-    "채소류":                   ("RAW",      "VEGETABLES"),
-    "채소·해조류":              ("RAW",      "VEGETABLES"),
-    "해조류":                   ("RAW",      "VEGETABLES"),
-    "버섯류":                   ("RAW",      "VEGETABLES"),
-    "과일류":                   ("RAW",      "FRUITS"),
-    "견과류 및 종실류":         ("RAW",      "MEAT_FISH_EGG_BEAN"),
-
+    "육류 및 그 제품": ("RAW", "MEAT_FISH_EGG_BEAN"),
+    "수·조·어·육류": ("RAW", "MEAT_FISH_EGG_BEAN"),
+    "동물성가공식품류": ("RAW", "MEAT_FISH_EGG_BEAN"),
+    "두류": ("RAW", "MEAT_FISH_EGG_BEAN"),
+    "두류·견과 및 종실류": ("RAW", "MEAT_FISH_EGG_BEAN"),
+    "난류": ("RAW", "MEAT_FISH_EGG_BEAN"),
+    "채소류": ("RAW", "VEGETABLES"),
+    "채소·해조류": ("RAW", "VEGETABLES"),
+    "해조류": ("RAW", "VEGETABLES"),
+    "버섯류": ("RAW", "VEGETABLES"),
+    "과일류": ("RAW", "FRUITS"),
+    "견과류 및 종실류": ("RAW", "MEAT_FISH_EGG_BEAN"),
     # 유제품
-    "우유 및 그 제품":          ("SNACK",    "DAIRY"),
-
+    "우유 및 그 제품": ("SNACK", "DAIRY"),
     # 조미 / 유지
-    "조미료류":                  ("SEASONING", "FATS_SUGARS"),
-    "장류·양념류":               ("SEASONING", "FATS_SUGARS"),
-    "유지류":                    ("SEASONING", "FATS_SUGARS"),
-
+    "조미료류": ("SEASONING", "FATS_SUGARS"),
+    "장류·양념류": ("SEASONING", "FATS_SUGARS"),
+    "유지류": ("SEASONING", "FATS_SUGARS"),
     # 음료
-    "차류":                      ("BEVERAGE", None),
-    "주류":                      ("BEVERAGE", None),
+    "차류": ("BEVERAGE", None),
+    "주류": ("BEVERAGE", None),
 }
 
 

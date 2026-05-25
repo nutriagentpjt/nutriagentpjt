@@ -5,9 +5,12 @@ from pydantic import BaseModel, Field
 
 # --- Request ---
 
+
 class CreateSessionRequest(BaseModel):
     guest_id: str
-    persona: str = Field(description="페르소나 식별자 (예: friendly_pt, drill_sergeant)")
+    persona: str = Field(
+        description="페르소나 식별자 (예: friendly_pt, drill_sergeant)"
+    )
 
 
 class ChatMessageRequest(BaseModel):
@@ -15,6 +18,7 @@ class ChatMessageRequest(BaseModel):
 
 
 # --- Response ---
+
 
 class SessionResponse(BaseModel):
     id: int

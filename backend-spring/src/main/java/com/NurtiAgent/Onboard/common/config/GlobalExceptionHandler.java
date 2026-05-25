@@ -72,7 +72,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, String>> handleInternalError(RuntimeException ex) {
         log.error("Unhandled runtime exception", ex);
         Map<String, String> error = new HashMap<>();
-        error.put("error", "서버 오류가 발생했습니다: " + ex.getMessage());
+        error.put("error", "서버 오류가 발생했습니다.");
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
     }
 }

@@ -7,7 +7,9 @@ from app.schemas.enums import Disease
 from app.services.nutrition_calculator import DailyNutritionPlan, NutrientTarget
 
 # single 모드에서 단품으로 부적합한 역할 (반찬·김치는 밥과 함께 먹는 용도)
-_SINGLE_EXCLUDED_ROLES: frozenset[str] = frozenset({"SIDE", "KIMCHI", "SEASONING", "BEVERAGE", "RAW"})
+_SINGLE_EXCLUDED_ROLES: frozenset[str] = frozenset(
+    {"SIDE", "KIMCHI", "SEASONING", "BEVERAGE", "RAW"}
+)
 
 
 async def fetch_and_filter_foods(
@@ -26,7 +28,9 @@ async def fetch_and_filter_foods(
     """
     # 추천 파이프라인은 항상 recommandable=1(한식 조리 메뉴)만 사용
     # dish_role 필터링을 위해 항상 food_profile joinedload
-    query = select(Food).where(Food.recommandable == 1).options(joinedload(Food.profile))
+    query = (
+        select(Food).where(Food.recommandable == 1).options(joinedload(Food.profile))
+    )
     result = await db.execute(query)
     all_foods = list(result.scalars().all())
 
@@ -71,7 +75,12 @@ async def fetch_and_filter_foods(
 
         # HYPERTENSION / KIDNEY_DISEASE: 단품 모드만 개별 Na 하드컷
         # set 모드는 plate 합산으로 체크 (_plate_objective)
-        if mode == "single" and (has_hypertension or has_kidney) and meal_na_limit and (food.sodium or 0) > meal_na_limit:
+        if (
+            mode == "single"
+            and (has_hypertension or has_kidney)
+            and meal_na_limit
+            and (food.sodium or 0) > meal_na_limit
+        ):
             continue
 
         # GOUT: 퓨린 정량 데이터 200mg 초과

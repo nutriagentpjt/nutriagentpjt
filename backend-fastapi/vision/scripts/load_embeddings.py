@@ -205,9 +205,7 @@ def build_embeddings_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     )
     bad_dim = work.loc[work["embedding_dim"] != 768]
     if not bad_dim.empty:
-        raise ValueError(
-            f"Found {len(bad_dim)} rows where embedding_dim != 768"
-        )
+        raise ValueError(f"Found {len(bad_dim)} rows where embedding_dim != 768")
 
     work["embedding"] = work["embedding"].map(
         lambda x: embedding_to_pgvector_text(embedding_to_list(x, expected_dim=768))
@@ -351,9 +349,7 @@ def main() -> None:
                 chunked_records(records, args.batch_size), start=1
             ):
                 cur.executemany(UPSERT_SQL, batch)
-                logging.info(
-                    "Upserted batch %d (%d rows)", batch_idx, len(batch)
-                )
+                logging.info("Upserted batch %d (%d rows)", batch_idx, len(batch))
 
         after_count = count_rows(conn)
 

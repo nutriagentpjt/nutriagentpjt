@@ -75,9 +75,11 @@ public class RecommendationService {
                 .fat(Math.max(mealTarget.getFat() - consumed.getFat(), 0))
                 .build();
 
-        List<FoodRecommendationDto> recommendations = fastapiResponse.getRecommendations().stream()
-                .map(this::toFoodRecommendationDto)
-                .collect(Collectors.toList());
+        List<FoodRecommendationDto> recommendations = fastapiResponse.getRecommendations() != null
+                ? fastapiResponse.getRecommendations().stream()
+                        .map(this::toFoodRecommendationDto)
+                        .collect(Collectors.toList())
+                : List.of();
 
         return RecommendationResponse.builder()
                 .setId(UUID.randomUUID().toString())
@@ -111,7 +113,11 @@ public class RecommendationService {
                 FastApiRecommendResponse.class
         );
 
-        return response.getBody();
+        FastApiRecommendResponse responseBody = response.getBody();
+        if (responseBody == null) {
+            throw new IllegalStateException("FastAPI 추천 서비스 응답이 비어 있습니다.");
+        }
+        return responseBody;
     }
 
     private NutritionDto toNutritionDto(FastApiRecommendResponse.NutrientTargets src) {

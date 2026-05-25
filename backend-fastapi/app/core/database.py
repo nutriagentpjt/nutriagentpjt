@@ -18,4 +18,6 @@ engine = create_async_engine(
     pool_pre_ping=True,  # 커넥션 재사용 전 유효성 검사
 )
 
-async_session = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False, autoflush=False)
+async_session = async_sessionmaker(
+    engine, class_=AsyncSession, expire_on_commit=False, autoflush=False
+)

@@ -1,6 +1,7 @@
 import asyncio
 import json
 import logging
+import re
 from collections.abc import AsyncGenerator
 from weakref import WeakValueDictionary
 
@@ -29,15 +30,65 @@ async def _bedrock_call_with_backoff(fn, *args, **kwargs):
         try:
             return await asyncio.to_thread(fn, *args, **kwargs)
         except ClientError as e:
-            if e.response["Error"]["Code"] != "ThrottlingException" or attempt == _THROTTLE_RETRIES - 1:
+            if (
+                e.response["Error"]["Code"] != "ThrottlingException"
+                or attempt == _THROTTLE_RETRIES - 1
+            ):
                 raise
-            logger.warning("Bedrock throttled, retry %d/%d in %.1fs", attempt + 1, _THROTTLE_RETRIES, delay)
+            logger.warning(
+                "Bedrock throttled, retry %d/%d in %.1fs",
+                attempt + 1,
+                _THROTTLE_RETRIES,
+                delay,
+            )
             await asyncio.sleep(delay)
             delay *= 2
 
 
+def _sanitize_tool_input(raw: str) -> dict:
+    """Claude Sonnet 4가 JSON 문자열 값 안에 XML 마크업을 섞는 버그를 방어한다.
+
+    예: {"mode": "set</parameter>\n<parameter name=\"top_n\">5</parameter>\n</invoke>"}
+    각 문자열 값에서 첫 번째 '<' 이후를 잘라낸다.
+    """
+    if not raw:
+        return {}
+    try:
+        parsed = json.loads(raw)
+    except json.JSONDecodeError:
+        match = re.search(r"\{.*\}", raw, re.DOTALL)
+        if not match:
+            logger.warning("tool input JSON 파싱 실패, 빈 dict 반환 (len=%d)", len(raw))
+            return {}
+        try:
+            parsed = json.loads(match.group())
+        except json.JSONDecodeError:
+            logger.warning(
+                "tool input JSON 재파싱 실패, 빈 dict 반환 (len=%d)", len(raw)
+            )
+            return {}
+
+    if not isinstance(parsed, dict):
+        logger.warning(
+            "tool input JSON이 object가 아님 (type=%s), 빈 dict 반환",
+            type(parsed).__name__,
+        )
+        return {}
+
+    cleaned = {}
+    for k, v in parsed.items():
+        if isinstance(v, str) and "<" in v:
+            cleaned[k] = v[: v.index("<")].strip()
+            logger.warning("tool input '%s' XML 잔재 제거 (원본 len=%d)", k, len(v))
+        else:
+            cleaned[k] = v
+    return cleaned
+
+
 class ConversationEngine:
-    def __init__(self, persona_manager: PersonaManager, tool_registry: ToolRegistry) -> None:
+    def __init__(
+        self, persona_manager: PersonaManager, tool_registry: ToolRegistry
+    ) -> None:
         self.client = boto3.client(
             "bedrock-runtime",
             region_name=settings.AWS_REGION,
@@ -46,7 +97,9 @@ class ConversationEngine:
         )
         self.persona_manager = persona_manager
         self.tool_registry = tool_registry
-        self._session_locks: WeakValueDictionary[int, asyncio.Lock] = WeakValueDictionary()
+        self._session_locks: WeakValueDictionary[int, asyncio.Lock] = (
+            WeakValueDictionary()
+        )
 
     def _get_session_lock(self, session_id: int) -> asyncio.Lock:
         lock = self._session_locks.get(session_id)
@@ -165,7 +218,11 @@ class ConversationEngine:
         await self._save_message(session_id, "user", user_input, None, None, db)
 
         system_prompt = self._build_system_prompt(persona)
-        context = {"guest_id": session.guest_id, "db": db, "jsessionid": jsessionid or ""}
+        context = {
+            "guest_id": session.guest_id,
+            "db": db,
+            "jsessionid": jsessionid or "",
+        }
 
         # Bedrock 호출 + Tool Use 루프
         bedrock_tools = self.tool_registry.get_bedrock_tools()
@@ -189,8 +246,12 @@ class ConversationEngine:
             # tool_use가 없으면 최종 응답
             if response["stopReason"] != "tool_use":
                 text = self._extract_text(assistant_msg)
-                tool_calls = [b for b in assistant_msg["content"] if "toolUse" in b] or None
-                await self._save_message(session_id, "assistant", text, tool_calls, None, db)
+                tool_calls = [
+                    b for b in assistant_msg["content"] if "toolUse" in b
+                ] or None
+                await self._save_message(
+                    session_id, "assistant", text, tool_calls, None, db
+                )
                 await db.commit()
                 return text
 
@@ -212,21 +273,25 @@ class ConversationEngine:
                         tool_context = {**context, "db": tool_db}
                         result = await tool.execute(tool_use["input"], tool_context)
                         await tool_db.commit()
-                    tool_results.append({
-                        "toolResult": {
-                            "toolUseId": tool_use["toolUseId"],
-                            "content": [{"json": result}],
+                    tool_results.append(
+                        {
+                            "toolResult": {
+                                "toolUseId": tool_use["toolUseId"],
+                                "content": [{"json": result}],
+                            }
                         }
-                    })
+                    )
                 except Exception as e:
                     logger.exception("Tool execution failed: %s", tool_use["name"])
-                    tool_results.append({
-                        "toolResult": {
-                            "toolUseId": tool_use["toolUseId"],
-                            "content": [{"text": f"오류 발생: {e}"}],
-                            "status": "error",
+                    tool_results.append(
+                        {
+                            "toolResult": {
+                                "toolUseId": tool_use["toolUseId"],
+                                "content": [{"text": f"오류 발생: {e}"}],
+                                "status": "error",
+                            }
                         }
-                    })
+                    )
 
             # tool 결과를 user 메시지로 전송
             messages.append({"role": "user", "content": tool_results})
@@ -267,7 +332,11 @@ class ConversationEngine:
         await self._save_message(session_id, "user", user_input, None, None, db)
 
         system_prompt = self._build_system_prompt(persona)
-        context = {"guest_id": session.guest_id, "db": db, "jsessionid": jsessionid or ""}
+        context = {
+            "guest_id": session.guest_id,
+            "db": db,
+            "jsessionid": jsessionid or "",
+        }
         bedrock_tools = self.tool_registry.get_bedrock_tools()
         tool_config = {"tools": bedrock_tools} if bedrock_tools else None
 
@@ -281,7 +350,9 @@ class ConversationEngine:
             if tool_config:
                 kwargs["toolConfig"] = tool_config
 
-            response = await _bedrock_call_with_backoff(self.client.converse_stream, **kwargs)
+            response = await _bedrock_call_with_backoff(
+                self.client.converse_stream, **kwargs
+            )
 
             # 스트리밍 응답 처리
             full_text = ""
@@ -290,9 +361,7 @@ class ConversationEngine:
 
             stream_iter = response["stream"].__iter__()
             while True:
-                event = await asyncio.to_thread(
-                    next, stream_iter, None
-                )
+                event = await asyncio.to_thread(next, stream_iter, None)
                 if event is None:
                     break
 
@@ -313,21 +382,24 @@ class ConversationEngine:
                         full_text += delta["text"]
                         yield delta["text"]
                     elif "toolUse" in delta and current_tool_use:
-                        current_tool_use["toolUse"]["input"] += delta["toolUse"].get("input", "")
+                        current_tool_use["toolUse"]["input"] += delta["toolUse"].get(
+                            "input", ""
+                        )
 
                 elif "contentBlockStop" in event:
                     if current_tool_use:
-                        # input을 JSON 파싱
                         raw_input = current_tool_use["toolUse"]["input"]
-                        current_tool_use["toolUse"]["input"] = (
-                            json.loads(raw_input) if raw_input else {}
+                        current_tool_use["toolUse"]["input"] = _sanitize_tool_input(
+                            raw_input
                         )
                         tool_call_blocks.append(current_tool_use)
                         current_tool_use = None
 
             # tool_use가 없으면 종료
             if not tool_call_blocks:
-                await self._save_message(session_id, "assistant", full_text, None, None, db)
+                await self._save_message(
+                    session_id, "assistant", full_text, None, None, db
+                )
                 await db.commit()
                 return
 
@@ -352,21 +424,25 @@ class ConversationEngine:
                         tool_context = {**context, "db": tool_db}
                         result = await tool.execute(tool_use["input"], tool_context)
                         await tool_db.commit()
-                    tool_results.append({
-                        "toolResult": {
-                            "toolUseId": tool_use["toolUseId"],
-                            "content": [{"json": result}],
+                    tool_results.append(
+                        {
+                            "toolResult": {
+                                "toolUseId": tool_use["toolUseId"],
+                                "content": [{"json": result}],
+                            }
                         }
-                    })
+                    )
                 except Exception as e:
                     logger.exception("Tool execution failed: %s", tool_use["name"])
-                    tool_results.append({
-                        "toolResult": {
-                            "toolUseId": tool_use["toolUseId"],
-                            "content": [{"text": f"오류 발생: {e}"}],
-                            "status": "error",
+                    tool_results.append(
+                        {
+                            "toolResult": {
+                                "toolUseId": tool_use["toolUseId"],
+                                "content": [{"text": f"오류 발생: {e}"}],
+                                "status": "error",
+                            }
                         }
-                    })
+                    )
 
             messages.append({"role": "user", "content": tool_results})
             await self._save_message(session_id, "user", None, None, tool_results, db)

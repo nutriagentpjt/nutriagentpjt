@@ -13,15 +13,23 @@ class Food(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     name: Mapped[str | None] = mapped_column(String, nullable=True)
     category: Mapped[str | None] = mapped_column(String, nullable=True)
-    weight: Mapped[float | None] = mapped_column(Float, nullable=True, comment="1회 기본 제공량(g)")
+    weight: Mapped[float | None] = mapped_column(
+        Float, nullable=True, comment="1회 기본 제공량(g)"
+    )
     calories: Mapped[float | None] = mapped_column(Float, nullable=True)
     protein: Mapped[float | None] = mapped_column(Float, nullable=True)
     carbs: Mapped[float | None] = mapped_column(Float, nullable=True)
     fat: Mapped[float | None] = mapped_column(Float, nullable=True)
     sodium: Mapped[float | None] = mapped_column(Float, nullable=True, comment="mg")
-    saturated_fat: Mapped[float | None] = mapped_column(Float, nullable=True, comment="g")
-    sugars: Mapped[float | None] = mapped_column("sugar", Float, nullable=True, comment="g")
-    fiber: Mapped[float | None] = mapped_column("dietary_fiber", Float, nullable=True, comment="g")
+    saturated_fat: Mapped[float | None] = mapped_column(
+        Float, nullable=True, comment="g"
+    )
+    sugars: Mapped[float | None] = mapped_column(
+        "sugar", Float, nullable=True, comment="g"
+    )
+    fiber: Mapped[float | None] = mapped_column(
+        "dietary_fiber", Float, nullable=True, comment="g"
+    )
     potassium: Mapped[float | None] = mapped_column(Float, nullable=True, comment="mg")
     purine_level: Mapped[str | None] = mapped_column(String, nullable=True)
     iodine: Mapped[float | None] = mapped_column(Float, nullable=True)
@@ -42,6 +50,8 @@ class FoodProfile(Base):
     gi: Mapped[int | None] = mapped_column(Integer, nullable=True)
     gl: Mapped[float | None] = mapped_column(Float, nullable=True)
     purine_mg: Mapped[float | None] = mapped_column(Float, nullable=True)
-    updated_at: Mapped[datetime] = mapped_column(server_default=func.now(), onupdate=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        server_default=func.now(), onupdate=func.now()
+    )
 
     food: Mapped["Food"] = relationship("Food", back_populates="profile")

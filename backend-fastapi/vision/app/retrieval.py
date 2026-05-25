@@ -76,9 +76,7 @@ def _validate_top_k(top_k: int | None) -> int:
         raise RetrievalError(f"top_k must be >= 1, got: {top_k}")
 
     if top_k > settings.MAX_TOP_K:
-        raise RetrievalError(
-            f"top_k must be <= {settings.MAX_TOP_K}, got: {top_k}"
-        )
+        raise RetrievalError(f"top_k must be <= {settings.MAX_TOP_K}, got: {top_k}")
 
     return top_k
 
