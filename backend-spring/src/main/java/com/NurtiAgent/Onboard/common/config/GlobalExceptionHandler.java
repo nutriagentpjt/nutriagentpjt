@@ -31,14 +31,15 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler({FoodNotFoundException.class, UserProfileNotFoundException.class,
-            DietaryPreferenceNotFoundException.class, MealNotFoundException.class})
+            DietaryPreferenceNotFoundException.class, MealNotFoundException.class,
+            NutritionTargetNotFoundException.class})
     public ResponseEntity<Map<String, String>> handleNotFound(RuntimeException ex) {
         Map<String, String> error = new HashMap<>();
         error.put("error", ex.getMessage());
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
     }
 
-    @ExceptionHandler({NutritionTargetNotFoundException.class, DuplicateFoodException.class})
+    @ExceptionHandler(DuplicateFoodException.class)
     public ResponseEntity<Map<String, String>> handleConflict(RuntimeException ex) {
         Map<String, String> error = new HashMap<>();
         error.put("error", ex.getMessage());

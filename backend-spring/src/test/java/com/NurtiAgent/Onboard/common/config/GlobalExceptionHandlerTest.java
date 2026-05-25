@@ -84,13 +84,13 @@ class GlobalExceptionHandlerTest {
     }
 
     @Test
-    @DisplayName("NutritionTargetNotFoundException → 409 CONFLICT")
-    void nutritionTargetNotFound_returns409() {
+    @DisplayName("NutritionTargetNotFoundException → 404 NOT_FOUND")
+    void nutritionTargetNotFound_returns404() {
         NutritionTargetNotFoundException ex = new NutritionTargetNotFoundException("목표 없음");
-        ResponseEntity<Map<String, String>> response = handler.handleConflict(ex);
+        ResponseEntity<Map<String, String>> response = handler.handleNotFound(ex);
 
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
-        assertThat(response.getBody()).containsKey("error");
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+        assertThat(response.getBody()).containsEntry("error", "목표 없음");
     }
 
     @Test
@@ -141,7 +141,7 @@ class GlobalExceptionHandlerTest {
                 .containsKey("error");
         assertThat(handler.handleNotFound(new FoodNotFoundException("x")).getBody())
                 .containsKey("error");
-        assertThat(handler.handleConflict(new NutritionTargetNotFoundException("x")).getBody())
+        assertThat(handler.handleConflict(new DuplicateFoodException("x")).getBody())
                 .containsKey("error");
         assertThat(handler.handleBadRequest(new IllegalArgumentException("x")).getBody())
                 .containsKey("error");

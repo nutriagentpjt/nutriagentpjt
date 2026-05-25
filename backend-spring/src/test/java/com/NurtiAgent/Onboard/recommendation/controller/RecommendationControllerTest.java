@@ -160,15 +160,15 @@ class RecommendationControllerTest {
         }
 
         @Test
-        @DisplayName("영양 목표 미설정: 409 CONFLICT (NutritionTargetNotFoundException)")
-        void noNutritionTarget_returns409() throws Exception {
+        @DisplayName("영양 목표 미설정: 404 NOT_FOUND (NutritionTargetNotFoundException)")
+        void noNutritionTarget_returns404() throws Exception {
             when(recommendationService.getRecommendations(any(), any(), any(), any()))
                     .thenThrow(new NutritionTargetNotFoundException("온보딩을 먼저 완료해주세요"));
 
             mockMvc.perform(get("/api/recommendations")
                             .session(authSession)
                             .param("mealType", "LUNCH"))
-                    .andExpect(status().isConflict())
+                    .andExpect(status().isNotFound())
                     .andExpect(jsonPath("$.error").exists());
         }
 
