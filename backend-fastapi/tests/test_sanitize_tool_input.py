@@ -58,6 +58,18 @@ class TestSanitizeToolInput:
     def test_completely_invalid_json_returns_empty_dict(self):
         assert _sanitize_tool_input("not json at all") == {}
 
+    def test_array_input_returns_empty_dict(self):
+        """json.loads가 list를 반환하는 경우 dict가 아니므로 {} 반환"""
+        assert _sanitize_tool_input("[]") == {}
+
+    def test_string_json_returns_empty_dict(self):
+        """json.loads가 str을 반환하는 경우 dict가 아니므로 {} 반환"""
+        assert _sanitize_tool_input('"x"') == {}
+
+    def test_number_json_returns_empty_dict(self):
+        """json.loads가 int를 반환하는 경우 dict가 아니므로 {} 반환"""
+        assert _sanitize_tool_input("42") == {}
+
     def test_string_with_no_xml_but_angle_bracket_in_value(self):
         """< 가 포함되어 있지만 HTML 태그가 아닌 경우 (예: 수식)도 첫 < 기준으로 자름"""
         raw = '{"expr": "a<b", "mode": "set"}'

@@ -50,19 +50,23 @@ def _sanitize_tool_input(raw: str) -> dict:
     except json.JSONDecodeError:
         match = re.search(r'\{.*\}', raw, re.DOTALL)
         if not match:
-            logger.warning("tool input JSON 파싱 실패, 빈 dict 반환: %r", raw[:200])
+            logger.warning("tool input JSON 파싱 실패, 빈 dict 반환 (len=%d)", len(raw))
             return {}
         try:
             parsed = json.loads(match.group())
         except json.JSONDecodeError:
-            logger.warning("tool input JSON 재파싱도 실패, 빈 dict 반환: %r", raw[:200])
+            logger.warning("tool input JSON 재파싱 실패, 빈 dict 반환 (len=%d)", len(raw))
             return {}
+
+    if not isinstance(parsed, dict):
+        logger.warning("tool input JSON이 object가 아님 (type=%s), 빈 dict 반환", type(parsed).__name__)
+        return {}
 
     cleaned = {}
     for k, v in parsed.items():
         if isinstance(v, str) and '<' in v:
             cleaned[k] = v[:v.index('<')].strip()
-            logger.warning("tool input '%s' XML 잔재 제거: %r → %r", k, v[:80], cleaned[k])
+            logger.warning("tool input '%s' XML 잔재 제거 (원본 len=%d)", k, len(v))
         else:
             cleaned[k] = v
     return cleaned
