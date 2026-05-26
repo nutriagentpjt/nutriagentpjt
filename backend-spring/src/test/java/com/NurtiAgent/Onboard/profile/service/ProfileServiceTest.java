@@ -239,15 +239,17 @@ class ProfileServiceTest {
         }
 
         @Test
-        @DisplayName("식단 설정 없음: RuntimeException 발생")
-        void noDietaryPreference_throwsRuntimeException() {
+        @DisplayName("식단 설정 없음: 프로필만으로 응답 반환 (preference 필드 null/empty)")
+        void noDietaryPreference_returnsProfileWithoutPreference() {
             when(userRepository.findByGuestId(GUEST_ID)).thenReturn(Optional.of(testUser));
             when(userProfileRepository.findByUser(any())).thenReturn(Optional.of(testProfile));
             when(dietaryPreferenceRepository.findByUser(any())).thenReturn(Optional.empty());
 
-            assertThatThrownBy(() -> profileService.getProfile(GUEST_ID))
-                    .isInstanceOf(RuntimeException.class)
-                    .hasMessageContaining("식단");
+            ProfileResponse response = profileService.getProfile(GUEST_ID);
+
+            assertThat(response.getUserId()).isEqualTo(GUEST_ID);
+            assertThat(response.getMealPattern()).isNull();
+            assertThat(response.getPreferredFoods()).isEmpty();
         }
     }
 
