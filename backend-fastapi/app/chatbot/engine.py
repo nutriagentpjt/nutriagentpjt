@@ -201,6 +201,28 @@ class ConversationEngine:
                 session_id, session, persona, user_input, db, jsessionid
             )
 
+    async def _generate_title(self, user_input: str) -> str:
+        prompt = (
+            "사용자의 첫 메시지를 보고 이 대화의 제목을 지어줘.\n\n"
+            "규칙:\n"
+            "- 10자 이내의 짧은 한국어 제목\n"
+            "- 명사구 형태 (예: '저녁 식단 고민', '단백질 보충 작전', '체중 감량 도전')\n"
+            "- 같은 식단 주제라도 매번 참신하고 다양한 표현 사용\n"
+            "- 따옴표, 설명 없이 제목 텍스트만 출력\n\n"
+            f"사용자 메시지: {user_input}"
+        )
+        try:
+            response = await _bedrock_call_with_backoff(
+                self.client.converse,
+                modelId=settings.BEDROCK_MODEL_ID,
+                messages=[{"role": "user", "content": [{"text": prompt}]}],
+                inferenceConfig={"maxTokens": 30},
+            )
+            return response["output"]["message"]["content"][0]["text"].strip()[:20]
+        except Exception:
+            logger.warning("Session title generation failed, skipping")
+            return ""
+
     async def _chat_locked(
         self,
         session_id: int,
@@ -212,6 +234,7 @@ class ConversationEngine:
     ) -> str:
         # DB에서 이전 대화 이력 로드
         messages = await self._load_messages(session_id, db)
+        is_first_message = len(messages) == 0
 
         # 새 사용자 메시지 추가
         messages.append({"role": "user", "content": [{"text": user_input}]})
@@ -252,6 +275,10 @@ class ConversationEngine:
                 await self._save_message(
                     session_id, "assistant", text, tool_calls, None, db
                 )
+                if is_first_message and not session.title:
+                    title = await self._generate_title(user_input)
+                    if title:
+                        session.title = title
                 await db.commit()
                 return text
 
@@ -328,6 +355,7 @@ class ConversationEngine:
         jsessionid: str | None = None,
     ) -> AsyncGenerator[str, None]:
         messages = await self._load_messages(session_id, db)
+        is_first_message = len(messages) == 0
         messages.append({"role": "user", "content": [{"text": user_input}]})
         await self._save_message(session_id, "user", user_input, None, None, db)
 
@@ -400,6 +428,10 @@ class ConversationEngine:
                 await self._save_message(
                     session_id, "assistant", full_text, None, None, db
                 )
+                if is_first_message and not session.title:
+                    title = await self._generate_title(user_input)
+                    if title:
+                        session.title = title
                 await db.commit()
                 return
 
