@@ -141,7 +141,7 @@ class ConversationEngine:
         result = await db.execute(
             select(ChatMessage)
             .where(ChatMessage.session_id == session_id)
-            .order_by(ChatMessage.created_at)
+            .order_by(ChatMessage.created_at, ChatMessage.id)
         )
         rows = result.scalars().all()
 

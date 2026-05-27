@@ -94,7 +94,7 @@ async def get_messages(
             ChatMessage.session_id == session_id,
             ChatMessage.content.isnot(None),
         )
-        .order_by(ChatMessage.created_at)
+        .order_by(ChatMessage.created_at, ChatMessage.id)
     )
     rows = result.scalars().all()
     return [
