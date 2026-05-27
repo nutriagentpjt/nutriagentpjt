@@ -9,6 +9,7 @@ import { ImageSourceModal } from "@/components/camera";
 import { showToast } from "@/components/common";
 import { OverlayScrollArea } from "@/components/common/OverlayScrollArea";
 import { AddFoodModal } from "@/components/food";
+import { loadStoredProfile, PROFILE_STORAGE_UPDATED_EVENT } from "@/components/profile/shared";
 import AIRecommendations from "@/components/recommendation/AIRecommendations";
 import { useFoodAutocomplete, useFoodSearch, useMeals, useRecommendations } from "@/hooks";
 import type { RecommendationCardItem } from "@/components/recommendation";
@@ -137,6 +138,7 @@ export default function HomePage() {
   const [showRecentFoods, setShowRecentFoods] = useState(false);
   const [showMealEditModal, setShowMealEditModal] = useState(false);
   const [hoveredMealType, setHoveredMealType] = useState<string | null>(null);
+  const [storedProfile, setStoredProfile] = useState(() => loadStoredProfile());
 
   // 건강 데이터 수정 모달 state
   const [healthModalType, setHealthModalType] = useState<'weight' | 'water' | null>(null);
@@ -384,6 +386,21 @@ export default function HomePage() {
     weekday: "long",
   });
 
+  useEffect(() => {
+    const syncStoredProfile = () => {
+      setStoredProfile(loadStoredProfile());
+    };
+
+    syncStoredProfile();
+    window.addEventListener(PROFILE_STORAGE_UPDATED_EVENT, syncStoredProfile);
+    window.addEventListener("focus", syncStoredProfile);
+
+    return () => {
+      window.removeEventListener(PROFILE_STORAGE_UPDATED_EVENT, syncStoredProfile);
+      window.removeEventListener("focus", syncStoredProfile);
+    };
+  }, []);
+
   // meals에서 영양소 총합 계산
   const localCaloriesConsumed = meals.reduce((sum, meal) => sum + meal.calories, 0);
   const localTotalProtein = meals.reduce((sum, meal) => sum + meal.protein, 0);
@@ -397,7 +414,10 @@ export default function HomePage() {
   const totalCarbs = localTotalCarbs;
   const totalFat = localTotalFat;
 
-  const caloriesGoal = Math.max(1, Math.round(mealsQuery.data?.summary.targetCalories ?? 2000));
+  const caloriesGoal = Math.max(
+    1,
+    Math.round(storedProfile.goalCalories ?? mealsQuery.data?.summary.targetCalories ?? 2000),
+  );
   const percentage = Math.round((caloriesConsumed / caloriesGoal) * 100);
   const activeSearchKeyword = (analyzedFood || searchQuery).trim();
   const {
@@ -411,9 +431,27 @@ export default function HomePage() {
   const foodAutocompleteSuggestions = rawFoodAutocompleteSuggestions ?? EMPTY_AUTOCOMPLETE_RESULTS;
 
   const macros = [
-    { name: "단백질", current: totalProtein, goal: Math.round(mealsQuery.data?.summary.targetProtein ?? 150), unit: "g", color: "#10b981" },
-    { name: "탄수화물", current: totalCarbs, goal: Math.round(mealsQuery.data?.summary.targetCarbs ?? 250), unit: "g", color: "#3b82f6" },
-    { name: "지방", current: totalFat, goal: Math.round(mealsQuery.data?.summary.targetFat ?? 65), unit: "g", color: "#f59e0b" },
+    {
+      name: "단백질",
+      current: totalProtein,
+      goal: Math.round(storedProfile.goalProtein ?? mealsQuery.data?.summary.targetProtein ?? 150),
+      unit: "g",
+      color: "#10b981",
+    },
+    {
+      name: "탄수화물",
+      current: totalCarbs,
+      goal: Math.round(storedProfile.goalCarbs ?? mealsQuery.data?.summary.targetCarbs ?? 250),
+      unit: "g",
+      color: "#3b82f6",
+    },
+    {
+      name: "지방",
+      current: totalFat,
+      goal: Math.round(storedProfile.goalFat ?? mealsQuery.data?.summary.targetFat ?? 65),
+      unit: "g",
+      color: "#f59e0b",
+    },
   ];
 
   useEffect(() => {

@@ -19,6 +19,7 @@ import type {
 } from '@/types/profile';
 
 export const USER_PROFILE_STORAGE_KEY = 'userProfile';
+export const PROFILE_STORAGE_UPDATED_EVENT = 'nutriagent:profile-updated';
 
 export type StoredProfile = UserProfile & {
   goalCalories?: number;
@@ -140,6 +141,7 @@ export function loadStoredProfile(): StoredProfile {
 
 export function saveStoredProfile(profile: StoredProfile) {
   window.localStorage.setItem(USER_PROFILE_STORAGE_KEY, JSON.stringify(profile));
+  window.dispatchEvent(new CustomEvent(PROFILE_STORAGE_UPDATED_EVENT, { detail: profile }));
 }
 
 export function getMealPatternFromMealsPerDay(mealsPerDay?: number): MealPattern {
