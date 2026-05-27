@@ -34,6 +34,8 @@ export default function MainLayout() {
     location.pathname === ROUTES.MEAL_UPLOAD ||
     location.pathname === ROUTES.MYPAGE ||
     location.pathname === ROUTES.RECOMMENDATION_SETTINGS;
+  const shouldBypassOverlayScroll = location.pathname === ROUTES.LEGACY_AI_AGENT;
+  const shouldUseNativeScroll = useNativeScroll && !shouldBypassOverlayScroll;
 
   useEffect(() => {
     if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
@@ -46,17 +48,17 @@ export default function MainLayout() {
     update();
     mediaQuery.addEventListener?.('change', update);
 
-    return () => {
-      mediaQuery.removeEventListener?.('change', update);
-    };
+      return () => {
+        mediaQuery.removeEventListener?.('change', update);
+      };
   }, []);
 
   return (
     <div className="flex min-h-screen justify-center bg-gradient-to-b from-gray-50 to-white">
-      <div className={`relative flex w-full max-w-[390px] flex-col ${useNativeScroll ? 'min-h-[100dvh]' : 'h-[100dvh] min-h-0'}`}>
+      <div className={`relative flex w-full max-w-[390px] flex-col ${shouldUseNativeScroll ? 'min-h-[100dvh]' : 'h-[100dvh] min-h-0'}`}>
         {!hideLayoutHeader ? <Header title={headerTitle} /> : null}
-        {useNativeScroll ? (
-          <main className={hideTabNavigation ? 'flex-1' : 'flex-1 pb-[68px]'}>
+        {shouldUseNativeScroll || shouldBypassOverlayScroll ? (
+          <main className={hideTabNavigation ? 'flex h-0 min-h-0 flex-1 flex-col overflow-hidden' : 'flex h-0 min-h-0 flex-1 flex-col overflow-hidden pb-[68px]'}>
             <Outlet />
           </main>
         ) : (
