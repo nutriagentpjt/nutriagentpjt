@@ -46,6 +46,9 @@ function DescriptionContent({ text }: { text: string }) {
     <div className="relative">
       <div
         ref={containerRef}
+        tabIndex={isScrollable ? 0 : undefined}
+        role={isScrollable ? 'region' : undefined}
+        aria-label={isScrollable ? '식단 설명 (스크롤 가능)' : undefined}
         onScroll={(event) => {
           const element = event.currentTarget;
           const nextShowFadeHint = element.scrollTop + element.clientHeight < element.scrollHeight - 1;
@@ -155,6 +158,9 @@ function MenuContent({
     <div className="relative w-full">
       <div
         ref={containerRef}
+        tabIndex={isScrollable ? 0 : undefined}
+        role={isScrollable ? 'region' : undefined}
+        aria-label={isScrollable ? '식판 항목 목록 (스크롤 가능)' : undefined}
         onScroll={(event) => {
           const element = event.currentTarget;
           const nextShowFadeHint = element.scrollTop + element.clientHeight < element.scrollHeight - 1;

@@ -116,10 +116,17 @@ export default function AIAgentPage() {
   };
 
   const handleStartNewChat = async () => {
+    shouldAutoScrollRef.current = true;
     const created = await startNewChat();
     if (created) {
       setShowHistory(false);
     }
+  };
+
+  const handleSelectSession = async (session: typeof sessions[number]) => {
+    shouldAutoScrollRef.current = true;
+    await selectSession(session);
+    setShowHistory(false);
   };
 
   const startInlineRename = (sessionId: string, currentTitle?: string | null) => {
@@ -428,8 +435,7 @@ export default function AIAgentPage() {
                         <button
                           type="button"
                           onClick={() => {
-                            void selectSession(session);
-                            setShowHistory(false);
+                            void handleSelectSession(session);
                           }}
                           className={`w-full rounded-2xl border border-gray-200 px-4 py-3 text-left transition-colors ${
                             activeMenuSessionId === session.id ? 'bg-gray-100' : 'bg-white hover:bg-gray-50'
