@@ -1,5 +1,6 @@
 package com.NurtiAgent.Onboard.meal.service;
 
+import com.NurtiAgent.Onboard.common.constants.TimeZoneConstants;
 import com.NurtiAgent.Onboard.common.exception.MealNotFoundException;
 import com.NurtiAgent.Onboard.common.exception.UnauthorizedException;
 import com.NurtiAgent.Onboard.meal.dto.*;
@@ -16,7 +17,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
-import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -24,8 +24,6 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class MealService {
-    private static final ZoneId APP_ZONE_ID = ZoneId.of("Asia/Seoul");
-
     private final MealRepository mealRepository;
     private final FoodService foodService;
     private final UserRepository userRepository;
@@ -43,7 +41,7 @@ public class MealService {
 
         // 3. 날짜 검증 (과거 30일 ~ 오늘)
         LocalDate mealDate = request.getDate();
-        LocalDate today = LocalDate.now(APP_ZONE_ID);
+        LocalDate today = LocalDate.now(TimeZoneConstants.APP_ZONE_ID);
         LocalDate thirtyDaysAgo = today.minusDays(30);
 
         if (mealDate.isBefore(thirtyDaysAgo) || mealDate.isAfter(today)) {
@@ -193,7 +191,7 @@ public class MealService {
 
         if (request.getDate() != null) {
             LocalDate newDate = request.getDate();
-            LocalDate today = LocalDate.now(APP_ZONE_ID);
+            LocalDate today = LocalDate.now(TimeZoneConstants.APP_ZONE_ID);
             LocalDate thirtyDaysAgo = today.minusDays(30);
 
             if (newDate.isBefore(thirtyDaysAgo) || newDate.isAfter(today)) {
