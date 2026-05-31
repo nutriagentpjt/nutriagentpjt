@@ -1,5 +1,6 @@
 package com.NurtiAgent.Onboard.recommendation.controller;
 
+import com.NurtiAgent.Onboard.common.constants.TimeZoneConstants;
 import com.NurtiAgent.Onboard.common.enums.MealType;
 import com.NurtiAgent.Onboard.profile.exception.NutritionTargetNotFoundException;
 import com.NurtiAgent.Onboard.recommendation.dto.RecommendationResponse;
@@ -37,7 +38,7 @@ class RecommendationControllerTest {
     @MockBean  RecommendationService recommendationService;
 
     private static final String GUEST_ID = "guest_test-001";
-    private static final String TODAY = LocalDate.now().toString();
+    private static final String TODAY = LocalDate.now(TimeZoneConstants.APP_ZONE_ID).toString();
 
     private MockHttpSession authSession;
 

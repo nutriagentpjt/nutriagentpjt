@@ -1,6 +1,7 @@
 package com.NurtiAgent.Onboard.recommendation.controller;
 
 import com.NurtiAgent.Onboard.common.annotation.GuestId;
+import com.NurtiAgent.Onboard.common.constants.TimeZoneConstants;
 import com.NurtiAgent.Onboard.common.enums.MealType;
 import com.NurtiAgent.Onboard.recommendation.dto.RecommendationResponse;
 import com.NurtiAgent.Onboard.recommendation.service.RecommendationService;
@@ -17,7 +18,6 @@ import java.time.LocalDate;
 @RequestMapping("/api/recommendations")
 @RequiredArgsConstructor
 public class RecommendationController {
-
     private final RecommendationService recommendationService;
 
     @GetMapping
@@ -28,7 +28,7 @@ public class RecommendationController {
             @RequestParam(required = false, defaultValue = "10") Integer limit) {
 
         // date가 없으면 오늘 날짜 사용
-        String targetDate = (date != null && !date.isEmpty()) ? date : LocalDate.now().toString();
+        String targetDate = (date != null && !date.isEmpty()) ? date : LocalDate.now(TimeZoneConstants.APP_ZONE_ID).toString();
 
         // limit 범위 검증 (1 ~ 20)
         if (limit < 1 || limit > 20) {
