@@ -78,7 +78,7 @@ export default function ImageUploadPage() {
 
   useEffect(() => {
     if (!selectedFile) {
-      navigate(-1);
+      navigate(ROUTES.HOME, { replace: true });
       return;
     }
 
@@ -157,7 +157,7 @@ export default function ImageUploadPage() {
 
   const handleBack = () => {
     clearSelectedFile();
-    navigate(-1);
+    navigate(ROUTES.HOME, { replace: true });
   };
 
   const handleUseResult = (candidate: MealImageRecognitionCandidate) => {
