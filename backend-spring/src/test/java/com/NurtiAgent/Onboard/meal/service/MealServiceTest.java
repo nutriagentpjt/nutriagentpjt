@@ -1,5 +1,6 @@
 package com.NurtiAgent.Onboard.meal.service;
 
+import com.NurtiAgent.Onboard.common.constants.TimeZoneConstants;
 import com.NurtiAgent.Onboard.common.enums.MealSource;
 import com.NurtiAgent.Onboard.common.enums.MealType;
 import com.NurtiAgent.Onboard.food.exception.FoodNotFoundException;
@@ -64,6 +65,10 @@ class MealServiceTest {
     private User testUser;
     private FoodResponse chickenFood;
 
+    private LocalDate appToday() {
+        return LocalDate.now(TimeZoneConstants.APP_ZONE_ID);
+    }
+
     @BeforeEach
     void setUp() {
         testUser = User.builder()
@@ -109,7 +114,7 @@ class MealServiceTest {
         @Test
         @DisplayName("정상 등록: 영양소가 amount 비율로 계산됨")
         void normalCreate_calculatesNutrientsProportionally() {
-            LocalDate today = LocalDate.now();
+            LocalDate today = appToday();
             MealRequest request = MealRequest.builder()
                     .foodName("닭가슴살")
                     .amount(200.0)  // 100g 기준의 2배
@@ -138,7 +143,7 @@ class MealServiceTest {
 
             MealRequest request = MealRequest.builder()
                     .foodName("닭가슴살").amount(100.0)
-                    .mealType(MealType.LUNCH).date(LocalDate.now())
+                    .mealType(MealType.LUNCH).date(appToday())
                     .build();
 
             assertThatThrownBy(() -> mealService.createMeal("unknown-id", request))
@@ -154,7 +159,7 @@ class MealServiceTest {
 
             MealRequest request = MealRequest.builder()
                     .foodName("없는음식").amount(100.0)
-                    .mealType(MealType.LUNCH).date(LocalDate.now())
+                    .mealType(MealType.LUNCH).date(appToday())
                     .build();
 
             assertThatThrownBy(() -> mealService.createMeal(GUEST_ID, request))
@@ -170,7 +175,7 @@ class MealServiceTest {
             MealRequest request = MealRequest.builder()
                     .foodName("닭가슴살").amount(100.0)
                     .mealType(MealType.LUNCH)
-                    .date(LocalDate.now().minusDays(31))
+                    .date(appToday().minusDays(31))
                     .build();
 
             assertThatThrownBy(() -> mealService.createMeal(GUEST_ID, request))
@@ -187,7 +192,7 @@ class MealServiceTest {
             MealRequest request = MealRequest.builder()
                     .foodName("닭가슴살").amount(100.0)
                     .mealType(MealType.LUNCH)
-                    .date(LocalDate.now().plusDays(1))
+                    .date(appToday().plusDays(1))
                     .build();
 
             assertThatThrownBy(() -> mealService.createMeal(GUEST_ID, request))
@@ -197,14 +202,14 @@ class MealServiceTest {
         @Test
         @DisplayName("오늘 날짜: 정상 등록")
         void todayDate_isValid() {
-            Meal savedMeal = buildSavedMeal(1L, 100.0, LocalDate.now(), MealType.BREAKFAST);
+            Meal savedMeal = buildSavedMeal(1L, 100.0, appToday(), MealType.BREAKFAST);
             when(userRepository.findByGuestId(GUEST_ID)).thenReturn(Optional.of(testUser));
             when(foodService.getFoodByName(any())).thenReturn(chickenFood);
             when(mealRepository.save(any())).thenReturn(savedMeal);
 
             MealRequest request = MealRequest.builder()
                     .foodName("닭가슴살").amount(100.0)
-                    .mealType(MealType.BREAKFAST).date(LocalDate.now())
+                    .mealType(MealType.BREAKFAST).date(appToday())
                     .build();
 
             assertThat(mealService.createMeal(GUEST_ID, request)).isNotNull();
@@ -213,7 +218,7 @@ class MealServiceTest {
         @Test
         @DisplayName("30일 전 날짜: 정상 등록 (경계값)")
         void exactlyThirtyDaysAgo_isValid() {
-            LocalDate thirtyDaysAgo = LocalDate.now().minusDays(30);
+            LocalDate thirtyDaysAgo = appToday().minusDays(30);
             Meal savedMeal = buildSavedMeal(1L, 100.0, thirtyDaysAgo, MealType.DINNER);
             when(userRepository.findByGuestId(GUEST_ID)).thenReturn(Optional.of(testUser));
             when(foodService.getFoodByName(any())).thenReturn(chickenFood);
@@ -240,7 +245,7 @@ class MealServiceTest {
                     .id(1L).user(testUser).foodName("미상음식")
                     .amount(100.0).calories(100.0)
                     .protein(null).carbs(null).fat(null)
-                    .mealType(MealType.SNACK).date(LocalDate.now())
+                    .mealType(MealType.SNACK).date(appToday())
                     .source(MealSource.MANUAL)
                     .createdAt(LocalDateTime.now()).updatedAt(LocalDateTime.now())
                     .build();
@@ -251,7 +256,7 @@ class MealServiceTest {
 
             MealRequest request = MealRequest.builder()
                     .foodName("미상음식").amount(100.0)
-                    .mealType(MealType.SNACK).date(LocalDate.now())
+                    .mealType(MealType.SNACK).date(appToday())
                     .build();
 
             MealResponse response = mealService.createMeal(GUEST_ID, request);
@@ -284,7 +289,7 @@ class MealServiceTest {
         @Test
         @DisplayName("여러 식사 기록: 영양소 합계 정확히 계산")
         void multipleMeals_aggregatesNutrition() {
-            LocalDate date = LocalDate.now();
+            LocalDate date = appToday();
             Meal meal1 = buildSavedMeal(1L, 100.0, date, MealType.BREAKFAST);
             Meal meal2 = buildSavedMeal(2L, 200.0, date, MealType.LUNCH);
 
@@ -303,7 +308,7 @@ class MealServiceTest {
         @Test
         @DisplayName("온보딩 완료 + 영양 목표 있음: 달성률 계산됨")
         void onboardedUserWithTarget_calculatesAchievement() {
-            LocalDate date = LocalDate.now();
+            LocalDate date = appToday();
             Meal meal = buildSavedMeal(1L, 100.0, date, MealType.LUNCH);
 
             UserProfile profile = UserProfile.builder()
@@ -326,7 +331,7 @@ class MealServiceTest {
         @Test
         @DisplayName("온보딩 미완료: 목표 및 달성률 null")
         void notOnboarded_noTargetOrAchievement() {
-            LocalDate date = LocalDate.now();
+            LocalDate date = appToday();
             Meal meal = buildSavedMeal(1L, 100.0, date, MealType.LUNCH);
 
             UserProfile profile = UserProfile.builder()
@@ -351,7 +356,7 @@ class MealServiceTest {
         @Test
         @DisplayName("amount 변경: 영양소 재계산됨")
         void updateAmount_recalculatesNutrition() {
-            LocalDate date = LocalDate.now();
+            LocalDate date = appToday();
             Meal existingMeal = buildSavedMeal(1L, 100.0, date, MealType.LUNCH);
             Meal savedMeal    = buildSavedMeal(1L, 300.0, date, MealType.LUNCH);
 
@@ -369,7 +374,7 @@ class MealServiceTest {
         @Test
         @DisplayName("mealType만 변경: 음식 재조회 없음")
         void updateMealTypeOnly_noFoodServiceCall() {
-            LocalDate date = LocalDate.now();
+            LocalDate date = appToday();
             Meal existingMeal = buildSavedMeal(1L, 100.0, date, MealType.LUNCH);
             Meal savedMeal    = buildSavedMeal(1L, 100.0, date, MealType.DINNER);
 
@@ -397,12 +402,12 @@ class MealServiceTest {
         @Test
         @DisplayName("31일 전 날짜로 변경: IllegalArgumentException 발생")
         void updateToOldDate_throws() {
-            Meal existingMeal = buildSavedMeal(1L, 100.0, LocalDate.now(), MealType.LUNCH);
+            Meal existingMeal = buildSavedMeal(1L, 100.0, appToday(), MealType.LUNCH);
             when(userRepository.findByGuestId(GUEST_ID)).thenReturn(Optional.of(testUser));
             when(mealRepository.findByIdAndUser(1L, testUser)).thenReturn(Optional.of(existingMeal));
 
             MealUpdateRequest request = MealUpdateRequest.builder()
-                    .date(LocalDate.now().minusDays(31)).build();
+                    .date(appToday().minusDays(31)).build();
 
             assertThatThrownBy(() -> mealService.updateMeal(GUEST_ID, 1L, request))
                     .isInstanceOf(IllegalArgumentException.class);
@@ -418,7 +423,7 @@ class MealServiceTest {
         @Test
         @DisplayName("정상 삭제: success=true 반환")
         void normalDelete_returnsSuccess() {
-            Meal meal = buildSavedMeal(1L, 100.0, LocalDate.now(), MealType.LUNCH);
+            Meal meal = buildSavedMeal(1L, 100.0, appToday(), MealType.LUNCH);
             when(userRepository.findByGuestId(GUEST_ID)).thenReturn(Optional.of(testUser));
             when(mealRepository.findByIdAndUser(1L, testUser)).thenReturn(Optional.of(meal));
 
@@ -450,7 +455,7 @@ class MealServiceTest {
         @Test
         @DisplayName("하루 식단 합계 계산")
         void dailySummary_aggregatesAll() {
-            LocalDate date = LocalDate.now();
+            LocalDate date = appToday();
             Meal m1 = buildSavedMeal(1L, 100.0, date, MealType.BREAKFAST);
             Meal m2 = buildSavedMeal(2L, 150.0, date, MealType.LUNCH);
 
@@ -466,7 +471,7 @@ class MealServiceTest {
         @Test
         @DisplayName("식사 유형별 합계 계산")
         void summaryByMealType_filtersByType() {
-            LocalDate date = LocalDate.now();
+            LocalDate date = appToday();
             Meal breakfast = buildSavedMeal(1L, 100.0, date, MealType.BREAKFAST);
 
             when(userRepository.findByGuestId(GUEST_ID)).thenReturn(Optional.of(testUser));
@@ -482,7 +487,7 @@ class MealServiceTest {
         @Test
         @DisplayName("식사 없는 날: 모든 영양소 합계 0")
         void noMeals_allZeros() {
-            LocalDate date = LocalDate.now();
+            LocalDate date = appToday();
             when(userRepository.findByGuestId(GUEST_ID)).thenReturn(Optional.of(testUser));
             when(mealRepository.findByUserAndDate(any(), any())).thenReturn(List.of());
 
@@ -497,7 +502,7 @@ class MealServiceTest {
         @Test
         @DisplayName("protein이 null인 식사: 합계 계산 시 무시됨 (0으로 처리)")
         void nullProteinMeals_ignoredInSum() {
-            LocalDate date = LocalDate.now();
+            LocalDate date = appToday();
             Meal noProtein = Meal.builder()
                     .id(1L).user(testUser).foodName("테스트")
                     .amount(100.0).calories(100.0)
