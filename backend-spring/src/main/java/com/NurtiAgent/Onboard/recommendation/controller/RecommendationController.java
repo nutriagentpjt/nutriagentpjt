@@ -12,11 +12,13 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDate;
+import java.time.ZoneId;
 
 @RestController
 @RequestMapping("/api/recommendations")
 @RequiredArgsConstructor
 public class RecommendationController {
+    private static final ZoneId APP_ZONE_ID = ZoneId.of("Asia/Seoul");
 
     private final RecommendationService recommendationService;
 
@@ -28,7 +30,7 @@ public class RecommendationController {
             @RequestParam(required = false, defaultValue = "10") Integer limit) {
 
         // date가 없으면 오늘 날짜 사용
-        String targetDate = (date != null && !date.isEmpty()) ? date : LocalDate.now().toString();
+        String targetDate = (date != null && !date.isEmpty()) ? date : LocalDate.now(APP_ZONE_ID).toString();
 
         // limit 범위 검증 (1 ~ 20)
         if (limit < 1 || limit > 20) {
