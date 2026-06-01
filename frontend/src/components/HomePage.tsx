@@ -621,7 +621,12 @@ export default function HomePage() {
   };
 
   const removeFavoriteFood = (foodId: number) => {
+    const removedFood = favoriteFoods.find((food) => food.id === foodId);
     setFavoriteFoods((prev) => prev.filter((food) => food.id !== foodId));
+
+    if (removedFood) {
+      showToast.success(`${removedFood.name}이(가) 즐겨찾기에서 제거되었습니다`);
+    }
   };
 
   const getCurrentMealType = (): 'breakfast' | 'lunch' | 'dinner' | 'snack' => getMealTypeFromDate(new Date());
@@ -690,9 +695,7 @@ export default function HomePage() {
       [currentDateKey]: [...(prev[currentDateKey] || []), newMeal],
     }));
 
-    setToastMessage(`${food.name}이(가) 오늘의 식단에 추가되었습니다`);
-    setShowToast(true);
-    setTimeout(() => setShowToast(false), 3000);
+    showToast.success(`${food.name}이(가) 오늘의 식단에 추가되었습니다`);
     setShowFavorites(false);
   };
 
@@ -2456,9 +2459,22 @@ export default function HomePage() {
                         <h3 className="font-semibold text-gray-900 mb-1.5">{food.name}</h3>
                         <p className="text-xs text-gray-500">{food.calories}kcal · 단백질 {food.protein}g · 탄수화물 {food.carbs}g · 지방 {food.fat}g</p>
                       </button>
-                      <button onClick={() => removeFavoriteFood(food.id)} className="w-9 h-9 flex items-center justify-center text-gray-400 hover:text-red-500 active:scale-90 transition-all" aria-label="즐겨찾기 제거">
-                        <X className="w-5 h-5" />
-                      </button>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          onClick={() => addFavoriteFoodToMeal(food)}
+                          className="flex h-9 w-9 items-center justify-center rounded-full border border-gray-200 text-gray-400 hover:border-green-300 hover:text-green-500 active:scale-90 transition-all"
+                          aria-label="오늘의 식단에 추가"
+                        >
+                          <Plus className="w-5 h-5" />
+                        </button>
+                        <button
+                          onClick={() => removeFavoriteFood(food.id)}
+                          className="flex h-9 w-9 items-center justify-center text-gray-400 hover:text-red-500 active:scale-90 transition-all"
+                          aria-label="즐겨찾기 제거"
+                        >
+                          <X className="w-5 h-5" />
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>

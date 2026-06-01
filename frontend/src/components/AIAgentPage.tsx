@@ -201,8 +201,8 @@ export default function AIAgentPage() {
             </button>
 
             <div className="flex items-center justify-center gap-2">
-              <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center">
-                <Sparkles className="w-4.5 h-4.5 text-white" />
+              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white shadow-sm">
+                <Sparkles className="h-7 w-7 text-green-500" />
               </div>
               <div className="text-center">
                 <h1 className="text-lg font-semibold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">AI 어시스턴트</h1>
