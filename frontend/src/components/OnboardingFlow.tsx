@@ -2,16 +2,17 @@
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Activity,
-  Carrot,
   Check,
   ChevronRight,
   Droplet,
+  HandHeart,
   Heart,
   HeartPulse,
   Shield,
   Target,
   TrendingUp,
 } from 'lucide-react';
+import NutriAgentLogo from '@/components/common/NutriAgentLogo';
 import { ROUTES } from '@/constants/routes';
 import { useOnboarding, useSaveOnboarding } from '@/hooks';
 import { authService, preferenceService, profileService } from '@/services';
@@ -220,6 +221,18 @@ function isDuplicateUserProfileError(message: string | null) {
   }
 
   return message.includes('duplicate key value') && message.includes('user_profiles');
+}
+
+function shouldAttemptSupplementalOnboardingFallback(message: string | null) {
+  if (!message) {
+    return true;
+  }
+
+  if (isDuplicateUserProfileError(message)) {
+    return true;
+  }
+
+  return message.includes('서버 오류가 발생했습니다');
 }
 
 interface OnboardingFlowProps {
@@ -644,7 +657,7 @@ export default function OnboardingFlow({ fallbackStep }: OnboardingFlowProps) {
     } catch (error) {
       const backendMessage = getBackendErrorMessage(error);
 
-      if (isDuplicateUserProfileError(backendMessage)) {
+      if (shouldAttemptSupplementalOnboardingFallback(backendMessage)) {
         try {
           await persistSupplementalOnboardingData();
         } catch (fallbackError) {
@@ -680,7 +693,7 @@ export default function OnboardingFlow({ fallbackStep }: OnboardingFlowProps) {
     }
 
     setGuestSession(sessionService.getStoredGuestId());
-    showToast.info('계정 연동 준비가 아직 완료되지 않았어요.\n지금은 게스트 상태로 먼저 시작할게요.');
+    showToast.info('게스트 계정으로 입장되었습니다.');
     navigate(ROUTES.HOME, { replace: true });
   };
 
@@ -737,14 +750,10 @@ export default function OnboardingFlow({ fallbackStep }: OnboardingFlowProps) {
             className={`min-h-full flex flex-col items-center justify-center bg-gradient-to-b from-white via-green-50/30 to-green-50 p-6 ${transitionClass}`}
           >
           <div className="flex-1 flex flex-col items-center justify-center w-full max-w-md">
-            <div className="mb-8 relative">
-              <div className="absolute inset-0 bg-green-100 rounded-full blur-3xl opacity-40 scale-150" />
-              <div className="relative">
-                <Carrot className="w-24 h-24 text-green-600" strokeWidth={2.5} />
-              </div>
+            <div className="mb-1 w-full max-w-[340px]">
+              <NutriAgentLogo className="w-full" title="NutriAgent" withWordmark={false} />
             </div>
-            <div className="text-center mb-16">
-              <h1 className="text-4xl font-bold text-gray-900 mb-3">NutriAgent</h1>
+            <div className="text-center -mt-12 mb-12">
               <p className="text-base text-gray-600 leading-relaxed">건강한 식습관 관리의 시작</p>
             </div>
             <div className="w-full space-y-3">
@@ -777,7 +786,7 @@ export default function OnboardingFlow({ fallbackStep }: OnboardingFlowProps) {
               <>
                 <div className="mb-6 flex justify-center">
                   <div className="w-16 h-16 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl flex items-center justify-center shadow-lg">
-                    <Heart className="w-8 h-8 text-white" fill="white" />
+                    <HandHeart className="w-8 h-8 text-white" strokeWidth={2.25} />
                   </div>
                 </div>
                 <h2 className="text-2xl font-bold text-gray-900 mb-2 text-center">
