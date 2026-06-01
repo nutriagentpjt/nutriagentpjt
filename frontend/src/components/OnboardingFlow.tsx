@@ -751,7 +751,7 @@ export default function OnboardingFlow({ fallbackStep }: OnboardingFlowProps) {
           >
           <div className="flex-1 flex flex-col items-center justify-center w-full max-w-md">
             <div className="mb-1 w-full max-w-[340px]">
-              <NutriAgentLogo className="w-full" title="NutriAgent" withWordmark={false} />
+              <NutriAgentLogo className="w-full" title="NutriAgent" />
             </div>
             <div className="text-center -mt-12 mb-12">
               <p className="text-base text-gray-600 leading-relaxed">건강한 식습관 관리의 시작</p>

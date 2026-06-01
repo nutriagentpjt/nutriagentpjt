@@ -1,7 +1,6 @@
 type NutriAgentLogoProps = {
   className?: string;
   title?: string;
-  withWordmark?: boolean;
 };
 
 const LOGO_FILTER = 'hue-rotate(108deg) saturate(1.3) brightness(0.9) contrast(1.05)';
@@ -9,7 +8,6 @@ const LOGO_FILTER = 'hue-rotate(108deg) saturate(1.3) brightness(0.9) contrast(1
 export default function NutriAgentLogo({
   className = '',
   title = 'NutriAgent logo',
-  withWordmark = true,
 }: NutriAgentLogoProps) {
   return (
     <div className={`flex flex-col items-center ${className}`.trim()}>
@@ -22,7 +20,6 @@ export default function NutriAgentLogo({
           style={{ filter: LOGO_FILTER }}
         />
       </div>
-      {withWordmark ? null : null}
     </div>
   );
 }
