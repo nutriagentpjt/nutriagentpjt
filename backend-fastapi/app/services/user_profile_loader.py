@@ -51,8 +51,9 @@ async def load_user_context(
 
     # 1) users + user_profiles + dietary_preferences 조인 조회
     row = (
-        await db.execute(
-            text("""
+        (
+            await db.execute(
+                text("""
                 SELECT
                     u.id            AS user_id,
                     u.guest_id,
@@ -74,17 +75,23 @@ async def load_user_context(
                 JOIN dietary_preferences dp ON dp.user_id = u.id
                 WHERE u.guest_id = :guest_id
             """),
-            {"guest_id": guest_id},
+                {"guest_id": guest_id},
+            )
         )
-    ).mappings().first()
+        .mappings()
+        .first()
+    )
 
     if row is None:
-        raise UserNotFoundError(f"guest_id={guest_id} 에 해당하는 유저를 찾을 수 없습니다")
+        raise UserNotFoundError(
+            f"guest_id={guest_id} 에 해당하는 유저를 찾을 수 없습니다"
+        )
 
     # 2) 오늘 해당 끼니에 이미 먹은 영양소 합산
     eaten_row = (
-        await db.execute(
-            text("""
+        (
+            await db.execute(
+                text("""
                 SELECT
                     COALESCE(SUM(m.calories), 0) AS calories,
                     COALESCE(SUM(m.protein), 0)  AS protein,
@@ -95,13 +102,16 @@ async def load_user_context(
                   AND m.date = :today
                   AND m.meal_type = :meal_type
             """),
-            {
-                "user_id": row["user_id"],
-                "today": date.today(),
-                "meal_type": meal_type.value,
-            },
+                {
+                    "user_id": row["user_id"],
+                    "today": date.today(),
+                    "meal_type": meal_type.value,
+                },
+            )
         )
-    ).mappings().first()
+        .mappings()
+        .first()
+    )
 
     # 3) JSON 필드 파싱
     diseases = _parse_diseases(row["diseases"])
@@ -109,12 +119,16 @@ async def load_user_context(
     disliked_foods = _parse_disliked_foods(row["disliked_foods"])
     allergies = _parse_string_list(row["allergies"])
 
-    already_eaten = NutrientTarget(
-        calories=eaten_row["calories"],
-        protein=eaten_row["protein"],
-        carbs=eaten_row["carbs"],
-        fat=eaten_row["fat"],
-    ) if eaten_row else NutrientTarget(0, 0, 0, 0)
+    already_eaten = (
+        NutrientTarget(
+            calories=eaten_row["calories"],
+            protein=eaten_row["protein"],
+            carbs=eaten_row["carbs"],
+            fat=eaten_row["fat"],
+        )
+        if eaten_row
+        else NutrientTarget(0, 0, 0, 0)
+    )
 
     return UserContext(
         guest_id=guest_id,

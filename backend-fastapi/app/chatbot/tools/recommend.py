@@ -48,6 +48,11 @@ class RecommendMealTool(BaseTool):
         )
         try:
             result = await run_recommendation(req, db)
-            return result.model_dump(mode="json")
+            dumped = result.model_dump(mode="json")
+            if not dumped.get("recommendations") and not dumped.get("meal_sets"):
+                dumped["no_data"] = True
+            return dumped
         except UserNotFoundError:
-            return {"error": "사용자 프로필을 찾을 수 없습니다. 온보딩을 먼저 완료해주세요."}
+            return {
+                "error": "사용자 프로필을 찾을 수 없습니다. 온보딩을 먼저 완료해주세요."
+            }

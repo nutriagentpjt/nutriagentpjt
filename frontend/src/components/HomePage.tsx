@@ -3,24 +3,85 @@ import { MacroCard } from "./macro-card";
 import { MealList } from "./meal-list";
 import { TimePickerWheel } from "./time-picker-wheel";
 import { Camera, Search, ChevronLeft, ChevronRight, Calendar, Star, X, Circle, Loader2, AlertCircle, Image as ImageIcon, Check, Plus, Scale, Droplet, Coffee, Sun, Moon, Utensils, Clock } from "lucide-react";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { ImageSourceModal } from "@/components/camera";
+import { showToast } from "@/components/common";
 import { OverlayScrollArea } from "@/components/common/OverlayScrollArea";
 import { AddFoodModal } from "@/components/food";
+import { loadStoredProfile, PROFILE_STORAGE_UPDATED_EVENT } from "@/components/profile/shared";
 import AIRecommendations from "@/components/recommendation/AIRecommendations";
-import { useFoodAutocomplete, useFoodSearch, useMealSummary } from "@/hooks";
+import { useFoodAutocomplete, useFoodSearch, useMeals, useRecommendations } from "@/hooks";
 import type { RecommendationCardItem } from "@/components/recommendation";
-import type { Food } from "@/types";
+import { sessionService } from "@/services/sessionService";
+import type { ApiError, Food } from "@/types";
 import { ROUTES } from "@/constants/routes";
-import { useImageUploadStore } from "@/store";
-import { formatDate, getStoredMeals } from "@/utils";
+import { useAuthStore, useImageUploadStore } from "@/store";
+import {
+  formatDate,
+  getMealTypeFromDate,
+  getMealTypeFromTimeString,
+  getOnboardingAccessBlockMessage,
+  getStoredMeals,
+  hasCompleteOnboardingProfile,
+  mealTypeDisplayRanges,
+} from "@/utils";
+
+const EMPTY_AUTOCOMPLETE_RESULTS: string[] = [];
+
+function getApiErrorMessage(error: ApiError | null): string | null {
+  if (!error) {
+    return null;
+  }
+
+  if (typeof error.data === "object" && error.data !== null) {
+    const payload = error.data as { error?: unknown; detail?: unknown; message?: unknown };
+    if (typeof payload.error === "string" && payload.error.trim()) {
+      return payload.error;
+    }
+    if (typeof payload.detail === "string" && payload.detail.trim()) {
+      return payload.detail;
+    }
+    if (typeof payload.message === "string" && payload.message.trim()) {
+      return payload.message;
+    }
+  }
+
+  return null;
+}
+
+function getRecommendationMealType(date: Date, now = new Date()): "breakfast" | "lunch" | "dinner" {
+  const isSameCalendarDay = formatDate(date) === formatDate(now);
+
+  if (!isSameCalendarDay) {
+    return "lunch";
+  }
+
+  const currentMealType = getMealTypeFromDate(now);
+
+  if (currentMealType !== "snack") {
+    return currentMealType;
+  }
+
+  const totalMinutes = now.getHours() * 60 + now.getMinutes();
+  if (totalMinutes < 10 * 60 + 30) {
+    return "breakfast";
+  }
+
+  if (totalMinutes < 17 * 60) {
+    return "lunch";
+  }
+
+  return "dinner";
+}
 
 export default function HomePage() {
   const location = useLocation();
   const navigate = useNavigate();
   const cameraInputRef = useRef<HTMLInputElement | null>(null);
   const galleryInputRef = useRef<HTMLInputElement | null>(null);
+  const authMode = useAuthStore((state) => state.authMode);
+  const setGuestSession = useAuthStore((state) => state.setGuestSession);
   const setImageUploadFile = useImageUploadStore((state) => state.setSelectedFile);
   const [searchQuery, setSearchQuery] = useState("");
   const [showAutocomplete, setShowAutocomplete] = useState(false);
@@ -46,6 +107,10 @@ export default function HomePage() {
   const [editingMeal, setEditingMeal] = useState<any | null>(null);
   const [editAmount, setEditAmount] = useState("");
   const [editUnit, setEditUnit] = useState<"serving" | "gram">("gram");
+  const [editCalories, setEditCalories] = useState("");
+  const [editProtein, setEditProtein] = useState("");
+  const [editCarbs, setEditCarbs] = useState("");
+  const [editFat, setEditFat] = useState("");
   const [editHour, setEditHour] = useState(12);
   const [editMinute, setEditMinute] = useState(0);
   const [showAmountWarning, setShowAmountWarning] = useState(false);
@@ -69,9 +134,11 @@ export default function HomePage() {
   const [selectedSearchFood, setSelectedSearchFood] = useState<Food | null>(null);
   const [addFoodModalSource, setAddFoodModalSource] = useState<'search' | 'ai' | null>(null);
   const [showAIRecommendations, setShowAIRecommendations] = useState(false);
+  const [isPreparingRecommendations, setIsPreparingRecommendations] = useState(false);
   const [showRecentFoods, setShowRecentFoods] = useState(false);
   const [showMealEditModal, setShowMealEditModal] = useState(false);
   const [hoveredMealType, setHoveredMealType] = useState<string | null>(null);
+  const [storedProfile, setStoredProfile] = useState(() => loadStoredProfile());
 
   // 건강 데이터 수정 모달 state
   const [healthModalType, setHealthModalType] = useState<'weight' | 'water' | null>(null);
@@ -181,9 +248,14 @@ export default function HomePage() {
   // 현재 선택된 날짜의 식단
   const currentDateKey = getDateKey(selectedDate);
   const meals = mealsByDate[currentDateKey] || [];
-  const { data: mealSummary } = useMealSummary({
+  const mealsQuery = useMeals(selectedDate);
+  const recommendationMealType = getRecommendationMealType(selectedDate);
+  const canOpenOnboardingDependentFeatures = hasCompleteOnboardingProfile();
+  const recommendationQuery = useRecommendations({
+    mealType: recommendationMealType,
     date: currentDateKey,
-    enabled: Boolean(currentDateKey),
+    limit: 6,
+    enabled: showAIRecommendations && !isPreparingRecommendations,
   });
 
   // 이전 날짜의 몸무게 가져오기
@@ -314,33 +386,72 @@ export default function HomePage() {
     weekday: "long",
   });
 
+  useEffect(() => {
+    const syncStoredProfile = () => {
+      setStoredProfile(loadStoredProfile());
+    };
+
+    syncStoredProfile();
+    window.addEventListener(PROFILE_STORAGE_UPDATED_EVENT, syncStoredProfile);
+    window.addEventListener("focus", syncStoredProfile);
+
+    return () => {
+      window.removeEventListener(PROFILE_STORAGE_UPDATED_EVENT, syncStoredProfile);
+      window.removeEventListener("focus", syncStoredProfile);
+    };
+  }, []);
+
   // meals에서 영양소 총합 계산
   const localCaloriesConsumed = meals.reduce((sum, meal) => sum + meal.calories, 0);
   const localTotalProtein = meals.reduce((sum, meal) => sum + meal.protein, 0);
   const localTotalCarbs = meals.reduce((sum, meal) => sum + meal.carbs, 0);
   const localTotalFat = meals.reduce((sum, meal) => sum + meal.fat, 0);
 
-  const caloriesConsumed = mealSummary?.consumed.calories ?? localCaloriesConsumed;
-  const totalProtein = mealSummary?.consumed.protein ?? localTotalProtein;
-  const totalCarbs = mealSummary?.consumed.carbs ?? localTotalCarbs;
-  const totalFat = mealSummary?.consumed.fat ?? localTotalFat;
+  // Home 화면은 식단 목록과 동일한 localStorage 소스를 기준으로 보여주도록 맞춘다.
+  // 직접 추가(custom) 식단은 현재 서버 summary에 반영되지 않아도 홈/통계와 일관되게 집계된다.
+  const caloriesConsumed = localCaloriesConsumed;
+  const totalProtein = localTotalProtein;
+  const totalCarbs = localTotalCarbs;
+  const totalFat = localTotalFat;
 
-  const caloriesGoal = 2000;
+  const caloriesGoal = Math.max(
+    1,
+    Math.round(storedProfile.goalCalories ?? mealsQuery.data?.summary.targetCalories ?? 2000),
+  );
   const percentage = Math.round((caloriesConsumed / caloriesGoal) * 100);
   const activeSearchKeyword = (analyzedFood || searchQuery).trim();
   const {
     data: searchedFoods = [],
     error: searchError,
   } = useFoodSearch(activeSearchKeyword, activeSearchKeyword.length > 0);
-  const { data: foodAutocompleteSuggestions = [] } = useFoodAutocomplete(
+  const { data: rawFoodAutocompleteSuggestions } = useFoodAutocomplete(
     searchQuery,
     !analyzedFood && searchQuery.trim().length > 0,
   );
+  const foodAutocompleteSuggestions = rawFoodAutocompleteSuggestions ?? EMPTY_AUTOCOMPLETE_RESULTS;
 
   const macros = [
-    { name: "단백질", current: totalProtein, goal: 150, unit: "g", color: "#10b981" },
-    { name: "탄수화물", current: totalCarbs, goal: 250, unit: "g", color: "#3b82f6" },
-    { name: "지방", current: totalFat, goal: 65, unit: "g", color: "#f59e0b" },
+    {
+      name: "단백질",
+      current: totalProtein,
+      goal: Math.round(storedProfile.goalProtein ?? mealsQuery.data?.summary.targetProtein ?? 150),
+      unit: "g",
+      color: "#10b981",
+    },
+    {
+      name: "탄수화물",
+      current: totalCarbs,
+      goal: Math.round(storedProfile.goalCarbs ?? mealsQuery.data?.summary.targetCarbs ?? 250),
+      unit: "g",
+      color: "#3b82f6",
+    },
+    {
+      name: "지방",
+      current: totalFat,
+      goal: Math.round(storedProfile.goalFat ?? mealsQuery.data?.summary.targetFat ?? 65),
+      unit: "g",
+      color: "#f59e0b",
+    },
   ];
 
   useEffect(() => {
@@ -510,15 +621,60 @@ export default function HomePage() {
   };
 
   const removeFavoriteFood = (foodId: number) => {
+    const removedFood = favoriteFoods.find((food) => food.id === foodId);
     setFavoriteFoods((prev) => prev.filter((food) => food.id !== foodId));
+
+    if (removedFood) {
+      showToast.success(`${removedFood.name}이(가) 즐겨찾기에서 제거되었습니다`);
+    }
   };
 
-  const getCurrentMealType = (): 'breakfast' | 'lunch' | 'dinner' | 'snack' => {
-    const hour = new Date().getHours();
-    if (hour >= 6 && hour <= 10) return 'breakfast';
-    if (hour >= 11 && hour <= 14) return 'lunch';
-    if (hour >= 17 && hour <= 20) return 'dinner';
-    return 'snack';
+  const getCurrentMealType = (): 'breakfast' | 'lunch' | 'dinner' | 'snack' => getMealTypeFromDate(new Date());
+  const mappedRecommendations = useMemo<RecommendationCardItem[] | undefined>(() => {
+    if (!recommendationQuery.data) {
+      return undefined;
+    }
+
+    return recommendationQuery.data.recommendations.map((recommendation) => ({
+      ...recommendation,
+      imageUrl: "",
+      category: recommendation.reasons[0],
+    }));
+  }, [recommendationQuery.data]);
+  const recommendationError = recommendationQuery.error as ApiError | null;
+  const backendRecommendationErrorMessage = getApiErrorMessage(recommendationError);
+  const recommendationErrorMessage =
+    recommendationError && recommendationError.status !== 409
+      ? backendRecommendationErrorMessage
+        ? backendRecommendationErrorMessage
+        : recommendationError.status === 404
+          ? "추천 조건이 아직 준비되지 않아 추천 식단을 불러오지 못했습니다."
+          : "추천 식단을 불러오지 못해 기본 추천을 표시합니다."
+      : null;
+
+  const handleOpenAIRecommendations = async () => {
+    if (isPreparingRecommendations) {
+      return;
+    }
+
+    if (!canOpenOnboardingDependentFeatures) {
+      showToast.info(getOnboardingAccessBlockMessage());
+      return;
+    }
+
+    setIsPreparingRecommendations(true);
+
+    try {
+      const guestId = await sessionService.ensureSession();
+      if (authMode === "guest") {
+        setGuestSession(guestId);
+      }
+      setShowAIRecommendations(true);
+    } catch {
+      showToast.error("추천 세션을 준비하지 못했어요.\n잠시 후 다시 시도해주세요.");
+    } finally {
+      setIsPreparingRecommendations(false);
+    }
   };
 
   const addFavoriteFoodToMeal = (food: { id: number; name: string; calories: number; protein: number; carbs: number; fat: number }) => {
@@ -539,9 +695,7 @@ export default function HomePage() {
       [currentDateKey]: [...(prev[currentDateKey] || []), newMeal],
     }));
 
-    setToastMessage(`${food.name}이(가) 오늘의 식단에 추가되었습니다`);
-    setShowToast(true);
-    setTimeout(() => setShowToast(false), 3000);
+    showToast.success(`${food.name}이(가) 오늘의 식단에 추가되었습니다`);
     setShowFavorites(false);
   };
 
@@ -576,6 +730,10 @@ export default function HomePage() {
     setEditingMeal(meal);
     setEditAmount("100");
     setEditUnit("gram");
+    setEditCalories(String(meal.calories ?? ""));
+    setEditProtein(String(meal.protein ?? ""));
+    setEditCarbs(String(meal.carbs ?? ""));
+    setEditFat(String(meal.fat ?? ""));
     const [hour, minute] = meal.time.split(":").map(Number);
     setEditHour(hour);
     setEditMinute(minute);
@@ -583,10 +741,21 @@ export default function HomePage() {
 
   const handleSaveEdit = () => {
     const amount = parseFloat(editAmount);
+    const calories = parseFloat(editCalories);
+    const protein = parseFloat(editProtein);
+    const carbs = parseFloat(editCarbs);
+    const fat = parseFloat(editFat);
 
     // 섭취량 유효성 검사
     if (isNaN(amount) || amount < 1 || amount > 10000) {
       setShowAmountWarning(true);
+      return;
+    }
+
+    if (
+      [calories, protein, carbs, fat].some((value) => Number.isNaN(value) || value < 0)
+    ) {
+      setShowCustomFoodWarning(true);
       return;
     }
 
@@ -599,10 +768,11 @@ export default function HomePage() {
         if (meal.id === editingMeal.id) {
           return {
             ...meal,
-            calories: Math.round((editingMeal.calories * ratio)),
-            protein: Math.round((editingMeal.protein * ratio)),
-            carbs: Math.round((editingMeal.carbs * ratio)),
-            fat: Math.round((editingMeal.fat * ratio)),
+            calories: Math.round(calories * ratio),
+            protein: Math.round(protein * ratio),
+            carbs: Math.round(carbs * ratio),
+            fat: Math.round(fat * ratio),
+            mealType: editingMeal.mealType,
             time: `${editHour.toString().padStart(2, '0')}:${editMinute.toString().padStart(2, '0')}`,
           };
         }
@@ -1387,12 +1557,13 @@ export default function HomePage() {
         {/* Meals List */}
         {!showSearchResults && (
           <div>
-            <h2 className="text-xs font-semibold text-gray-700 mb-2.5 px-0.5">
-              오늘의 식단
-            </h2>
             <button
-              onClick={() => setShowAIRecommendations(true)}
-              className="w-full mb-3 bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200 rounded-2xl p-4 flex items-center justify-between active:scale-[0.98] transition-transform"
+              type="button"
+              onClick={() => {
+                void handleOpenAIRecommendations();
+              }}
+              disabled={isPreparingRecommendations}
+              className="mb-3 flex w-full items-center justify-between rounded-2xl border border-purple-200 bg-gradient-to-r from-purple-50 to-indigo-50 p-4 transition-transform active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 disabled:active:scale-100"
             >
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-xl flex items-center justify-center">
@@ -1735,9 +1906,57 @@ export default function HomePage() {
               {/* 음식 이름 */}
               <div className="mb-4">
                 <p className="text-sm font-medium text-gray-700 mb-2">{editingMeal.name}</p>
-                <p className="text-xs text-gray-500">
-                  기본 영양소 (100g 기준): {editingMeal.calories}kcal · 단백질 {editingMeal.protein}g · 탄수화물 {editingMeal.carbs}g · 지방 {editingMeal.fat}g
-                </p>
+              </div>
+
+              {/* 기준 영양소 입력 */}
+              <div className="mb-4">
+                <label className="text-sm font-medium text-gray-700 mb-3 block">영양소 (100g 기준)</label>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="mb-1.5 block text-xs font-medium text-gray-500">칼로리 (kcal)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={editCalories}
+                      onChange={(e) => setEditCalories(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                      placeholder="칼로리"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1.5 block text-xs font-medium text-gray-500">단백질 (g)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={editProtein}
+                      onChange={(e) => setEditProtein(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                      placeholder="단백질"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1.5 block text-xs font-medium text-gray-500">탄수화물 (g)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={editCarbs}
+                      onChange={(e) => setEditCarbs(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                      placeholder="탄수화물"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1.5 block text-xs font-medium text-gray-500">지방 (g)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={editFat}
+                      onChange={(e) => setEditFat(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                      placeholder="지방"
+                    />
+                  </div>
+                </div>
               </div>
 
               {/* 섭취량 입력 */}
@@ -2075,12 +2294,16 @@ export default function HomePage() {
         </div>      )}
 
       {/* AI Recommendations Screen */}
-      {showAIRecommendations && (
-        <AIRecommendations
-          onClose={() => setShowAIRecommendations(false)}
-          mealType={getCurrentMealType()}
-          date={currentDateKey}
-          onSaveFood={(food: RecommendationCardItem) => {
+        {showAIRecommendations && (
+          <AIRecommendations
+            onClose={() => setShowAIRecommendations(false)}
+            mealType={recommendationMealType}
+            date={currentDateKey}
+            shouldFetchRecommendations={false}
+            recommendations={mappedRecommendations}
+            isLoading={isPreparingRecommendations || recommendationQuery.isLoading}
+            errorMessage={recommendationErrorMessage}
+            onSaveFood={(food: RecommendationCardItem) => {
             setSelectedSearchFood({
               id: food.foodId,
               name: food.foodName,
@@ -2103,7 +2326,7 @@ export default function HomePage() {
       {/* Meal Edit Modal */}
       {showMealEditModal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-end justify-center sm:items-center" onClick={() => setShowMealEditModal(false)}>
-          <div className="w-full sm:max-w-[390px] bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl max-h-[85vh] flex flex-col animate-slide-up" onClick={(e) => e.stopPropagation()}>
+          <div className="w-full h-[85dvh] sm:h-auto sm:max-h-[85vh] sm:max-w-[390px] bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl min-h-0 overflow-hidden flex flex-col animate-slide-up" onClick={(e) => e.stopPropagation()}>
             <div className="flex-shrink-0 px-5 pt-4 pb-3 border-b border-gray-100">
               <div className="w-12 h-1 bg-gray-300 rounded-full mx-auto mb-4"></div>
               <div className="flex items-center justify-between">
@@ -2126,13 +2349,7 @@ export default function HomePage() {
                   { type: 'snack', label: '간식', icon: Coffee },
                 ].map((item) => {
                   const Icon = item.icon;
-                  const count = meals.filter((meal) => {
-                    const hour = parseInt(meal.time.split(':')[0]);
-                    if (item.type === 'breakfast') return hour >= 6 && hour <= 10;
-                    if (item.type === 'lunch') return hour >= 11 && hour <= 14;
-                    if (item.type === 'dinner') return hour >= 17 && hour <= 20;
-                    return hour < 6 || (hour > 10 && hour < 11) || (hour > 14 && hour < 17) || hour > 20;
-                  }).length;
+                  const count = meals.filter((meal) => getMealTypeFromTimeString(meal.time) === item.type).length;
 
                   return (
                     <div key={item.type} className="flex flex-col items-center justify-center p-2.5 bg-white rounded-xl border border-gray-200">
@@ -2145,24 +2362,17 @@ export default function HomePage() {
               </div>
             </div>
 
-            <OverlayScrollArea className="px-5 py-4" containerClassName="flex-1">
+            <div className="app-scrollbar flex-1 min-h-0 touch-pan-y overflow-y-auto px-5 pt-4 pb-8">
               {meals.length > 0 ? (
                 <div className="space-y-3">
                   {[
-                    { type: 'breakfast', label: '아침', timeRange: [6, 10], icon: Sun, timeText: '06:00-10:59' },
-                    { type: 'lunch', label: '점심', timeRange: [11, 14], icon: Utensils, timeText: '11:00-14:59' },
-                    { type: 'dinner', label: '저녁', timeRange: [17, 20], icon: Moon, timeText: '17:00-20:59' },
-                    { type: 'snack', label: '간식', timeRange: null, icon: Coffee, timeText: '식사 시간 외' },
+                    { type: 'breakfast', label: '아침', icon: Sun, timeText: mealTypeDisplayRanges.breakfast },
+                    { type: 'lunch', label: '점심', icon: Utensils, timeText: mealTypeDisplayRanges.lunch },
+                    { type: 'dinner', label: '저녁', icon: Moon, timeText: mealTypeDisplayRanges.dinner },
+                    { type: 'snack', label: '간식', icon: Coffee, timeText: '그 외 시간' },
                   ].map((mealType) => {
                     const Icon = mealType.icon;
-                    const mealItems = meals.filter((meal) => {
-                      const hour = parseInt(meal.time.split(':')[0]);
-                      if (mealType.type === 'snack') {
-                        return hour < 6 || (hour > 10 && hour < 11) || (hour > 14 && hour < 17) || hour > 20;
-                      }
-                      const [start, end] = mealType.timeRange;
-                      return hour >= start && hour <= end;
-                    });
+                    const mealItems = meals.filter((meal) => getMealTypeFromTimeString(meal.time) === mealType.type);
 
                     if (mealItems.length === 0) return null;
 
@@ -2214,7 +2424,7 @@ export default function HomePage() {
                   <p className="text-xs text-gray-500">검색 또는 직접 추가로 오늘의 식단을 채워보세요.</p>
                 </div>
               )}
-            </OverlayScrollArea>
+            </div>
           </div>
         </div>
       )}
@@ -2249,9 +2459,22 @@ export default function HomePage() {
                         <h3 className="font-semibold text-gray-900 mb-1.5">{food.name}</h3>
                         <p className="text-xs text-gray-500">{food.calories}kcal · 단백질 {food.protein}g · 탄수화물 {food.carbs}g · 지방 {food.fat}g</p>
                       </button>
-                      <button onClick={() => removeFavoriteFood(food.id)} className="w-9 h-9 flex items-center justify-center text-gray-400 hover:text-red-500 active:scale-90 transition-all" aria-label="즐겨찾기 제거">
-                        <X className="w-5 h-5" />
-                      </button>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          onClick={() => addFavoriteFoodToMeal(food)}
+                          className="flex h-9 w-9 items-center justify-center rounded-full border border-gray-200 text-gray-400 hover:border-green-300 hover:text-green-500 active:scale-90 transition-all"
+                          aria-label="오늘의 식단에 추가"
+                        >
+                          <Plus className="w-5 h-5" />
+                        </button>
+                        <button
+                          onClick={() => removeFavoriteFood(food.id)}
+                          className="flex h-9 w-9 items-center justify-center text-gray-400 hover:text-red-500 active:scale-90 transition-all"
+                          aria-label="즐겨찾기 제거"
+                        >
+                          <X className="w-5 h-5" />
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>

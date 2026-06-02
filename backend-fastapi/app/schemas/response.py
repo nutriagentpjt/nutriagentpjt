@@ -26,6 +26,7 @@ class ScoreBreakdown(BaseModel):
     micro_fit: float = 0.0
     gi_gl: float = 0.0
     leucine: float = 0.0
+    meal_time_fit: float = 0.0
 
 
 class NutrientsPerServing(BaseModel):

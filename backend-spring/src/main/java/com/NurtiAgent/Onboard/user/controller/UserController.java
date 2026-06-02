@@ -13,12 +13,12 @@ import org.springframework.web.bind.annotation.RestController;
 public class UserController {
     private final UserService userService;
 
-    @PostMapping("/guest/session")
+    @PostMapping("/api/guest/session")
     public String issueGuestSession(HttpServletRequest request) {
         return userService.saveUser(request);
     }
 
-    @PostMapping("/renew/session")
+    @PostMapping("/api/renew/session")
     public String renewSession(@RequestBody GuestIdData guestIdData, HttpServletRequest request) {
         userService.renewSession(request, guestIdData.guestId());
         return "renew session";

@@ -31,7 +31,7 @@ export const foodService = {
       return { foods: [], total: 0 };
     }
 
-    const response = await api.get<BackendFoodResponse[]>('/foods/search', {
+    const response = await api.get<BackendFoodResponse[]>('/api/foods/search', {
       params: { query: normalizedKeyword, limit: 20, offset: 0 },
     });
 
@@ -65,7 +65,7 @@ export const foodService = {
       return [];
     }
 
-    const response = await api.get<BackendFoodResponse[]>('/foods/search', {
+    const response = await api.get<BackendFoodResponse[]>('/api/foods/search', {
       params: { query: normalizedQuery, limit: 50, offset: 0 },
     });
 

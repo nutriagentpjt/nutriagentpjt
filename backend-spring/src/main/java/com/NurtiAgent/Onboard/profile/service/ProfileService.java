@@ -117,7 +117,7 @@ public class ProfileService {
                 .orElseThrow(() -> new UserProfileNotFoundException("프로필을 찾을 수 없습니다"));
 
         DietaryPreference dietaryPreference = dietaryPreferenceRepository.findByUser(user)
-                .orElseThrow(() -> new DietaryPreferenceNotFoundException("식단 설정을 찾을 수 없습니다"));
+                .orElse(null);
 
         return buildProfileResponse(user, userProfile, dietaryPreference);
     }
@@ -280,7 +280,7 @@ public class ProfileService {
 
     private ProfileResponse buildProfileResponse(User user, UserProfile profile, DietaryPreference preference) {
         ProfileResponse.DietaryConstraintsDto constraintsDto = null;
-        if (preference.getConstraints() != null) {
+        if (preference != null && preference.getConstraints() != null) {
             constraintsDto = ProfileResponse.DietaryConstraintsDto.builder()
                     .lowSodium(preference.getConstraints().getLowSodium())
                     .lowSugar(preference.getConstraints().getLowSugar())
@@ -298,16 +298,16 @@ public class ProfileService {
                 .activityLevel(profile.getActivityLevel())
                 .exerciseFrequency(profile.getExerciseFrequency())
                 .exerciseTime(profile.getExerciseTime())
-                .mealPattern(preference.getMealPattern())
-                .preferredFoods(preference.getPreferredFoods())
-                .dislikedFoods(preference.getDislikedFoods() != null ?
+                .mealPattern(preference != null ? preference.getMealPattern() : null)
+                .preferredFoods(preference != null ? preference.getPreferredFoods() : new ArrayList<>())
+                .dislikedFoods(preference != null && preference.getDislikedFoods() != null ?
                         preference.getDislikedFoods().stream()
                                 .map(DietaryPreference.DislikedFoodItem::getFoodName)
                                 .collect(Collectors.toList()) : new ArrayList<>())
-                .allergies(preference.getAllergies())
+                .allergies(preference != null ? preference.getAllergies() : new ArrayList<>())
                 .diseases(profile.getDiseases())
-                .dietStyles(preference.getDietStyles())
-                .waterIntakeGoal(preference.getWaterIntakeGoal())
+                .dietStyles(preference != null ? preference.getDietStyles() : new ArrayList<>())
+                .waterIntakeGoal(preference != null ? preference.getWaterIntakeGoal() : null)
                 .constraints(constraintsDto)
                 .createdAt(profile.getCreatedAt())
                 .updatedAt(profile.getUpdatedAt())

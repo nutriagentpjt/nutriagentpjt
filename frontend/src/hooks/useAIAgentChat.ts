@@ -41,6 +41,26 @@ function saveSessionUiState(state: SessionUiState) {
   localStorage.setItem(SESSION_UI_STORAGE_KEY, JSON.stringify(state));
 }
 
+function mergeServerHistoryWithPendingMessages(
+  serverHistory: AIAgentMessage[],
+  localMessages: AIAgentMessage[],
+): AIAgentMessage[] {
+  const merged = [...serverHistory];
+  const serverUserContents = new Set(
+    serverHistory
+      .filter((message) => message.role === 'user')
+      .map((message) => message.content.trim()),
+  );
+
+  const pendingUserMessages = localMessages.filter(
+    (message) =>
+      message.role === 'user' &&
+      !serverUserContents.has(message.content.trim()),
+  );
+
+  return [...merged, ...pendingUserMessages];
+}
+
 export function useAIAgentChat() {
   const [conversation, setConversation] = useState<AIAgentConversation>(() => ({
     messages: [createAssistantMessage(aiAgentService.getInitialGreeting())],
@@ -90,6 +110,23 @@ export function useAIAgentChat() {
       // Ignore refresh failures to keep the current conversation usable.
     }
   }, []);
+
+  const syncConversationFromServer = useCallback(
+    async (threadId: string) => {
+      const history = await aiAgentService.getMessages(threadId);
+      setConversation((current) => {
+        const fallbackMessages =
+          history.length > 0 ? history : [createAssistantMessage(aiAgentService.getInitialGreeting())];
+
+        return {
+          threadId,
+          messages: mergeServerHistoryWithPendingMessages(fallbackMessages, current.messages),
+        };
+      });
+      return history;
+    },
+    [],
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -218,8 +255,9 @@ export function useAIAgentChat() {
       return;
     }
 
+    const userMessageId = Date.now();
     const userMessage: AIAgentMessage = {
-      id: Date.now(),
+      id: userMessageId,
       role: 'user',
       content: trimmed,
       timestamp: new Date(),
@@ -264,13 +302,17 @@ export function useAIAgentChat() {
                 return current;
               }
 
+              const hasUserMessage = current.messages.some((message) => message.id === userMessageId);
               const hasMessage = current.messages.some((message) => message.id === assistantMessageId);
+              const baseMessages = hasUserMessage
+                ? current.messages
+                : [...current.messages, userMessage];
 
               if (hasMessage) {
                 return {
                   ...current,
                   threadId: threadId ?? current.threadId,
-                  messages: current.messages.map((message) =>
+                  messages: baseMessages.map((message) =>
                     message.id === assistantMessageId
                       ? { ...message, content, timestamp: new Date() }
                       : message,
@@ -278,15 +320,15 @@ export function useAIAgentChat() {
                 };
               }
 
-              return {
-                ...current,
-                threadId: threadId ?? current.threadId,
-                messages: [
-                  ...current.messages,
-                  {
-                    id: assistantMessageId,
-                    role: 'assistant',
-                    content,
+                return {
+                  ...current,
+                  threadId: threadId ?? current.threadId,
+                  messages: [
+                    ...baseMessages,
+                    {
+                      id: assistantMessageId,
+                      role: 'assistant',
+                      content,
                     timestamp: new Date(),
                   },
                 ],
@@ -296,23 +338,62 @@ export function useAIAgentChat() {
         );
 
         if (!streamed && isActiveRequest()) {
-          setConversation((current) => ({
-            ...current,
-            threadId: response.threadId ?? threadId ?? current.threadId,
-            messages: [
-              ...current.messages,
-              {
-                id: assistantMessageId,
-                role: response.message.role,
-                content: response.message.content,
-                timestamp: new Date(),
-              },
-            ],
-          }));
+          const nextThreadId = response.threadId ?? threadId;
+          const nextContent = response.message.content.trim();
+
+          if (!nextContent && nextThreadId) {
+            const history = await syncConversationFromServer(nextThreadId);
+
+            if (!isActiveRequest()) {
+              return;
+            }
+
+            const hasAssistantReply = history.some((message) => message.role === 'assistant');
+            if (!hasAssistantReply) {
+              setConversation((current) => ({
+                ...current,
+                threadId: nextThreadId ?? current.threadId,
+              }));
+            }
+          } else {
+            setConversation((current) => ({
+              ...current,
+              threadId: nextThreadId ?? current.threadId,
+              messages: [
+                ...(current.messages.some((message) => message.id === userMessageId)
+                  ? current.messages
+                  : [...current.messages, userMessage]),
+                {
+                  id: assistantMessageId,
+                  role: response.message.role,
+                  content: response.message.content,
+                  timestamp: new Date(),
+                },
+              ],
+            }));
+          }
         }
       } catch {
         if (!isActiveRequest()) {
           return;
+        }
+
+        if (threadId) {
+          try {
+            const history = await syncConversationFromServer(threadId);
+
+            if (!isActiveRequest()) {
+              return;
+            }
+
+            const lastMessage = history.at(-1);
+            if (lastMessage?.role === 'assistant') {
+              await refreshSessions();
+              return;
+            }
+          } catch {
+            // Fall through to the existing fallback flow.
+          }
         }
 
         if (streamed) {
@@ -343,7 +424,9 @@ export function useAIAgentChat() {
           ...current,
           threadId: response.threadId ?? threadId ?? current.threadId,
           messages: [
-            ...current.messages,
+            ...(current.messages.some((message) => message.id === userMessageId)
+              ? current.messages
+              : [...current.messages, userMessage]),
             {
               id: assistantMessageId,
               role: response.message.role,
@@ -370,7 +453,7 @@ export function useAIAgentChat() {
     } finally {
       setIsTyping(false);
     }
-  }, [conversation.messages, conversation.threadId, inputValue, isTyping, refreshSessions, selectedPersona]);
+  }, [conversation.messages, conversation.threadId, inputValue, isTyping, refreshSessions, selectedPersona, syncConversationFromServer]);
 
   return useMemo(
     () => ({

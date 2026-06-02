@@ -145,6 +145,22 @@
   }
 }
 
+@media (pointer: coarse) {
+  html,
+  body,
+  #root {
+    height: auto;
+    min-height: 100%;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+
+  body {
+    min-height: 100dvh;
+    overscroll-behavior-y: auto;
+  }
+}
+
 /**
  * Base typography. This is not applied to elements which have an ancestor with a Tailwind text class.
  */
@@ -202,6 +218,9 @@ html {
   -ms-overflow-style: none;
   scrollbar-width: none;
   scrollbar-color: transparent transparent;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+  touch-action: pan-y pinch-zoom;
 }
 
 .app-scrollbar::-webkit-scrollbar {

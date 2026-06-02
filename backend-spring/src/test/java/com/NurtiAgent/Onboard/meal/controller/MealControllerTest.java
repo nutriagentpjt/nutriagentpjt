@@ -98,7 +98,7 @@ class MealControllerTest {
                             .source(MealSource.MANUAL)
                             .build());
 
-            mockMvc.perform(post("/meals")
+            mockMvc.perform(post("/api/meals")
                             .session(authSession)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(body))
@@ -116,7 +116,7 @@ class MealControllerTest {
                             .mealType(MealType.LUNCH).date(LocalDate.now())
                             .build());
 
-            mockMvc.perform(post("/meals")
+            mockMvc.perform(post("/api/meals")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(body))
                     .andExpect(status().isUnauthorized());
@@ -130,7 +130,7 @@ class MealControllerTest {
             // foodName 누락
             String body = "{\"amount\": 100, \"mealType\": \"LUNCH\", \"date\": \"" + LocalDate.now() + "\"}";
 
-            mockMvc.perform(post("/meals")
+            mockMvc.perform(post("/api/meals")
                             .session(authSession)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(body))
@@ -150,7 +150,7 @@ class MealControllerTest {
             when(mealService.getMealsByDate(GUEST_ID, LocalDate.now().toString()))
                     .thenReturn(buildMealListResponse());
 
-            mockMvc.perform(get("/meals")
+            mockMvc.perform(get("/api/meals")
                             .session(authSession)
                             .param("date", LocalDate.now().toString()))
                     .andExpect(status().isOk())
@@ -161,7 +161,7 @@ class MealControllerTest {
         @Test
         @DisplayName("세션 없음: 401 UNAUTHORIZED")
         void withoutSession_returns401() throws Exception {
-            mockMvc.perform(get("/meals").param("date", LocalDate.now().toString()))
+            mockMvc.perform(get("/api/meals").param("date", LocalDate.now().toString()))
                     .andExpect(status().isUnauthorized());
         }
     }
@@ -181,7 +181,7 @@ class MealControllerTest {
             String body = objectMapper.writeValueAsString(
                     MealUpdateRequest.builder().amount(300.0).build());
 
-            mockMvc.perform(put("/meals/1")
+            mockMvc.perform(put("/api/meals/1")
                             .session(authSession)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(body))
@@ -192,7 +192,7 @@ class MealControllerTest {
         @Test
         @DisplayName("세션 없음: 401 UNAUTHORIZED")
         void withoutSession_returns401() throws Exception {
-            mockMvc.perform(put("/meals/1")
+            mockMvc.perform(put("/api/meals/1")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content("{}"))
                     .andExpect(status().isUnauthorized());
@@ -212,7 +212,7 @@ class MealControllerTest {
                     .thenReturn(MealDeleteResponse.builder()
                             .success(true).message("삭제됨").build());
 
-            mockMvc.perform(delete("/meals/1").session(authSession))
+            mockMvc.perform(delete("/api/meals/1").session(authSession))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.success").value(true));
         }
@@ -220,7 +220,7 @@ class MealControllerTest {
         @Test
         @DisplayName("세션 없음: 401 UNAUTHORIZED")
         void withoutSession_returns401() throws Exception {
-            mockMvc.perform(delete("/meals/1"))
+            mockMvc.perform(delete("/api/meals/1"))
                     .andExpect(status().isUnauthorized());
         }
     }
@@ -241,7 +241,7 @@ class MealControllerTest {
                                     .build())
                             .build());
 
-            mockMvc.perform(get("/meals/summary")
+            mockMvc.perform(get("/api/meals/summary")
                             .session(authSession)
                             .param("date", LocalDate.now().toString()))
                     .andExpect(status().isOk())
@@ -251,7 +251,7 @@ class MealControllerTest {
         @Test
         @DisplayName("세션 없음: 401 UNAUTHORIZED")
         void withoutSession_returns401() throws Exception {
-            mockMvc.perform(get("/meals/summary").param("date", LocalDate.now().toString()))
+            mockMvc.perform(get("/api/meals/summary").param("date", LocalDate.now().toString()))
                     .andExpect(status().isUnauthorized());
         }
     }

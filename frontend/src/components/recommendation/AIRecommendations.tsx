@@ -4,6 +4,7 @@ import { showToast } from '@/components/common';
 import { OverlayScrollArea } from '@/components/common/OverlayScrollArea';
 import { usePreferences, useRecommendations } from '@/hooks';
 import type { ApiError, MealType } from '@/types';
+import { getApiErrorMessage } from '@/utils';
 import CoachingMessage from './CoachingMessage';
 import RecommendationCard, { type RecommendationCardItem } from './RecommendationCard';
 
@@ -27,27 +28,7 @@ interface AIRecommendationsProps {
   coachingMessage?: string;
   isLoading?: boolean;
   errorMessage?: string | null;
-}
-
-function getApiErrorMessage(error: ApiError | null): string | null {
-  if (!error) {
-    return null;
-  }
-
-  if (typeof error.data === 'object' && error.data !== null) {
-    const payload = error.data as { error?: unknown; detail?: unknown; message?: unknown };
-    if (typeof payload.error === 'string' && payload.error.trim()) {
-      return payload.error;
-    }
-    if (typeof payload.detail === 'string' && payload.detail.trim()) {
-      return payload.detail;
-    }
-    if (typeof payload.message === 'string' && payload.message.trim()) {
-      return payload.message;
-    }
-  }
-
-  return null;
+  shouldFetchRecommendations?: boolean;
 }
 
 export default function AIRecommendations({
@@ -61,6 +42,7 @@ export default function AIRecommendations({
   coachingMessage,
   isLoading = false,
   errorMessage = null,
+  shouldFetchRecommendations = recommendations == null,
 }: AIRecommendationsProps) {
   const [preferenceOverrides, setPreferenceOverrides] = useState<
     Record<number, 'liked' | 'disliked' | null>
@@ -75,7 +57,6 @@ export default function AIRecommendations({
     addFoodAsync,
     removeFoodAsync,
   } = usePreferences();
-  const shouldFetchRecommendations = recommendations == null;
   const recommendationQuery = useRecommendations({
     mealType,
     date,
@@ -209,11 +190,12 @@ export default function AIRecommendations({
   };
 
   const fetchedRecommendations = recommendationQuery.data?.recommendations;
+  const activeRecommendations = recommendations ?? fetchedRecommendations ?? [];
   const shouldHideRecommendation = (recommendation: RecommendationCardItem) => {
     return hiddenRecommendationIds.includes(recommendation.foodId);
   };
 
-  const recommendationsToRender = (recommendations ?? fetchedRecommendations ?? [])
+  const recommendationsToRender = activeRecommendations
     .filter((recommendation) => !shouldHideRecommendation(recommendation))
     .slice(0, 6);
   const mergedCoachingMessage = coachingMessage ?? null;
@@ -231,6 +213,11 @@ export default function AIRecommendations({
           ? '온보딩 또는 목표 영양소 설정이 필요합니다.'
           : '추천 식단을 불러오지 못했습니다.'
       : null);
+  const didReceiveEmptyRecommendationResponse =
+    !mergedIsLoading &&
+    !mergedErrorMessage &&
+    activeRecommendations.length === 0 &&
+    ((shouldFetchRecommendations && recommendationQuery.isSuccess) || recommendations != null);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
@@ -279,9 +266,11 @@ export default function AIRecommendations({
           ) : null}
 
           <div className="space-y-3 pb-6">
-            {!mergedIsLoading && recommendationsToRender.length === 0 ? (
+            {!mergedIsLoading && !mergedErrorMessage && recommendationsToRender.length === 0 ? (
               <div className="rounded-2xl border border-gray-200 bg-white p-5 text-center text-sm text-gray-500 shadow-sm">
-                추천 가능한 식단이 아직 없습니다.
+                {didReceiveEmptyRecommendationResponse
+                  ? '추천 응답은 도착했지만 식단 목록이 비어 있어요.'
+                  : '추천 가능한 식단이 아직 없습니다.'}
               </div>
             ) : null}
 

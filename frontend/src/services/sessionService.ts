@@ -30,13 +30,13 @@ export const sessionService = {
   },
 
   async issueGuestSession(): Promise<string> {
-    const response = await api.post<string>('/guest/session');
+    const response = await api.post<string>('/api/guest/session');
     writeStoredGuestId(response.data);
     return response.data;
   },
 
   async renewSession(guestId: string): Promise<void> {
-    await api.post('/renew/session', { guestId });
+    await api.post('/api/renew/session', { guestId });
   },
 
   async ensureSession(): Promise<string> {

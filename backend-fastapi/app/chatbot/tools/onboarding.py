@@ -25,7 +25,7 @@ class GetOnboardingTool(BaseTool):
         try:
             async with httpx.AsyncClient() as client:
                 resp = await client.get(
-                    f"{SPRING_BASE_URL}/profile",
+                    f"{SPRING_BASE_URL}/api/profile",
                     cookies={"JSESSIONID": context.get("jsessionid", "")},
                     headers={"X-Guest-Id": context["guest_id"]},
                     timeout=10.0,
@@ -34,9 +34,13 @@ class GetOnboardingTool(BaseTool):
                     return resp.json()
                 return {"error": f"온보딩 정보 조회 실패 (status={resp.status_code})"}
         except httpx.TimeoutException:
-            return {"error": "온보딩 서버 응답 시간이 초과되었습니다. 잠시 후 다시 시도해주세요."}
+            return {
+                "error": "온보딩 서버 응답 시간이 초과되었습니다. 잠시 후 다시 시도해주세요."
+            }
         except httpx.ConnectError:
-            return {"error": "온보딩 서버에 연결할 수 없습니다. 서버 상태를 확인해주세요."}
+            return {
+                "error": "온보딩 서버에 연결할 수 없습니다. 서버 상태를 확인해주세요."
+            }
 
 
 class UpdateOnboardingTool(BaseTool):
@@ -49,17 +53,32 @@ class UpdateOnboardingTool(BaseTool):
         "type": "object",
         "properties": {
             "age": {"type": "integer", "description": "나이"},
-            "gender": {"type": "string", "enum": ["MALE", "FEMALE"], "description": "성별"},
+            "gender": {
+                "type": "string",
+                "enum": ["MALE", "FEMALE"],
+                "description": "성별",
+            },
             "height": {"type": "number", "description": "키 (cm)"},
             "weight": {"type": "number", "description": "몸무게 (kg)"},
             "healthGoal": {
                 "type": "string",
-                "enum": ["DIET", "BULK_UP", "LEAN_MASS_UP", "MAINTAIN", "GENERAL_HEALTH"],
+                "enum": [
+                    "DIET",
+                    "BULK_UP",
+                    "LEAN_MASS_UP",
+                    "MAINTAIN",
+                    "GENERAL_HEALTH",
+                ],
                 "description": "건강 목표",
             },
             "activityLevel": {
                 "type": "string",
-                "enum": ["SEDENTARY", "LIGHTLY_ACTIVE", "MODERATELY_ACTIVE", "VERY_ACTIVE"],
+                "enum": [
+                    "SEDENTARY",
+                    "LIGHTLY_ACTIVE",
+                    "MODERATELY_ACTIVE",
+                    "VERY_ACTIVE",
+                ],
                 "description": "활동 수준",
             },
             "diseases": {
@@ -90,7 +109,7 @@ class UpdateOnboardingTool(BaseTool):
         try:
             async with httpx.AsyncClient() as client:
                 resp = await client.put(
-                    f"{SPRING_BASE_URL}/profile",
+                    f"{SPRING_BASE_URL}/api/profile",
                     json=params,
                     cookies={"JSESSIONID": context.get("jsessionid", "")},
                     headers={"X-Guest-Id": context["guest_id"]},
@@ -98,8 +117,14 @@ class UpdateOnboardingTool(BaseTool):
                 )
                 if resp.status_code == 200:
                     return resp.json()
-                return {"error": f"온보딩 정보 업데이트 실패 (status={resp.status_code})"}
+                return {
+                    "error": f"온보딩 정보 업데이트 실패 (status={resp.status_code})"
+                }
         except httpx.TimeoutException:
-            return {"error": "온보딩 서버 응답 시간이 초과되었습니다. 잠시 후 다시 시도해주세요."}
+            return {
+                "error": "온보딩 서버 응답 시간이 초과되었습니다. 잠시 후 다시 시도해주세요."
+            }
         except httpx.ConnectError:
-            return {"error": "온보딩 서버에 연결할 수 없습니다. 서버 상태를 확인해주세요."}
+            return {
+                "error": "온보딩 서버에 연결할 수 없습니다. 서버 상태를 확인해주세요."
+            }

@@ -16,7 +16,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 @RestController
-@RequestMapping("/foods")
+@RequestMapping("/api/foods")
 @RequiredArgsConstructor
 @Tag(name = "Food", description = "음식 검색 및 영양 정보 API")
 public class FoodController {

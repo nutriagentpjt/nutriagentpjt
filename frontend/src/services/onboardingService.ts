@@ -87,12 +87,12 @@ function mapBackendOnboardingResponse(response: BackendOnboardingResponse): Onbo
 
 export const onboardingService = {
   saveOnboarding: async (data: OnboardingRequest): Promise<OnboardingResponse> => {
-    const response = await api.post<BackendOnboardingResponse>('/onboarding', data);
+    const response = await api.post<BackendOnboardingResponse>('/api/onboarding', data);
     return mapBackendOnboardingResponse(response.data);
   },
 
   getOnboarding: async (): Promise<OnboardingResponse> => {
-    const response = await api.get<ProfileResponse>('/profile');
+    const response = await api.get<ProfileResponse>('/api/profile');
     return mapProfileToOnboardingResponse(response.data);
   },
 

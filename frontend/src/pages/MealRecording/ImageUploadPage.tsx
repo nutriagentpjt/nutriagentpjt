@@ -2,11 +2,12 @@ import { AlertCircle, ChevronRight, Loader2, Search, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ImagePreview, ImageSourceModal } from '@/components/camera';
+import { AddFoodModal } from '@/components/food';
 import { ROUTES } from '@/constants/routes';
 import { useImageUpload } from '@/hooks';
 import { Header } from '@/layouts/Header';
 import { useImageUploadStore } from '@/store';
-import type { MealImageRecognitionCandidate } from '@/types';
+import type { Food, MealImageRecognitionCandidate } from '@/types';
 import { normalizeVisionImageFile } from '@/utils/imageFile';
 
 function getConfidenceMeta(confidence?: number) {
@@ -41,10 +42,28 @@ function getConfidenceMeta(confidence?: number) {
   };
 }
 
+function toFoodCandidate(candidate: MealImageRecognitionCandidate): Food {
+  const fallbackServingSize = Number(candidate.servingSize ?? 100) || 100;
+
+  return {
+    id: candidate.id ?? candidate.name,
+    name: candidate.name,
+    brand: candidate.brand,
+    servingSize: fallbackServingSize,
+    weight: fallbackServingSize,
+    servingUnit: candidate.servingUnit || 'g',
+    calories: candidate.calories ?? 0,
+    carbs: candidate.carbs ?? 0,
+    protein: candidate.protein ?? 0,
+    fat: candidate.fat ?? 0,
+  };
+}
+
 export default function ImageUploadPage() {
   const navigate = useNavigate();
   const cameraInputRef = useRef<HTMLInputElement | null>(null);
   const galleryInputRef = useRef<HTMLInputElement | null>(null);
+  const didSaveFromAddFoodModalRef = useRef(false);
   const clearSelectedFile = useImageUploadStore((state) => state.clearSelectedFile);
   const selectedFile = useImageUploadStore((state) => state.selectedFile);
   const setSelectedFile = useImageUploadStore((state) => state.setSelectedFile);
@@ -53,11 +72,13 @@ export default function ImageUploadPage() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [showResultModal, setShowResultModal] = useState(false);
   const [isPreparingImage, setIsPreparingImage] = useState(false);
+  const [activeFood, setActiveFood] = useState<Food | null>(null);
+  const [showAddFoodModal, setShowAddFoodModal] = useState(false);
   const imageUpload = useImageUpload();
 
   useEffect(() => {
     if (!selectedFile) {
-      navigate(-1);
+      navigate(ROUTES.HOME, { replace: true });
       return;
     }
 
@@ -136,17 +157,13 @@ export default function ImageUploadPage() {
 
   const handleBack = () => {
     clearSelectedFile();
-    navigate(-1);
+    navigate(ROUTES.HOME, { replace: true });
   };
 
   const handleUseResult = (candidate: MealImageRecognitionCandidate) => {
-    clearSelectedFile();
-    navigate(ROUTES.MEAL_SEARCH, {
-      replace: true,
-      state: {
-        initialQuery: candidate.name,
-      },
-    });
+    setActiveFood(toFoodCandidate(candidate));
+    setShowResultModal(false);
+    setShowAddFoodModal(true);
   };
 
   const handleRetrySelection = () => {
@@ -328,14 +345,41 @@ export default function ImageUploadPage() {
               <button type="button" onClick={() => setShowResultModal(false)} className="btn btn-ghost flex-1">
                 닫기
               </button>
-              <button type="button" onClick={() => handleUseResult(topCandidate)} className="btn btn-primary flex-1">
+              <button
+                type="button"
+                onClick={() => handleUseResult(topCandidate)}
+                className="btn btn-primary flex-1"
+              >
                 <Search className="h-4 w-4" />
-                검색
+                선택
               </button>
             </div>
           </div>
         </div>
       ) : null}
+
+      <AddFoodModal
+        food={activeFood}
+        isOpen={showAddFoodModal}
+        onClose={() => {
+          setShowAddFoodModal(false);
+          setActiveFood(null);
+
+          if (didSaveFromAddFoodModalRef.current) {
+            didSaveFromAddFoodModalRef.current = false;
+            return;
+          }
+
+          setShowResultModal(true);
+        }}
+        onSaved={() => {
+          didSaveFromAddFoodModalRef.current = true;
+          clearSelectedFile();
+          setShowAddFoodModal(false);
+          setActiveFood(null);
+        }}
+        redirectTo={ROUTES.HOME}
+      />
 
       {errorMessage ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-5" onClick={() => setErrorMessage(null)}>

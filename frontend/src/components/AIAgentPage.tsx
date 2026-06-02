@@ -31,23 +31,32 @@ export default function AIAgentPage() {
   const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
   const [editingSessionTitle, setEditingSessionTitle] = useState("");
   const messagesContainerRef = useRef<HTMLDivElement>(null);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const sessionTitleInputRef = useRef<HTMLInputElement>(null);
   const personaPickerRef = useRef<HTMLDivElement>(null);
   const isComposingRef = useRef(false);
   const inlineRenameBlurGuardRef = useRef(false);
+  const shouldAutoScrollRef = useRef(true);
+
+  const updateAutoScrollLock = (element: HTMLDivElement) => {
+    const distanceFromBottom = element.scrollHeight - element.scrollTop - element.clientHeight;
+    shouldAutoScrollRef.current = distanceFromBottom < 48;
+  };
 
   // 메시지가 추가될 때마다 스크롤을 맨 아래로
   useEffect(() => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: "smooth", block: "end" });
+    if (!shouldAutoScrollRef.current) {
       return;
     }
 
-    messagesContainerRef.current?.scrollTo({
-      top: messagesContainerRef.current.scrollHeight,
-      behavior: "smooth",
+    const container = messagesContainerRef.current;
+    if (!container) {
+      return;
+    }
+
+    container.scrollTo({
+      top: container.scrollHeight,
+      behavior: "auto",
     });
   }, [messages, isTyping]);
 
@@ -107,10 +116,17 @@ export default function AIAgentPage() {
   };
 
   const handleStartNewChat = async () => {
+    shouldAutoScrollRef.current = true;
     const created = await startNewChat();
     if (created) {
       setShowHistory(false);
     }
+  };
+
+  const handleSelectSession = async (session: typeof sessions[number]) => {
+    shouldAutoScrollRef.current = true;
+    await selectSession(session);
+    setShowHistory(false);
   };
 
   const startInlineRename = (sessionId: string, currentTitle?: string | null) => {
@@ -167,7 +183,7 @@ export default function AIAgentPage() {
   };
 
   return (
-    <div className="h-full flex flex-col bg-gradient-to-b from-gray-50 to-white">
+    <div className="flex h-0 min-h-0 flex-1 flex-col overflow-hidden bg-gradient-to-b from-gray-50 to-white">
       {/* Header */}
       <div className="bg-white border-b border-gray-200 shrink-0">
         <div className="px-5 py-4">
@@ -185,8 +201,8 @@ export default function AIAgentPage() {
             </button>
 
             <div className="flex items-center justify-center gap-2">
-              <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center">
-                <Sparkles className="w-4.5 h-4.5 text-white" />
+              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white shadow-sm">
+                <Sparkles className="h-7 w-7 text-green-500" />
               </div>
               <div className="text-center">
                 <h1 className="text-lg font-semibold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">AI 어시스턴트</h1>
@@ -257,11 +273,12 @@ export default function AIAgentPage() {
       </div>
 
       {/* Messages Area - 스크롤 가능 */}
-      <OverlayScrollArea
-        className="px-5 py-5 space-y-4"
-        containerClassName="flex-1"
+      <div
         ref={messagesContainerRef}
+        onScroll={(event) => updateAutoScrollLock(event.currentTarget)}
+        className="app-scrollbar h-0 flex-1 min-h-0 touch-pan-y overflow-y-auto px-5 py-5"
       >
+        <div className="space-y-4">
         {isLoadingHistory ? (
           <div className="flex justify-center py-6 text-sm text-gray-500">이전 대화를 불러오는 중입니다.</div>
         ) : null}
@@ -342,8 +359,8 @@ export default function AIAgentPage() {
             </div>
           </div>
         )}
-        <div ref={messagesEndRef} />
-      </OverlayScrollArea>
+        </div>
+      </div>
 
       {showHistory && (
         <div className="fixed inset-0 z-50 flex justify-center bg-black/40" onClick={() => setShowHistory(false)}>
@@ -418,8 +435,7 @@ export default function AIAgentPage() {
                         <button
                           type="button"
                           onClick={() => {
-                            void selectSession(session);
-                            setShowHistory(false);
+                            void handleSelectSession(session);
                           }}
                           className={`w-full rounded-2xl border border-gray-200 px-4 py-3 text-left transition-colors ${
                             activeMenuSessionId === session.id ? 'bg-gray-100' : 'bg-white hover:bg-gray-50'
@@ -511,7 +527,7 @@ export default function AIAgentPage() {
       )}
 
       {/* Input Area - 하단 고정 */}
-      <div className="bg-white border-t border-gray-200 px-5 py-3 shrink-0">
+      <div className="shrink-0 border-t border-gray-200 bg-white px-5 pb-4 pt-3 [@media(pointer:coarse)]:pb-[calc(1rem+env(safe-area-inset-bottom))]">
         <div className="flex items-end gap-2.5">
           <textarea
             ref={inputRef}

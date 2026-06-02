@@ -289,7 +289,9 @@ def upload_meal_image(
         ) from e
 
     except Exception:
-        logger.exception("Unexpected error during image inference [request_id=%s]", request_id)
+        logger.exception(
+            "Unexpected error during image inference [request_id=%s]", request_id
+        )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Internal server error.",

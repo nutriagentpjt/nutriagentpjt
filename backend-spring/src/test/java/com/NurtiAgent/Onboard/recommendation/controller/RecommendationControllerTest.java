@@ -1,5 +1,6 @@
 package com.NurtiAgent.Onboard.recommendation.controller;
 
+import com.NurtiAgent.Onboard.common.constants.TimeZoneConstants;
 import com.NurtiAgent.Onboard.common.enums.MealType;
 import com.NurtiAgent.Onboard.profile.exception.NutritionTargetNotFoundException;
 import com.NurtiAgent.Onboard.recommendation.dto.RecommendationResponse;
@@ -37,7 +38,7 @@ class RecommendationControllerTest {
     @MockBean  RecommendationService recommendationService;
 
     private static final String GUEST_ID = "guest_test-001";
-    private static final String TODAY = LocalDate.now().toString();
+    private static final String TODAY = LocalDate.now(TimeZoneConstants.APP_ZONE_ID).toString();
 
     private MockHttpSession authSession;
 
@@ -77,7 +78,7 @@ class RecommendationControllerTest {
                     eq(GUEST_ID), anyString(), eq(MealType.LUNCH), eq(10)))
                     .thenReturn(buildResponse());
 
-            mockMvc.perform(get("/recommendations")
+            mockMvc.perform(get("/api/recommendations")
                             .session(authSession)
                             .param("mealType", "LUNCH")
                             .param("date", TODAY)
@@ -90,7 +91,7 @@ class RecommendationControllerTest {
         @Test
         @DisplayName("세션 없음: 401 UNAUTHORIZED")
         void withoutSession_returns401() throws Exception {
-            mockMvc.perform(get("/recommendations")
+            mockMvc.perform(get("/api/recommendations")
                             .param("mealType", "LUNCH"))
                     .andExpect(status().isUnauthorized());
 
@@ -104,7 +105,7 @@ class RecommendationControllerTest {
                     eq(GUEST_ID), eq(TODAY), eq(MealType.BREAKFAST), eq(10)))
                     .thenReturn(buildResponse());
 
-            mockMvc.perform(get("/recommendations")
+            mockMvc.perform(get("/api/recommendations")
                             .session(authSession)
                             .param("mealType", "BREAKFAST"))
                     .andExpect(status().isOk());
@@ -116,7 +117,7 @@ class RecommendationControllerTest {
         @Test
         @DisplayName("limit=0: 400 BAD_REQUEST (컨트롤러 검증)")
         void limitZero_returns400() throws Exception {
-            mockMvc.perform(get("/recommendations")
+            mockMvc.perform(get("/api/recommendations")
                             .session(authSession)
                             .param("mealType", "LUNCH")
                             .param("limit", "0"))
@@ -126,7 +127,7 @@ class RecommendationControllerTest {
         @Test
         @DisplayName("limit=21: 400 BAD_REQUEST (컨트롤러 검증)")
         void limitOver20_returns400() throws Exception {
-            mockMvc.perform(get("/recommendations")
+            mockMvc.perform(get("/api/recommendations")
                             .session(authSession)
                             .param("mealType", "LUNCH")
                             .param("limit", "21"))
@@ -139,7 +140,7 @@ class RecommendationControllerTest {
             when(recommendationService.getRecommendations(any(), any(), any(), eq(1)))
                     .thenReturn(buildResponse());
 
-            mockMvc.perform(get("/recommendations")
+            mockMvc.perform(get("/api/recommendations")
                             .session(authSession)
                             .param("mealType", "DINNER")
                             .param("limit", "1"))
@@ -152,7 +153,7 @@ class RecommendationControllerTest {
             when(recommendationService.getRecommendations(any(), any(), any(), eq(20)))
                     .thenReturn(buildResponse());
 
-            mockMvc.perform(get("/recommendations")
+            mockMvc.perform(get("/api/recommendations")
                             .session(authSession)
                             .param("mealType", "SNACK")
                             .param("limit", "20"))
@@ -160,22 +161,22 @@ class RecommendationControllerTest {
         }
 
         @Test
-        @DisplayName("영양 목표 미설정: 409 CONFLICT (NutritionTargetNotFoundException)")
-        void noNutritionTarget_returns409() throws Exception {
+        @DisplayName("영양 목표 미설정: 404 NOT_FOUND (NutritionTargetNotFoundException)")
+        void noNutritionTarget_returns404() throws Exception {
             when(recommendationService.getRecommendations(any(), any(), any(), any()))
                     .thenThrow(new NutritionTargetNotFoundException("온보딩을 먼저 완료해주세요"));
 
-            mockMvc.perform(get("/recommendations")
+            mockMvc.perform(get("/api/recommendations")
                             .session(authSession)
                             .param("mealType", "LUNCH"))
-                    .andExpect(status().isConflict())
+                    .andExpect(status().isNotFound())
                     .andExpect(jsonPath("$.error").exists());
         }
 
         @Test
         @DisplayName("잘못된 mealType 값: 400 BAD_REQUEST (MethodArgumentTypeMismatch)")
         void invalidMealType_returns400() throws Exception {
-            mockMvc.perform(get("/recommendations")
+            mockMvc.perform(get("/api/recommendations")
                             .session(authSession)
                             .param("mealType", "INVALID_TYPE"))
                     .andExpect(status().isBadRequest());

@@ -161,7 +161,9 @@ def build_foods_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     # 현재는 raw와 동일(NFC + strip)하며, 향후 추가 정규화 시 이 컬럼만 수정한다.
     work["food_name_norm"] = work["food_name_raw"].copy()
 
-    numeric_cols = [col for col in TARGET_COLUMNS if col not in ("food_name_raw", "food_name_norm")]
+    numeric_cols = [
+        col for col in TARGET_COLUMNS if col not in ("food_name_raw", "food_name_norm")
+    ]
     for col in numeric_cols:
         work[col] = work[col].map(to_nullable_float)
 
@@ -240,7 +242,7 @@ def main() -> None:
 
         after_count = count_rows(conn)
 
-    print(f"[DONE] vision_foods upsert complete")
+    print("[DONE] vision_foods upsert complete")
     print(f"csv rows prepared      : {len(records)}")
     print(f"rows before in table   : {before_count}")
     print(f"rows after in table    : {after_count}")

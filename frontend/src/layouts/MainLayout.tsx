@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import { ROUTES } from '@/constants/routes';
 import { OverlayScrollArea } from '@/components/common/OverlayScrollArea';
@@ -20,6 +20,7 @@ const headerTitles: Record<string, string> = {
 
 export default function MainLayout() {
   const location = useLocation();
+  const [useNativeScroll, setUseNativeScroll] = useState(false);
 
   const headerTitle = useMemo(() => headerTitles[location.pathname], [location.pathname]);
   const isRecommendationOverlay = location.pathname === ROUTES.RECOMMENDATION;
@@ -33,18 +34,42 @@ export default function MainLayout() {
     location.pathname === ROUTES.MEAL_UPLOAD ||
     location.pathname === ROUTES.MYPAGE ||
     location.pathname === ROUTES.RECOMMENDATION_SETTINGS;
+  const shouldBypassOverlayScroll = location.pathname === ROUTES.LEGACY_AI_AGENT;
+  const shouldUseNativeScroll = useNativeScroll && !shouldBypassOverlayScroll;
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+      return;
+    }
+
+    const mediaQuery = window.matchMedia('(pointer: coarse)');
+    const update = () => setUseNativeScroll(mediaQuery.matches);
+
+    update();
+    mediaQuery.addEventListener?.('change', update);
+
+      return () => {
+        mediaQuery.removeEventListener?.('change', update);
+      };
+  }, []);
 
   return (
     <div className="flex min-h-screen justify-center bg-gradient-to-b from-gray-50 to-white">
-      <div className="relative flex h-screen w-full max-w-[390px] flex-col">
+      <div className={`relative flex w-full max-w-[390px] flex-col ${shouldUseNativeScroll ? 'min-h-[100dvh]' : 'h-[100dvh] min-h-0'}`}>
         {!hideLayoutHeader ? <Header title={headerTitle} /> : null}
-        <OverlayScrollArea
-          className={hideTabNavigation ? 'pb-0' : 'pb-[68px]'}
-          containerClassName="flex-1"
-          thumbInsetBottom={hideTabNavigation ? 4 : 84}
-        >
-          <Outlet />
-        </OverlayScrollArea>
+        {shouldUseNativeScroll || shouldBypassOverlayScroll ? (
+          <main className={hideTabNavigation ? 'flex h-0 min-h-0 flex-1 flex-col overflow-hidden' : 'flex h-0 min-h-0 flex-1 flex-col overflow-hidden pb-[68px]'}>
+            <Outlet />
+          </main>
+        ) : (
+          <OverlayScrollArea
+            className={hideTabNavigation ? 'pb-0' : 'pb-[68px]'}
+            containerClassName="flex-1 min-h-0"
+            thumbInsetBottom={hideTabNavigation ? 4 : 84}
+          >
+            <Outlet />
+          </OverlayScrollArea>
+        )}
         {!hideTabNavigation ? <TabNavigation /> : null}
       </div>
     </div>

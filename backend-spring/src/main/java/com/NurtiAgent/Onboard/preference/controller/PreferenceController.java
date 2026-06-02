@@ -12,7 +12,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/preferences")
+@RequestMapping("/api/preferences")
 @RequiredArgsConstructor
 public class PreferenceController {
 

@@ -1,33 +1,36 @@
 import math
 
 from app.models.food import Food
-from app.schemas.enums import Disease, HealthGoal
+from app.schemas.enums import Disease, HealthGoal, MealType
 from app.schemas.response import ScoreBreakdown
 from app.services.nutrition_calculator import DailyNutritionPlan, NutrientTarget
 
 # 기본 가중치 (합 = 100)
 DEFAULT_WEIGHTS: dict[str, int] = {
-    "gap_match": 35,
-    "goal_alignment": 12,
+    "gap_match": 30,  # 35 → 30
+    "goal_alignment": 10,  # 12 → 10
     "disease_compliance": 18,
     "preference": 8,
     "feedback": 7,
     "micro_fit": 10,
     "gi_gl": 5,
     "leucine": 5,
+    "meal_time_fit": 7,  # 끼니 적합도
 }
 
 
-def _resolve_weights(health_goal: HealthGoal, diseases: list[Disease]) -> dict[str, int]:
+def _resolve_weights(
+    health_goal: HealthGoal, diseases: list[Disease]
+) -> dict[str, int]:
     w = dict(DEFAULT_WEIGHTS)
     if Disease.DIABETES in diseases:
-        w["gi_gl"] += 10       # 5→15
-        w["gap_match"] -= 5    # 35→30
+        w["gi_gl"] += 10  # 5→15
+        w["gap_match"] -= 5  # 35→30
     if Disease.HYPERTENSION in diseases:
-        w["micro_fit"] += 8    # 10→18
+        w["micro_fit"] += 8  # 10→18
         w["disease_compliance"] -= 4  # 18→14
     if health_goal in (HealthGoal.LEAN_MASS_UP, HealthGoal.BULK_UP):
-        w["leucine"] += 7      # 5→12
+        w["leucine"] += 7  # 5→12
     if Disease.KIDNEY_DISEASE in diseases:
         w["disease_compliance"] += 7  # 18→25
     return w
@@ -44,6 +47,7 @@ def calculate_score(
     feedback_map: dict[int, str],
     daily_plan: DailyNutritionPlan | None = None,
     weight: float = 0.0,
+    meal_type: MealType | None = None,
 ) -> ScoreBreakdown:
     w = _resolve_weights(health_goal, diseases)
 
@@ -52,13 +56,20 @@ def calculate_score(
 
     return ScoreBreakdown(
         gap_match=scale(_gap_match_score(food, gap, meal_target), "gap_match"),
-        goal_alignment=scale(_goal_alignment_score(food, health_goal), "goal_alignment"),
-        disease_compliance=scale(_disease_compliance_score(food, diseases), "disease_compliance"),
-        preference=scale(_preference_score(food, preferred_foods, disliked_foods), "preference"),
+        goal_alignment=scale(
+            _goal_alignment_score(food, health_goal), "goal_alignment"
+        ),
+        disease_compliance=scale(
+            _disease_compliance_score(food, diseases), "disease_compliance"
+        ),
+        preference=scale(
+            _preference_score(food, preferred_foods, disliked_foods), "preference"
+        ),
         feedback=scale(_feedback_score(food.id, feedback_map), "feedback"),
         micro_fit=scale(_micro_fit_score(food, daily_plan, meal_target), "micro_fit"),
         gi_gl=scale(_gi_gl_score(food, diseases), "gi_gl"),
         leucine=scale(_leucine_score(food, gap.protein, weight), "leucine"),
+        meal_time_fit=scale(_meal_time_fit_score(food, meal_type), "meal_time_fit"),
     )
 
 
@@ -66,12 +77,15 @@ def calculate_score(
 # Gap Match Score — 내부 [0-10], 가중치 적용 후 [0, w["gap_match"]]
 # ---------------------------------------------------------------------------
 
-def _gap_match_score(food: Food, gap: NutrientTarget, meal_target: NutrientTarget) -> float:
+
+def _gap_match_score(
+    food: Food, gap: NutrientTarget, meal_target: NutrientTarget
+) -> float:
     nutrients = {
         "calories": (food.calories or 0, gap.calories, meal_target.calories),
-        "protein":  (food.protein or 0,  gap.protein,  meal_target.protein),
-        "carbs":    (food.carbs or 0,    gap.carbs,    meal_target.carbs),
-        "fat":      (food.fat or 0,      gap.fat,      meal_target.fat),
+        "protein": (food.protein or 0, gap.protein, meal_target.protein),
+        "carbs": (food.carbs or 0, gap.carbs, meal_target.carbs),
+        "fat": (food.fat or 0, gap.fat, meal_target.fat),
     }
 
     deficit_ratios: dict[str, float] = {}
@@ -89,7 +103,7 @@ def _gap_match_score(food: Food, gap: NutrientTarget, meal_target: NutrientTarge
             else:
                 # 필요량 초과 시 제곱 페널티 곡선
                 excess = raw - 1.0
-                fill_rate = max(0.0, 1.0 - excess ** 2)
+                fill_rate = max(0.0, 1.0 - excess**2)
         else:
             # 이미 충족된 영양소: 해당 식품 기여가 클수록 제곱 감점
             fill_rate = max(0.0, 1.0 - (food_val / mt) ** 2) if mt > 0 else 0.5
@@ -111,6 +125,7 @@ def _softmax(ratios: dict[str, float]) -> dict[str, float]:
 # ---------------------------------------------------------------------------
 # Goal Alignment Score — [0-10]
 # ---------------------------------------------------------------------------
+
 
 def _goal_alignment_score(food: Food, health_goal: HealthGoal) -> float:
     score = 5.0
@@ -155,6 +170,7 @@ def _goal_alignment_score(food: Food, health_goal: HealthGoal) -> float:
 # HYPERTENSION/HYPERLIPIDEMIA/DIABETES는 micro_fit/gi_gl로 이관
 # ---------------------------------------------------------------------------
 
+
 def _disease_compliance_score(food: Food, diseases: list[Disease]) -> float:
     score = 10.0
 
@@ -172,7 +188,10 @@ def _disease_compliance_score(food: Food, diseases: list[Disease]) -> float:
             profile = getattr(food, "profile", None)
             if profile and profile.purine_mg and profile.purine_mg > 200:
                 score -= 5
-            elif food.purine_level and food.purine_level.upper() in ("HIGH", "VERY_HIGH"):
+            elif food.purine_level and food.purine_level.upper() in (
+                "HIGH",
+                "VERY_HIGH",
+            ):
                 score -= 4
 
         elif disease == Disease.THYROID_DISEASE:
@@ -185,6 +204,7 @@ def _disease_compliance_score(food: Food, diseases: list[Disease]) -> float:
 # ---------------------------------------------------------------------------
 # Micro-Fit Score — [0-10] (섬유/K/Na/포화지방)
 # ---------------------------------------------------------------------------
+
 
 def _micro_fit_score(
     food: Food,
@@ -229,6 +249,7 @@ def _micro_fit_score(
 # GI/GL Score — [0-10] (당뇨 사용자만 차별화)
 # ---------------------------------------------------------------------------
 
+
 def _gi_gl_score(food: Food, diseases: list[Disease]) -> float:
     if Disease.DIABETES not in diseases:
         return 5.0
@@ -259,6 +280,7 @@ def _gi_gl_score(food: Food, diseases: list[Disease]) -> float:
 # Leucine Score — [0-10]
 # ---------------------------------------------------------------------------
 
+
 def _leucine_score(food: Food, remaining_protein: float, body_weight: float) -> float:
     score = 0.0
     food_protein = food.protein or 0
@@ -276,6 +298,7 @@ def _leucine_score(food: Food, remaining_protein: float, body_weight: float) -> 
 # ---------------------------------------------------------------------------
 # Preference Score — [0-10]
 # ---------------------------------------------------------------------------
+
 
 def _preference_score(
     food: Food,
@@ -316,3 +339,61 @@ def _feedback_score(food_id: int, feedback_map: dict[int, str]) -> float:
     if fb_type and fb_type in _FEEDBACK_DELTA:
         score += _FEEDBACK_DELTA[fb_type]
     return round(max(0.0, min(score, 10.0)), 2)
+
+
+# ---------------------------------------------------------------------------
+# Meal-Time Fit Score — [0-10] (끼니별 음식 적합도)
+# ---------------------------------------------------------------------------
+
+
+def _meal_time_fit_score(food: Food, meal_type: MealType | None) -> float:
+    if meal_type is None:
+        return 5.0
+
+    profile = getattr(food, "profile", None)
+    role = (profile.dish_role if profile else None) or "UNKNOWN"
+    category = food.category or ""
+    cal = food.calories or 0
+
+    if meal_type == MealType.BREAKFAST:
+        # 죽·스프: 아침에 최적
+        if "죽" in category or "스프" in category:
+            return 9.0
+        # 맑은국: 아침 국으로 이상적 (고칼로리 보양식 제외)
+        if "국 및 탕류" in category and cal < 400:
+            return 9.0
+        # 달걀류: 아침 단백질 공급원
+        if category == "난류":
+            return 8.0
+        # 두부류: 가벼운 단백질
+        if "두류" in category:
+            return 7.0
+        # 찌개·전골: 아침에 강한 패널티
+        if "찌개" in category or "전골" in category:
+            return 0.0
+        # 고칼로리 주반찬: 아침에 부담
+        if role == "MAIN" and cal > 350:
+            return 3.0
+        return 5.0
+
+    if meal_type == MealType.DINNER:
+        # 저녁: 저칼로리 음식 선호
+        if cal < 200:
+            return 7.5
+        if cal < 350:
+            return 5.5
+        if cal > 500:
+            return 2.5
+        return 5.0
+
+    if meal_type == MealType.SNACK:
+        # 간식: 스낵·유제품·과일 선호, 밥·국·주반찬 비적합
+        if role in ("SNACK", "BEVERAGE"):
+            return 9.0
+        if category in ("과일류", "우유 및 그 제품"):
+            return 8.0
+        if role in ("RICE", "SOUP", "MAIN"):
+            return 1.0
+        return 5.0
+
+    return 5.0  # LUNCH: 중립

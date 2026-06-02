@@ -8,9 +8,10 @@ import { showToast } from '@/components/common';
 import { MealTypeSelector, NutritionPreview } from '@/components/meal';
 import { ROUTES } from '@/constants/routes';
 import { useAddMeal } from '@/hooks';
+import { foodService } from '@/services';
 import { useMealStore } from '@/store';
 import type { Food, MealType } from '@/types';
-import { appendStoredMeal, calculateNutrients } from '@/utils';
+import { appendStoredMeal, calculateNutrients, formatDate, getApiErrorMessage, getMealTypeFromDate } from '@/utils';
 
 interface AddFoodModalProps {
   food: Food | null;
@@ -30,12 +31,7 @@ const mealSaveSchema = z.object({
 type MealSaveFormValues = z.infer<typeof mealSaveSchema>;
 
 function getInitialMealType(): MealType {
-  const hour = new Date().getHours();
-
-  if (hour >= 6 && hour < 11) return 'breakfast';
-  if (hour >= 11 && hour < 14) return 'lunch';
-  if (hour >= 14 && hour < 20) return 'dinner';
-  return 'snack';
+  return getMealTypeFromDate(new Date());
 }
 
 function formatDateLabel(date: Date) {
@@ -73,7 +69,7 @@ export function AddFoodModal({ food, isOpen, onClose, onSaved, initialDate, redi
     defaultValues: {
       amount: baseAmount,
       mealType: getInitialMealType(),
-      date: fallbackDate.toISOString().split('T')[0] ?? '',
+      date: formatDate(fallbackDate),
     },
   });
 
@@ -86,7 +82,7 @@ export function AddFoodModal({ food, isOpen, onClose, onSaved, initialDate, redi
     reset({
       amount: baseAmount,
       mealType: getInitialMealType(),
-      date: nextDate.toISOString().split('T')[0] ?? '',
+      date: formatDate(nextDate),
     });
   }, [baseAmount, initialDate, isOpen, reset]);
 
@@ -138,31 +134,63 @@ export function AddFoodModal({ food, isOpen, onClose, onSaved, initialDate, redi
     const now = new Date();
     const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
     const mealName = food.brand ? `${food.name} | ${food.brand}` : food.name;
+    const baseMealPayload = {
+      mealType: parsed.data.mealType,
+      amount: parsed.data.amount,
+      date: nextDateKey,
+    } as const;
+    let savedMeal: Awaited<ReturnType<typeof addMealMutation.mutateAsync>> | null = null;
+
+    try {
+      savedMeal = await addMealMutation.mutateAsync({
+        foodName: food.name,
+        ...baseMealPayload,
+      });
+    } catch (error) {
+      const errorMessage = getApiErrorMessage(error);
+      const shouldRetryWithResolvedFood = errorMessage?.includes('해당 자료를 찾을 수 없습니다') ?? false;
+
+      if (shouldRetryWithResolvedFood) {
+        try {
+          const resolvedFoods = await foodService.searchFoods(food.name);
+          const resolvedFoodName = resolvedFoods.foods.find((candidate) => candidate.name === food.name)?.name
+            ?? resolvedFoods.foods[0]?.name;
+
+          if (resolvedFoodName) {
+            savedMeal = await addMealMutation.mutateAsync({
+              foodName: resolvedFoodName,
+              ...baseMealPayload,
+            });
+          } else {
+            throw error;
+          }
+        } catch (retryError) {
+          console.error('Failed to save meal after resolving food name:', retryError);
+          const retryErrorMessage = getApiErrorMessage(retryError) ?? errorMessage;
+          showToast.error(retryErrorMessage ? `식단을 저장하지 못했어요.\n${retryErrorMessage}` : '식단을 저장하지 못했어요.\n잠시 후 다시 시도해주세요.');
+          return;
+        }
+      } else {
+        console.error('Failed to save meal to API:', error);
+        showToast.error(errorMessage ? `식단을 저장하지 못했어요.\n${errorMessage}` : '식단을 저장하지 못했어요.\n잠시 후 다시 시도해주세요.');
+        return;
+      }
+    }
 
     setAmount(parsed.data.amount);
     setSelectedDate(nextDateKey);
     setSelectedMealType(parsed.data.mealType);
 
-    try {
-      await addMealMutation.mutateAsync({
-        foodName: food.name,
-        mealType: parsed.data.mealType,
-        amount: parsed.data.amount,
-        date: nextDateKey,
-      });
-    } catch (error) {
-      console.error('Failed to save meal to API:', error);
-    }
-
     appendStoredMeal(nextDateKey, {
-      id: Date.now(),
-      name: mealName,
-      calories: previewNutrition.calories,
+      id: savedMeal?.id ?? Date.now(),
+      name: savedMeal?.foodName ?? mealName,
+      calories: savedMeal?.calories ?? previewNutrition.calories,
       time: currentTime,
-      protein: previewNutrition.protein,
-      carbs: previewNutrition.carbs,
-      fat: previewNutrition.fat,
+      protein: savedMeal?.protein ?? previewNutrition.protein,
+      carbs: savedMeal?.carbs ?? previewNutrition.carbs,
+      fat: savedMeal?.fat ?? previewNutrition.fat,
       mealType: parsed.data.mealType,
+      amount: savedMeal?.amount ?? parsed.data.amount,
     });
 
     clearSelection();
@@ -264,7 +292,7 @@ export function AddFoodModal({ food, isOpen, onClose, onSaved, initialDate, redi
                 onClick={() => {
                   const nextDate = new Date(selectedDateObject);
                   nextDate.setDate(nextDate.getDate() - 1);
-                  setValue('date', nextDate.toISOString().split('T')[0] ?? '', { shouldValidate: true, shouldDirty: true });
+                  setValue('date', formatDate(nextDate), { shouldValidate: true, shouldDirty: true });
                 }}
                 className="icon-button flex-shrink-0"
                 aria-label="이전 날짜"
@@ -287,7 +315,7 @@ export function AddFoodModal({ food, isOpen, onClose, onSaved, initialDate, redi
                 onClick={() => {
                   const nextDate = new Date(selectedDateObject);
                   nextDate.setDate(nextDate.getDate() + 1);
-                  setValue('date', nextDate.toISOString().split('T')[0] ?? '', { shouldValidate: true, shouldDirty: true });
+                  setValue('date', formatDate(nextDate), { shouldValidate: true, shouldDirty: true });
                 }}
                 className="icon-button flex-shrink-0"
                 aria-label="다음 날짜"
@@ -297,7 +325,7 @@ export function AddFoodModal({ food, isOpen, onClose, onSaved, initialDate, redi
             </div>
             <button
               type="button"
-              onClick={() => setValue('date', new Date().toISOString().split('T')[0] ?? '', { shouldValidate: true, shouldDirty: true })}
+              onClick={() => setValue('date', formatDate(new Date()), { shouldValidate: true, shouldDirty: true })}
               className="mt-2 text-xs font-medium text-green-600 hover:text-green-700"
             >
               오늘로 이동

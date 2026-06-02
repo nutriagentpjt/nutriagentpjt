@@ -39,7 +39,9 @@ _CATEGORY_MAX_RATIO = 0.15
 _SCORE_NOISE_RANGE = 3.0
 
 
-async def run_recommendation(req: RecommendRequest, db: AsyncSession) -> RecommendResponse:
+async def run_recommendation(
+    req: RecommendRequest, db: AsyncSession
+) -> RecommendResponse:
     # 0. DB에서 유저 컨텍스트 로딩
     user = await load_user_context(db, req.guest_id, req.meal_type)
 
@@ -47,12 +49,20 @@ async def run_recommendation(req: RecommendRequest, db: AsyncSession) -> Recomme
     bmr = calculate_bmr(user.gender, user.weight, user.height, user.age)
     tdee = calculate_tdee(bmr, user.activity_level)
     daily = calculate_daily_targets(
-        tdee, user.weight, user.health_goal, user.diseases,
-        gender=user.gender, exercise_frequency=user.exercise_frequency,
+        tdee,
+        user.weight,
+        user.health_goal,
+        user.diseases,
+        gender=user.gender,
+        exercise_frequency=user.exercise_frequency,
     )
     meal_target = calculate_meal_targets(
-        daily, user.meal_pattern, req.meal_type,
-        weight=user.weight, exercise_time=user.exercise_time, diseases=user.diseases,
+        daily,
+        user.meal_pattern,
+        req.meal_type,
+        weight=user.weight,
+        exercise_time=user.exercise_time,
+        diseases=user.diseases,
     )
 
     # 이미 먹은 영양소 차감
@@ -72,8 +82,12 @@ async def run_recommendation(req: RecommendRequest, db: AsyncSession) -> Recomme
 
     # 2. 후보 필터링 (single 모드)
     candidates = await fetch_and_filter_foods(
-        db, user.diseases, user.allergies, user.disliked_foods,
-        meal_target=meal_target, daily_plan=daily,
+        db,
+        user.diseases,
+        user.allergies,
+        user.disliked_foods,
+        meal_target=meal_target,
+        daily_plan=daily,
     )
 
     if not candidates:
@@ -81,7 +95,9 @@ async def run_recommendation(req: RecommendRequest, db: AsyncSession) -> Recomme
 
     # 2-1. 후보 샘플링: 카테고리 비율 상한 적용 후 랜덤 샘플링
     if len(candidates) > _CANDIDATE_SAMPLE_SIZE:
-        candidates = _stratified_sample(candidates, _CANDIDATE_SAMPLE_SIZE, _CATEGORY_MAX_RATIO)
+        candidates = _stratified_sample(
+            candidates, _CANDIDATE_SAMPLE_SIZE, _CATEGORY_MAX_RATIO
+        )
 
     # 3. 스코어링 (소량 노이즈 추가로 동점 음식 순서 다양화)
     scored: list[tuple[Food, float, object]] = []
@@ -97,6 +113,7 @@ async def run_recommendation(req: RecommendRequest, db: AsyncSession) -> Recomme
             feedback_map=feedback_map,
             daily_plan=daily,
             weight=user.weight,
+            meal_type=req.meal_type,
         )
         total = (
             breakdown.gap_match
@@ -256,8 +273,10 @@ def _build_response(
     meal_sets: "list[MealSetRecommendation] | None" = None,
 ) -> RecommendResponse:
     daily_kwargs: dict = dict(
-        calories=daily.calories, protein=daily.protein,
-        carbs=daily.carbs, fat=daily.fat,
+        calories=daily.calories,
+        protein=daily.protein,
+        carbs=daily.carbs,
+        fat=daily.fat,
     )
     if isinstance(daily, DailyNutritionPlan):
         daily_kwargs.update(
@@ -271,8 +290,10 @@ def _build_response(
         meal_type=meal_type,
         daily_target=NutrientTargets(**daily_kwargs),
         meal_target=NutrientTargets(
-            calories=meal_target.calories, protein=meal_target.protein,
-            carbs=meal_target.carbs, fat=meal_target.fat,
+            calories=meal_target.calories,
+            protein=meal_target.protein,
+            carbs=meal_target.carbs,
+            fat=meal_target.fat,
         ),
         mode=mode,
         recommendations=recommendations,
@@ -284,6 +305,7 @@ def _build_response(
 # Set 모드 헬퍼
 # ---------------------------------------------------------------------------
 
+
 async def _run_set_mode(
     req: RecommendRequest,
     db: AsyncSession,
@@ -294,8 +316,13 @@ async def _run_set_mode(
     feedback_map: dict[int, str],
 ) -> RecommendResponse:
     candidates = await fetch_and_filter_foods(
-        db, user.diseases, user.allergies, user.disliked_foods,
-        mode="set", meal_target=meal_target, daily_plan=daily,
+        db,
+        user.diseases,
+        user.allergies,
+        user.disliked_foods,
+        mode="set",
+        meal_target=meal_target,
+        daily_plan=daily,
     )
 
     if not candidates:
@@ -304,17 +331,60 @@ async def _run_set_mode(
     scored_candidates: list[tuple[Food, float]] = []
     for food in candidates:
         bd = calculate_score(
-            food=food, gap=gap, meal_target=meal_target,
-            health_goal=user.health_goal, diseases=user.diseases,
-            preferred_foods=user.preferred_foods, disliked_foods=user.disliked_foods,
-            feedback_map=feedback_map, daily_plan=daily, weight=user.weight,
+            food=food,
+            gap=gap,
+            meal_target=meal_target,
+            health_goal=user.health_goal,
+            diseases=user.diseases,
+            preferred_foods=user.preferred_foods,
+            disliked_foods=user.disliked_foods,
+            feedback_map=feedback_map,
+            daily_plan=daily,
+            weight=user.weight,
+            meal_type=req.meal_type,
         )
-        total = (bd.gap_match + bd.goal_alignment + bd.disease_compliance
-                 + bd.preference + bd.feedback + bd.micro_fit + bd.gi_gl + bd.leucine)
+        total = (
+            bd.gap_match
+            + bd.goal_alignment
+            + bd.disease_compliance
+            + bd.preference
+            + bd.feedback
+            + bd.micro_fit
+            + bd.gi_gl
+            + bd.leucine
+            + bd.meal_time_fit
+            + random.uniform(-_SCORE_NOISE_RANGE, _SCORE_NOISE_RANGE)
+        )
         scored_candidates.append((food, total))
 
-    role_top = _group_by_role(scored_candidates, top_n=5)
-    meal_sets = _compose_plates(role_top, meal_target, daily, user.diseases, top_k=req.top_n)
+    # 끼니별 다양성: 상위 pool에서 랜덤 선택
+    role_top = _group_by_role(scored_candidates, top_n=8)
+    for _role in ("RICE", "SIDE", "KIMCHI"):
+        pool = role_top.get(_role, [])
+        if len(pool) > 5:
+            random.shuffle(pool)
+            role_top[_role] = pool[:5]
+    for _role in ("SOUP", "MAIN"):
+        pool = role_top.get(_role, [])
+        if len(pool) > 3:
+            random.shuffle(pool)
+            role_top[_role] = pool[:3]
+
+    # 아침: 죽·스프 카테고리 ONE_DISH만 RICE 버킷에 합산
+    if req.meal_type == MealType.BREAKFAST:
+        one_dish_juk = [
+            (f, s)
+            for f, s in role_top.get("ONE_DISH", [])
+            if "죽" in (f.category or "") or "스프" in (f.category or "")
+        ]
+        rice = role_top.get("RICE", [])
+        merged = sorted(rice + one_dish_juk, key=lambda x: x[1], reverse=True)[:5]
+        if merged:
+            role_top["RICE"] = merged
+
+    meal_sets = _compose_plates(
+        role_top, meal_target, daily, user.diseases, top_k=req.top_n
+    )
     return _build_response(req.meal_type, daily, meal_target, [], "set", meal_sets)
 
 
@@ -342,7 +412,9 @@ def _group_by_role(
         if cal_max:
             filtered = [(f, s) for f, s in items if (f.calories or 0) <= cal_max]
             if len(filtered) < max(2, top_n // 2):
-                filtered = [(f, s) for f, s in items if (f.calories or 0) <= cal_max * 2]
+                filtered = [
+                    (f, s) for f, s in items if (f.calories or 0) <= cal_max * 2
+                ]
             items = filtered if filtered else items
 
         sorted_items = sorted(items, key=lambda x: x[1], reverse=True)
@@ -377,11 +449,13 @@ def _plate_objective(
     total_cal = sum(food.calories or 0 for _, food in combo)
     total_protein = sum(food.protein or 0 for _, food in combo)
     total_na = sum(food.sodium or 0 for _, food in combo)
-    total_fiber = sum(food.fiber or 0 for _, food in combo)
-
     # 끼니 영양 충족도 (최대 40점)
-    cal_fill = min(total_cal / meal_target.calories, 1.2) if meal_target.calories > 0 else 0
-    prot_fill = min(total_protein / meal_target.protein, 1.2) if meal_target.protein > 0 else 0
+    cal_fill = (
+        min(total_cal / meal_target.calories, 1.2) if meal_target.calories > 0 else 0
+    )
+    prot_fill = (
+        min(total_protein / meal_target.protein, 1.2) if meal_target.protein > 0 else 0
+    )
     gap_score = (cal_fill * 0.6 + prot_fill * 0.4) * 40
 
     # 6대 식품군 커버리지 (최대 25점)
@@ -395,7 +469,9 @@ def _plate_objective(
     # 나트륨 준수 (최대 20점) — 고혈압/신장질환은 초과 시 강한 페널티
     disease_score = 20.0
     meal_na_max = daily_plan.sodium_mg_max / 3
-    na_sensitive = Disease.HYPERTENSION in diseases or Disease.KIDNEY_DISEASE in diseases
+    na_sensitive = (
+        Disease.HYPERTENSION in diseases or Disease.KIDNEY_DISEASE in diseases
+    )
     if total_na > meal_na_max * 1.5:
         disease_score -= 18 if na_sensitive else 15
     elif total_na > meal_na_max:
@@ -419,7 +495,14 @@ def _plate_objective(
     categories = [food.category for _, food in combo if food.category]
     repeat_penalty = max(0, len(categories) - len(set(categories))) * 3
 
-    return gap_score + balance_score + disease_score - overshoot_penalty - prot_penalty - repeat_penalty
+    return (
+        gap_score
+        + balance_score
+        + disease_score
+        - overshoot_penalty
+        - prot_penalty
+        - repeat_penalty
+    )
 
 
 def _compose_plates(
@@ -434,12 +517,14 @@ def _compose_plates(
     # ONE_DISH 단독 plate
     for food, _ in role_top.get("ONE_DISH", [])[:3]:
         combo: list[tuple[str, Food]] = [("ONE_DISH", food)]
-        results.append((_plate_objective(combo, meal_target, daily_plan, diseases), combo))
+        results.append(
+            (_plate_objective(combo, meal_target, daily_plan, diseases), combo)
+        )
 
     # 1식 3찬 조합: RICE × SOUP × MAIN × SIDE(2) × KIMCHI
-    rice_list  = role_top.get("RICE",   [])
-    soup_list  = role_top.get("SOUP",   [])
-    main_list  = role_top.get("MAIN",   [])
+    rice_list = role_top.get("RICE", [])
+    soup_list = role_top.get("SOUP", [])
+    main_list = role_top.get("MAIN", [])
     # SIDE는 300kcal 이하만 허용 (땅콩조림 같은 고칼로리 SIDE 제외)
     # 후보가 2개 미만이면 필터를 완화해 500kcal 이하 사용
     _all_sides = role_top.get("SIDE", [])
@@ -464,10 +549,14 @@ def _compose_plates(
             + [("SIDE", s[0]) for s in sides]
             + [("KIMCHI", kimchi[0])]
         )
-        results.append((_plate_objective(combo, meal_target, daily_plan, diseases), combo))
+        results.append(
+            (_plate_objective(combo, meal_target, daily_plan, diseases), combo)
+        )
 
     results.sort(key=lambda x: x[0], reverse=True)
-    return [_build_meal_set(score, combo, daily_plan) for score, combo in results[:top_k]]
+    return [
+        _build_meal_set(score, combo, daily_plan) for score, combo in results[:top_k]
+    ]
 
 
 def _build_meal_set(
@@ -483,8 +572,11 @@ def _build_meal_set(
                 food_name=food.name or "",
                 score=round(score, 2),
                 score_breakdown=ScoreBreakdown(
-                    gap_match=0, goal_alignment=0, disease_compliance=0,
-                    preference=0, feedback=0,
+                    gap_match=0,
+                    goal_alignment=0,
+                    disease_compliance=0,
+                    preference=0,
+                    feedback=0,
                 ),
                 recommended_amount_g=round(food.weight or 0, 1),
                 amount_ratio=1.0,
@@ -500,13 +592,13 @@ def _build_meal_set(
         for role, food in combo
     ]
 
-    total_cal    = sum(food.calories or 0 for _, food in combo)
+    total_cal = sum(food.calories or 0 for _, food in combo)
     total_protein = sum(food.protein or 0 for _, food in combo)
-    total_carbs  = sum(food.carbs or 0 for _, food in combo)
-    total_fat    = sum(food.fat or 0 for _, food in combo)
-    total_na     = sum(food.sodium or 0 for _, food in combo)
-    total_k      = sum(food.potassium or 0 for _, food in combo)
-    total_fiber  = sum(food.fiber or 0 for _, food in combo)
+    total_carbs = sum(food.carbs or 0 for _, food in combo)
+    total_fat = sum(food.fat or 0 for _, food in combo)
+    total_na = sum(food.sodium or 0 for _, food in combo)
+    total_k = sum(food.potassium or 0 for _, food in combo)
+    total_fiber = sum(food.fiber or 0 for _, food in combo)
 
     food_groups = {
         p.food_group
@@ -538,8 +630,11 @@ def _build_meal_set(
         },
         score=round(score, 2),
         score_breakdown=ScoreBreakdown(
-            gap_match=0, goal_alignment=0, disease_compliance=0,
-            preference=0, feedback=0,
+            gap_match=0,
+            goal_alignment=0,
+            disease_compliance=0,
+            preference=0,
+            feedback=0,
         ),
         reason_tags=reason_tags,
     )
