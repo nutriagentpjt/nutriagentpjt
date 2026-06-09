@@ -30,6 +30,7 @@ export default function AIAgentPage() {
   const [activeMenuSessionId, setActiveMenuSessionId] = useState<string | null>(null);
   const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
   const [editingSessionTitle, setEditingSessionTitle] = useState("");
+  const [personaLoadingFrame, setPersonaLoadingFrame] = useState(0);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const sessionTitleInputRef = useRef<HTMLInputElement>(null);
@@ -37,6 +38,10 @@ export default function AIAgentPage() {
   const isComposingRef = useRef(false);
   const inlineRenameBlurGuardRef = useRef(false);
   const shouldAutoScrollRef = useRef(true);
+  const selectedPersonaDisplayName = personas.find((persona) => persona.name === selectedPersona)?.displayName;
+  const isPersonaDisplayNameLoading = Boolean(selectedPersona) && !selectedPersonaDisplayName;
+  const personaLoadingLabel = [".", ". .", ". . ."][personaLoadingFrame] ?? ". . .";
+  const headerPersonaLabel = selectedPersonaDisplayName ?? personaLoadingLabel;
 
   const updateAutoScrollLock = (element: HTMLDivElement) => {
     const distanceFromBottom = element.scrollHeight - element.scrollTop - element.clientHeight;
@@ -94,6 +99,21 @@ export default function AIAgentPage() {
       inputRef.current.style.height = "44px";
     }
   }, [inputValue]);
+
+  useEffect(() => {
+    if (!isPersonaDisplayNameLoading) {
+      setPersonaLoadingFrame(0);
+      return;
+    }
+
+    const intervalId = window.setInterval(() => {
+      setPersonaLoadingFrame((current) => (current + 1) % 3);
+    }, 350);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [isPersonaDisplayNameLoading]);
 
   // Enter 키로 전송 (Shift+Enter는 줄바꿈)
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -206,7 +226,13 @@ export default function AIAgentPage() {
               </div>
               <div className="text-center">
                 <h1 className="text-lg font-semibold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">AI 어시스턴트</h1>
-                <p className="text-[11px] text-gray-500 mt-0.5">AI 페르소나</p>
+                <p
+                  className="mt-0.5 text-[11px] text-gray-500"
+                  role="status"
+                  aria-live="polite"
+                >
+                  {headerPersonaLabel}
+                </p>
               </div>
             </div>
 

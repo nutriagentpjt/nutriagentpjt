@@ -8,6 +8,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { ImageSourceModal } from "@/components/camera";
 import { showToast } from "@/components/common";
 import { OverlayScrollArea } from "@/components/common/OverlayScrollArea";
+import NutriAgentLogo from "@/components/common/NutriAgentLogo";
 import { AddFoodModal } from "@/components/food";
 import { loadStoredProfile, PROFILE_STORAGE_UPDATED_EVENT } from "@/components/profile/shared";
 import AIRecommendations from "@/components/recommendation/AIRecommendations";
@@ -1273,8 +1274,17 @@ export default function HomePage() {
 
       {/* Header */}
       <div className="bg-white border-b border-gray-200">
-        <div className="px-5 py-4">
-          <h1 className="text-lg font-semibold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent text-center">NutriAgent</h1>
+        <div className="px-5 py-2.5">
+          <div className="flex items-center justify-center">
+            <NutriAgentLogo variant="icon" className="mt-0.5 -mr-1 flex h-[42px] w-[42px] shrink-0 items-center self-center" title="NutriAgent" />
+            <div className="min-w-0">
+              <h1
+                className="bg-gradient-to-r from-gray-900 via-gray-800 to-gray-700 bg-clip-text pb-0.5 text-[1.54rem] font-medium leading-[1.08] tracking-[-0.045em] text-transparent [font-family:'Avenir_Next_Rounded','Nunito','Trebuchet_MS','Segoe_UI',sans-serif]"
+              >
+                NutriAgent
+              </h1>
+            </div>
+          </div>
         </div>
       </div>
 
