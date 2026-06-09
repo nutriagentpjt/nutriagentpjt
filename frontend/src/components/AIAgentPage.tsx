@@ -226,7 +226,13 @@ export default function AIAgentPage() {
               </div>
               <div className="text-center">
                 <h1 className="text-lg font-semibold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">AI 어시스턴트</h1>
-                <p className="text-[11px] text-gray-500 mt-0.5">{headerPersonaLabel}</p>
+                <p
+                  className="mt-0.5 text-[11px] text-gray-500"
+                  role="status"
+                  aria-live="polite"
+                >
+                  {headerPersonaLabel}
+                </p>
               </div>
             </div>
 

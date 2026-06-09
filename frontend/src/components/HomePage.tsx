@@ -1279,8 +1279,7 @@ export default function HomePage() {
             <NutriAgentLogo variant="icon" className="mt-0.5 -mr-1 flex h-[42px] w-[42px] shrink-0 items-center self-center" title="NutriAgent" />
             <div className="min-w-0">
               <h1
-                className="bg-gradient-to-r from-gray-900 via-gray-800 to-gray-700 bg-clip-text pb-0.5 text-[1.54rem] font-medium leading-[1.08] tracking-[-0.045em] text-transparent"
-                style={{ fontFamily: '"Avenir Next Rounded", "Nunito", "Trebuchet MS", "Segoe UI", sans-serif' }}
+                className="bg-gradient-to-r from-gray-900 via-gray-800 to-gray-700 bg-clip-text pb-0.5 text-[1.54rem] font-medium leading-[1.08] tracking-[-0.045em] text-transparent [font-family:'Avenir_Next_Rounded','Nunito','Trebuchet_MS','Segoe_UI',sans-serif]"
               >
                 NutriAgent
               </h1>
